@@ -6,4 +6,5 @@ Flask
 requests
 sqlalchemy
 python-dotenv
+pyyaml
 -e .
