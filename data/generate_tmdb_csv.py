@@ -1,17 +1,16 @@
-import requests
 import pandas as pd
+import requests
 import time
-# from config import TMDB_API_KEY
 
-from dotenv import load_dotenv
 import os
-# Load environment variables from .env file
+from dotenv import load_dotenv
 load_dotenv()
-# Fetch the API key from environment variables
-TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 
-# import requests
-# response = requests.get("https://api.themoviedb.org/3/", verify=False)  # Disable SSL verification
+# Access environment variables
+TMDB_API_KEY = os.getenv("TMDB_API_KEY") 
+
+# from config.config_loader import load_config
+# TMDB_API_KEY = load_config("TMDB_API_KEY")
 
 
 # Function to fetch data from TMDB API

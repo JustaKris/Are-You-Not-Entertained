@@ -1,5 +1,5 @@
-import yaml
 import os
+import yaml
 
 def load_config(var: str, config_file: str='config/config.yaml', default=None):
     """
