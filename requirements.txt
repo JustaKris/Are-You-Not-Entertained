@@ -5,4 +5,5 @@ scikit-learn
 Flask
 requests
 sqlalchemy
+python-dotenv
 -e .
