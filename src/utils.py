@@ -20,5 +20,29 @@ def save_to_csv(data, filename, directory=".\data"):
     
     # Convert to DataFrame and save
     df = pd.DataFrame(data)
-    df.to_csv(file_path, index=False)
+    df.to_csv(file_path, index=False, sep=";")
     print(f"Data saved to {file_path}")
+
+
+# Load data from csv
+def load_csv_data(filename, directory="./data"):
+    """
+    Loads data from a CSV file with a semicolon separator.
+    
+    Args:
+        filename (str): The name of the CSV file.
+        directory (str, optional): The directory where the CSV file is located.
+                                   Defaults to "./data".
+    
+    Returns:
+        pd.DataFrame: The loaded data as a pandas DataFrame, or None if an error occurs.
+    """
+    file_path = os.path.join(directory, filename)
+    
+    try:
+        df = pd.read_csv(file_path, sep=';')
+        print(f"Data loaded successfully from {file_path}")
+        return df
+    except Exception as e:
+        print(f"Error loading data from {file_path}: {e}")
+        return None
