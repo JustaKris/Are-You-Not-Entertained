@@ -25,7 +25,7 @@ def save_to_csv(data, filename, directory=".\data"):
 
 
 # Load data from csv
-def load_csv_data(filename, directory="./data"):
+def load_csv(filename, directory="./data/tmdb"):
     """
     Loads data from a CSV file with a semicolon separator.
     

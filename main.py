@@ -1,5 +1,6 @@
 from data_collection.tmdb import TMDBClient
 from config.config_loader import load_config
+from src.utils import load_csv
 
 
 def main():
@@ -11,8 +12,15 @@ def main():
         # Initialize the TMDB client
         tmdb_client = TMDBClient(api_key=TMDB_API_KEY)
         
-        # Get movie IDs (and associated features) using the method
-        tmdb_client.get_movie_ids(start_year=2008, min_vote_count=350)
+        # Get movie IDs (and associated features)
+        tmdb_client.get_movie_ids(start_year=2024, min_vote_count=350)
+
+        # Get movie features
+        # movies = load_csv("movie_ids.csv")
+        # movie_ids = movies["ID"].tolist()
+        movie_ids = load_csv("01_movie_ids.csv")["ID"].tolist()
+        print(len(movie_ids))
+        tmdb_client.get_movie_features(movie_ids)
 
 
 

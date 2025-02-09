@@ -23,13 +23,7 @@ class TMDBClient:
         self.session.params = {"api_key": self.api_key}
         logging.basicConfig(level=logging.INFO)
     
-    def fetch_tmdb_data(
-        self,
-        endpoint: str,
-        features: Optional[List[str]] = None,
-        total_pages: Optional[int] = None,
-        output_file_name: str = 'default.csv'
-    ) -> None:
+    def fetch_tmdb_data(self, endpoint: str, features: Optional[List[str]] = None, total_pages: Optional[int] = None, output_file_name: str = 'default.csv') -> None:
         """
         Fetches data from the TMDB API, filters the results based on the specified features, 
         and saves the filtered data to a CSV file.
@@ -98,7 +92,7 @@ class TMDBClient:
         # Save the filtered data to a CSV file in the "./data/tmdb" directory
         save_to_csv(all_data, output_file_name, "./data/tmdb")
     
-    def get_movie_ids(self, start_year: int = 2025, min_vote_count: int = 350) -> None:
+    def get_movie_ids(self, start_year: int = 2025, min_vote_count: int = 350, output_file_name: str = '01_movie_ids.csv') -> None:
         """
         Constructs an endpoint for discovering movies based on a start year and minimum vote count,
         then fetches movie IDs and selected features from the TMDB API.
@@ -128,11 +122,55 @@ class TMDBClient:
             "&sort_by=primary_release_date.desc"
         )
         features = ["id", "genre_ids", "release_date", "vote_count", "vote_average", "title"]
-        self.fetch_tmdb_data(endpoint=endpoint, features=features, output_file_name="movies.csv")
+        self.fetch_tmdb_data(endpoint=endpoint, features=features, output_file_name=output_file_name)
 
     
-    def get_movie_features(self):
-        pass
+    def get_movie_features(self, movie_ids: List[int], output_file_name: str = '02_movie_features.csv') -> None:
+        """
+        Retrieves detailed movie features for each movie ID in the provided list.
+        
+        This method iterates over the list of movie IDs and, for each ID, retrieves detailed movie data
+        from the TMDB API using the 'movie/{movie_id}' endpoint. If a list of features is provided, the
+        method filters each movie's data to include only those keys (with keys uppercased in the final output).
+        All retrieved data is aggregated and saved to a CSV file in the "./data/tmdb" directory.
+
+        Args:
+            movie_ids (List[int]): A list of movie IDs for which to retrieve details.
+            features (Optional[List[str]]): A list of keys corresponding to the movie features to be retained
+                in the output. Each key in the final output is uppercased. If not provided, all available data is retained.
+            output_file_name (str): The name of the CSV file where the movie features data will be saved.
+
+        Returns:
+            None
+        """
+        features = [
+            "belongs_to_collection", "budget", "genres", "imdb_id", "id", "revenue", "runtime", "spoken_languages", "status", "tagline", 
+            "title", "original_title", "vote_average", "vote_count", "overview", "popularity", "production_companies", "production_countries", "release_date"
+            ]
+
+        all_data: List[Dict] = []
+        total_movies = len(movie_ids)
+        for idx, movie_id in enumerate(movie_ids, start=1):
+            url = f"{self.base_url}movie/{movie_id}"
+            try:
+                response = self.session.get(url)
+                response.raise_for_status()
+            except requests.RequestException as e:
+                logging.error(f"Failed to fetch data for movie ID {movie_id}: {e}")
+                continue
+
+            movie_data = response.json()
+            # Filter the movie data if features are specified
+            if features:
+                filtered_movie_data = {key.upper(): movie_data.get(key) for key in features}
+            else:
+                filtered_movie_data = movie_data
+            all_data.append(filtered_movie_data)
+            logging.info(f"Fetched movie {idx}/{total_movies}: ID {movie_id}")
+            time.sleep(self.delay)
+
+        # Save the aggregated movie details to a CSV file in the "./data/tmdb" directory
+        save_to_csv(all_data, output_file_name, "./data/tmdb")
 
 
 if __name__ == "__main__":
