@@ -2,10 +2,12 @@ numpy
 pandas
 matplotlib
 scikit-learn
+seaborn
 requests
 python-dotenv
 pyyaml
 sqlalchemy
 psycopg2
 Flask
+ipykernel
 -e .
