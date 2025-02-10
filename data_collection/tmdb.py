@@ -130,26 +130,35 @@ class TMDBClient:
         Retrieves detailed movie features for each movie ID in the provided list.
         
         This method iterates over the list of movie IDs and, for each ID, retrieves detailed movie data
-        from the TMDB API using the 'movie/{movie_id}' endpoint. If a list of features is provided, the
-        method filters each movie's data to include only those keys (with keys uppercased in the final output).
-        All retrieved data is aggregated and saved to a CSV file in the "./data/tmdb" directory.
-
+        from the TMDB API using the 'movie/{movie_id}' endpoint. It processes special features:
+        
+        - For 'genres': extracts both 'id' and 'name' as GENRE_ID and GENRE_NAME (comma-separated).
+        - For 'production_companies': extracts 'id', 'name', and 'origin_country' as 
+            PRODUCTION_COMPANY_ID, PRODUCTION_COMPANY_NAME, and PRODUCTION_COMPANY_ORIGIN_COUNTRY (comma-separated).
+        - For 'production_countries': extracts only the 'name' as PRODUCTION_COUNTRY_NAME (comma-separated).
+        - For 'spoken_languages': extracts only the 'english_name' as SPOKEN_LANGUAGES (comma-separated).
+        
+        All other features are retained as-is (with keys uppercased).
+        
+        The aggregated data is saved to a CSV file in the "./data/tmdb" directory.
+        
         Args:
             movie_ids (List[int]): A list of movie IDs for which to retrieve details.
-            features (Optional[List[str]]): A list of keys corresponding to the movie features to be retained
-                in the output. Each key in the final output is uppercased. If not provided, all available data is retained.
             output_file_name (str): The name of the CSV file where the movie features data will be saved.
-
+        
         Returns:
             None
         """
+        # Hard-coded list of features to extract (including the ones with special processing)
         features = [
-            "belongs_to_collection", "budget", "genres", "imdb_id", "id", "revenue", "runtime", "spoken_languages", "status", "tagline", 
-            "title", "original_title", "vote_average", "vote_count", "overview", "popularity", "production_companies", "production_countries", "release_date"
-            ]
+            "id", "imdb_id", "genres", "release_date", "status", "title", "budget", "revenue", "runtime", "vote_count", "vote_average", 
+            "popularity", "production_companies", "production_countries", "spoken_languages", 
+            # "tagline", "belongs_to_collection", "original_title", "overview", 
+        ]
 
         all_data: List[Dict] = []
         total_movies = len(movie_ids)
+        
         for idx, movie_id in enumerate(movie_ids, start=1):
             url = f"{self.base_url}movie/{movie_id}"
             try:
@@ -160,11 +169,35 @@ class TMDBClient:
                 continue
 
             movie_data = response.json()
-            # Filter the movie data if features are specified
-            if features:
-                filtered_movie_data = {key.upper(): movie_data.get(key) for key in features}
-            else:
-                filtered_movie_data = movie_data
+            filtered_movie_data = {}
+            
+            for key in features:
+                # Special processing for complex features:
+                if key == "genres":
+                    genres_list = movie_data.get("genres", [])
+                    genre_ids = [str(item.get("id", "")) for item in genres_list]
+                    genre_names = [item.get("name", "") for item in genres_list]
+                    filtered_movie_data["GENRE_ID"] = ", ".join(genre_ids)
+                    filtered_movie_data["GENRE_NAME"] = ", ".join(genre_names)
+                elif key == "production_companies":
+                    companies_list = movie_data.get("production_companies", [])
+                    company_ids = [str(item.get("id", "")) for item in companies_list]
+                    company_names = [item.get("name", "") for item in companies_list]
+                    company_origins = [item.get("origin_country", "") for item in companies_list]
+                    filtered_movie_data["PRODUCTION_COMPANY_ID"] = ", ".join(company_ids)
+                    filtered_movie_data["PRODUCTION_COMPANY_NAME"] = ", ".join(company_names)
+                    filtered_movie_data["PRODUCTION_COMPANY_ORIGIN_COUNTRY"] = ", ".join(company_origins)
+                elif key == "production_countries":
+                    countries_list = movie_data.get("production_countries", [])
+                    country_names = [item.get("name", "") for item in countries_list]
+                    filtered_movie_data["PRODUCTION_COUNTRY_NAME"] = ", ".join(country_names)
+                elif key == "spoken_languages":
+                    languages_list = movie_data.get("spoken_languages", [])
+                    english_names = [item.get("english_name", "") for item in languages_list]
+                    filtered_movie_data["SPOKEN_LANGUAGES"] = ", ".join(english_names)
+                else:
+                    filtered_movie_data[key.upper()] = movie_data.get(key)
+            
             all_data.append(filtered_movie_data)
             logging.info(f"Fetched movie {idx}/{total_movies}: ID {movie_id}")
             time.sleep(self.delay)

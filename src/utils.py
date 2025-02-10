@@ -17,6 +17,10 @@ def save_to_csv(data, filename, directory=".\data"):
     
     # Construct full file path
     file_path = os.path.join(directory, filename)
+
+    # If data is a dict (i.e., not a list), wrap it in a list
+    if not isinstance(data, list):
+        data = [data]
     
     # Convert to DataFrame and save
     df = pd.DataFrame(data)
