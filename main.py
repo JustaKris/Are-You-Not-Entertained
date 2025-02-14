@@ -12,11 +12,11 @@ def main():
     tmdb_client = TMDBClient(api_key=TMDB_API_KEY)
     
     # Get movie IDs (and associated features)
-    tmdb_client.get_movie_ids(start_year=2020, min_vote_count=350)
+    tmdb_client.get_movie_ids(start_year=1950, min_vote_count=350)
 
     # Get movie features
-    # movie_ids = load_csv("01_movie_ids.csv")["ID"].tolist()
-    # tmdb_client.get_movie_features(movie_ids)
+    movie_ids = load_csv("01_movie_ids.csv")["ID"].tolist()
+    tmdb_client.get_movie_features(movie_ids)
 
     # OMDB ---------------------------------------------------
     # # Load API key

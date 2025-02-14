@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from typing import Optional, List, Dict, Union
 
 
 # Function to save data to CSV
@@ -26,6 +27,52 @@ def save_to_csv(data, filename, directory=".\data"):
     df = pd.DataFrame(data)
     df.to_csv(file_path, index=False, sep=";")
     print(f"Data saved to {file_path}")
+
+
+# New helper function: append_to_csv
+def store_to_csv(data: Union[List[Dict], Dict], filename: str, directory: str, key_column: str = "IMDBID") -> None:
+    """
+    Creates a CSV file if it does not exist, or appends new rows to it.
+    If the file exists, only rows whose value in key_column is not already present are added.
+    
+    Args:
+        data (Union[List[Dict], Dict]): Data to save.
+        filename (str): Name of the CSV file.
+        directory (str): Directory where the CSV file is stored.
+        key_column (str): The column name used to check for duplicates.
+    
+    Returns:
+        None
+    """
+    os.makedirs(directory, exist_ok=True)
+    file_path = os.path.join(directory, filename)
+    
+    # Ensure data is a list of dictionaries.
+    if not isinstance(data, list):
+        data = [data]
+    new_df = pd.DataFrame(data)
+    
+    # If file exists, load existing IDs and filter out rows with duplicate key values.
+    if os.path.exists(file_path):
+        try:
+            existing_df = pd.read_csv(file_path, usecols=[key_column])
+            existing_ids = set(existing_df[key_column].dropna().astype(str).tolist())
+        except Exception as e:
+            print(f"Warning: Could not read existing file columns: {e}")
+            existing_ids = set()
+        new_df = new_df[~new_df[key_column].astype(str).isin(existing_ids)]
+    
+    # If there's no new data to append, exit early.
+    if new_df.empty:
+        print("No new data to append.")
+        return
+    
+    # Append (or create) the CSV file.
+    if os.path.exists(file_path):
+        new_df.to_csv(file_path, mode='a', header=False, index=False, sep=";")
+    else:
+        new_df.to_csv(file_path, index=False, sep=";")
+    print(f"Appended {len(new_df)} new rows to {file_path}")
 
 
 # Load data from csv

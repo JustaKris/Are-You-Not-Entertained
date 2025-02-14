@@ -1,8 +1,8 @@
 import time
 import re
 import requests
-from typing import Optional, List, Dict, Union
-from src.utils import save_to_csv
+from typing import Optional, List, Dict
+from src.utils import save_to_csv, store_to_csv
 
 class OMDBClient:
     def __init__(self, api_key: str, delay: float = 0.1):
@@ -45,7 +45,7 @@ class OMDBClient:
             elif source == "Metacritic":
                 movie_data["META_CRITIC_RATING"] = value
 
-    def get_movie_by_imdb_id(self, imdb_id: str) -> Dict:
+    def get_movie_by_imdb_id(self, imdb_id: str, save_to_file=False) -> Dict:
         """
         Retrieves movie data from the OMDB API using the IMDb ID.
 
@@ -74,10 +74,18 @@ class OMDBClient:
         if "META_CRITIC_RATING" in full_data:
             new_data["META_CRITIC_RATING"] = full_data["META_CRITIC_RATING"]
 
+        # If user want data to be saved to a csv
+        if save_to_file:
+            movie_title = new_data.get("TITLE")
+            sanitized_title = self._sanitize_filename(movie_title)
+            file_name = f"{sanitized_title}.csv"
+            # save_to_csv(new_data, file_name, "./data/omdb")
+            store_to_csv(new_data, file_name, "./data/omdb")
+
         time.sleep(self.delay)
         return new_data
 
-    def get_movie_by_title(self, title: str, year: Optional[int] = None) -> Dict:
+    def get_movie_by_title(self, title: str, year: Optional[int] = None, save_to_file=False) -> Dict:
         """
         Retrieves movie data from the OMDB API by searching with the movie title (and optional release year),
         then saves the result to a CSV file in the data/omdb folder. The CSV file is named based on the movie title.
@@ -108,11 +116,13 @@ class OMDBClient:
         if "META_CRITIC_RATING" in full_data:
             new_data["META_CRITIC_RATING"] = full_data["META_CRITIC_RATING"]
 
-        movie_title = new_data.get("TITLE") or title
-        sanitized_title = self._sanitize_filename(movie_title)
-        file_name = f"{sanitized_title}.csv"
-        save_to_csv(new_data, file_name, "./data/omdb")
-        print(f'{file_name} saved.')
+        # If user want data to be saved to a csv
+        if save_to_file:
+            movie_title = new_data.get("TITLE") or title
+            sanitized_title = self._sanitize_filename(movie_title)
+            file_name = f"{sanitized_title}.csv"
+            save_to_csv(new_data, file_name, "./data/omdb")
+
         time.sleep(self.delay)
         return new_data
 
@@ -147,11 +157,11 @@ if __name__ == "__main__":
     omdb_client = OMDBClient(api_key=api_key, delay=0.1)
 
     # Test fetching by title:
-    # movie_by_title = omdb_client.get_movie_by_title("The Shawshank Redemption", year=1994)
+    # movie_by_title = omdb_client.get_movie_by_title("The Shawshank Redemption", year=1994, save_to_file=True)
     # print(movie_by_title)
 
     # Test fetching by IMDb ID:
-    movie_by_id = omdb_client.get_movie_by_imdb_id("tt0111161")
+    movie_by_id = omdb_client.get_movie_by_imdb_id("tt0111161", save_to_file=True)
     print(movie_by_id)
 
     # Test fetching multiple movies:
