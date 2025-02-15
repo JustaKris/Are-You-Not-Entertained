@@ -213,6 +213,40 @@ class TMDBClient:
         return all_data
 
 
+    # def save_movies_to_db(self, movies: List[Dict], session) -> None:
+    #     """
+    #     Saves a list of movie dictionaries to the PostgreSQL database using SQLAlchemy.
+        
+    #     Args:
+    #         movies (List[Dict]): List of movie data dictionaries.
+    #         session: An SQLAlchemy session.
+        
+    #     Returns:
+    #         None
+    #     """
+    #     from database.models import TMDBMovieBase  # Import the Movie model defined earlier.
+
+    #     merged_count = 0
+    #     for movie_data in movies:
+    #         # Map the movie_data dictionary to the Movie model.
+    #         # Adjust field names as necessary.
+    #         movie = TMDBMovieBase(
+    #             tmdb_id=movie_data.get("ID"),
+    #             title=movie_data.get("TITLE"),
+    #             release_date=movie_data.get("RELEASE_DATE"),
+    #             vote_count=movie_data.get("VOTE_COUNT"),
+    #             vote_average=movie_data.get("VOTE_AVERAGE"),
+    #             genre_ids=movie_data.get("GENRE_IDS") or movie_data.get("GENRE_ID")  # Example fallback
+    #             # ... assign other fields as needed.
+    #         )
+    #         # Wrap merge in a no_autoflush block to avoid premature flushing.
+    #         session.merge(movie)
+    #         merged_count += 1
+
+    #     session.commit()
+    #     print(f"Merged {merged_count} movie ids into the database.")
+
+
     def save_movies_to_db(self, movies: List[Dict], session) -> None:
         """
         Saves a list of movie dictionaries to the PostgreSQL database using SQLAlchemy.
@@ -227,32 +261,47 @@ class TMDBClient:
         from database.models import TMDBMovieBase  # Import the Movie model defined earlier.
 
         merged_count = 0
+        updated_count = 0
+        inserted_count = 0
+
         for movie_data in movies:
-            # Map the movie_data dictionary to the Movie model.
-            # Adjust field names as necessary.
-            movie = TMDBMovieBase(
-                tmdb_id=movie_data.get("ID"),
-                title=movie_data.get("TITLE"),
-                release_date=movie_data.get("RELEASE_DATE"),
-                vote_count=movie_data.get("VOTE_COUNT"),
-                vote_average=movie_data.get("VOTE_AVERAGE"),
-                genre_ids=movie_data.get("GENRE_IDS") or movie_data.get("GENRE_ID")  # Example fallback
-                # ... assign other fields as needed.
-            )
-            # Wrap merge in a no_autoflush block to avoid premature flushing.
-            with session.no_autoflush:
-                session.merge(movie)
+            # Extract movie attributes
+            tmdb_id = movie_data.get("ID")
+            
+            # Check if the movie already exists in the database
+            existing_movie = session.query(TMDBMovieBase).filter_by(tmdb_id=tmdb_id).first()
+            
+            if existing_movie:
+                # Update the existing record
+                for key, value in movie_data.items():
+                    if hasattr(existing_movie, key.lower()):  # Ensure attribute exists
+                        setattr(existing_movie, key.lower(), value)
+                updated_count += 1
+            else:
+                # Insert a new record
+                new_movie = TMDBMovieBase(
+                    tmdb_id=tmdb_id,
+                    title=movie_data.get("TITLE"),
+                    release_date=movie_data.get("RELEASE_DATE"),
+                    vote_count=movie_data.get("VOTE_COUNT"),
+                    vote_average=movie_data.get("VOTE_AVERAGE"),
+                    genre_ids=movie_data.get("GENRE_IDS") or movie_data.get("GENRE_ID")
+                )
+                session.add(new_movie)
+                inserted_count += 1
+
             merged_count += 1
 
         session.commit()
-        print(f"Merged {merged_count} movie ids into the database.")
+        print(f"Merged {merged_count} movies: {updated_count} updated, {inserted_count} inserted.")
 
 
     def save_movie_features_to_db(self, movies: List[Dict], session) -> None:
         """
         Saves a list of movie feature dictionaries to the PostgreSQL database using SQLAlchemy.
-        This method uses session.merge() to perform an upsert operation: if a movie already exists (based on tmdb_id),
-        it will be updated; if not, a new record will be inserted.
+        
+        This method manually checks for existing records in the database and updates them if found.
+        Otherwise, it inserts a new record.
         
         Args:
             movies (List[Dict]): List of movie features (each a dict) as produced by get_movie_features.
@@ -264,34 +313,55 @@ class TMDBClient:
         from database.models import TMDBMovie  # Ensure this is the correct model import
 
         merged_count = 0
+        updated_count = 0
+        inserted_count = 0
+
         for movie_data in movies:
-            # Map the keys from your movie_data dictionary to your model attributes.
-            movie = TMDBMovie(
-                tmdb_id=movie_data.get("ID"),
-                imdb_id=movie_data.get("IMDB_ID"),
-                genre_id=movie_data.get("GENRE_ID"),
-                genre_name=movie_data.get("GENRE_NAME"),
-                release_date=movie_data.get("RELEASE_DATE"),
-                status=movie_data.get("STATUS"),
-                title=movie_data.get("TITLE"),
-                budget=movie_data.get("BUDGET"),
-                revenue=movie_data.get("REVENUE"),
-                runtime=movie_data.get("RUNTIME"),
-                vote_count=movie_data.get("VOTE_COUNT"),
-                vote_average=movie_data.get("VOTE_AVERAGE"),
-                popularity=movie_data.get("POPULARITY"),
-                production_company_id=movie_data.get("PRODUCTION_COMPANY_ID"),
-                production_company_name=movie_data.get("PRODUCTION_COMPANY_NAME"),
-                production_company_origin_country=movie_data.get("PRODUCTION_COMPANY_ORIGIN_COUNTRY"),
-                production_country_name=movie_data.get("PRODUCTION_COUNTRY_NAME"),
-                spoken_languages=movie_data.get("SPOKEN_LANGUAGES")
-            )
-            # Use merge to upsert the record.
-            session.merge(movie)
+            tmdb_id = movie_data.get("ID")
+            
+            if not tmdb_id:
+                continue  # Skip entries without an ID
+
+            # Check if the movie already exists in the database
+            existing_movie = session.query(TMDBMovie).filter_by(tmdb_id=tmdb_id).first()
+            
+            if existing_movie:
+                # Update the existing record
+                for key, value in movie_data.items():
+                    attr_name = key.lower()  # Ensure attribute case consistency
+                    if hasattr(existing_movie, attr_name):
+                        setattr(existing_movie, attr_name, value)
+                updated_count += 1
+            else:
+                # Insert a new record
+                new_movie = TMDBMovie(
+                    tmdb_id=tmdb_id,
+                    imdb_id=movie_data.get("IMDB_ID"),
+                    genre_id=movie_data.get("GENRE_ID"),
+                    genre_name=movie_data.get("GENRE_NAME"),
+                    release_date=movie_data.get("RELEASE_DATE"),
+                    status=movie_data.get("STATUS"),
+                    title=movie_data.get("TITLE"),
+                    budget=movie_data.get("BUDGET"),
+                    revenue=movie_data.get("REVENUE"),
+                    runtime=movie_data.get("RUNTIME"),
+                    vote_count=movie_data.get("VOTE_COUNT"),
+                    vote_average=movie_data.get("VOTE_AVERAGE"),
+                    popularity=movie_data.get("POPULARITY"),
+                    production_company_id=movie_data.get("PRODUCTION_COMPANY_ID"),
+                    production_company_name=movie_data.get("PRODUCTION_COMPANY_NAME"),
+                    production_company_origin_country=movie_data.get("PRODUCTION_COMPANY_ORIGIN_COUNTRY"),
+                    production_country_name=movie_data.get("PRODUCTION_COUNTRY_NAME"),
+                    spoken_languages=movie_data.get("SPOKEN_LANGUAGES")
+                )
+                session.add(new_movie)
+                inserted_count += 1
+
             merged_count += 1
 
         session.commit()
-        print(f"Merged {merged_count} movie features into the database.")
+        print(f"Merged {merged_count} movie features: {updated_count} updated, {inserted_count} inserted.")
+
 
 
 if __name__ == "__main__":
@@ -308,5 +378,5 @@ if __name__ == "__main__":
     tmdb_client.get_movie_ids(start_year=2024, min_vote_count=350)
 
     # Get movie features
-    # movie_ids = load_csv("01_movie_ids.csv")["ID"].tolist()
-    # tmdb_client.get_movie_features(movie_ids)
+    movie_ids = load_csv("01_movie_ids.csv")["ID"].tolist()
+    tmdb_client.get_movie_features(movie_ids)
