@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import create_engine, Column, Integer, String, Float, Text, BigInteger, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Float, Text, BigInteger, DateTime, Date
 
 
 class Base(DeclarativeBase):
@@ -23,7 +23,7 @@ class TMDBMovieBase(Base):
     # Features fetched from the TMDB API.
     tmdb_id = Column(Integer, nullable=True, unique=True)
     title = Column(String, nullable=False)
-    release_date = Column(String, nullable=True)
+    release_date = Column(Date, nullable=True)
     vote_count = Column(Integer, nullable=True)
     vote_average = Column(Float, nullable=True)
     genre_ids = Column(Text)
@@ -79,7 +79,7 @@ class TMDBMovie(Base):
     genre_id = Column('genre_id', Text)            # e.g., "28, 12"
     genre_name = Column('genre_name', Text)          # e.g., "Action, Adventure"
     
-    release_date = Column('release_date', String(50))
+    release_date = Column('release_date', Date)
     status = Column('status', String(50))
     title = Column('title', String(255), nullable=False)
     
@@ -106,3 +106,67 @@ class TMDBMovie(Base):
     
     def __repr__(self):
         return f"<MovieFeatures(tmdb_id={self.tmdb_id}, title='{self.title}')>"
+    
+
+class OMDBMovie(Base):
+    """
+    OMDBMovie represents a movie record fetched from the OMDB API.
+    
+    This model stores essential details about a movie, including basic metadata
+    and rating information from multiple sources.
+    """
+    __tablename__ = "03_omdb_movies"
+
+    # Use imdb_id as the primary key since it's unique.
+    imdb_id = Column(String, primary_key=True, index=True, nullable=False)
+    title = Column(String)
+    year = Column(Integer, nullable=True)
+    genre = Column(String)         # Expecting a comma-separated string.
+    director = Column(String)
+    writer = Column(String)
+    actors = Column(String)
+    imdb_rating = Column(Float, nullable=True)
+    imdb_votes = Column(String)
+    metascore = Column(Integer, nullable=True)
+    box_office = Column(Integer)
+    released = Column(Date)
+    runtime = Column(String)
+    language = Column(String)
+    country = Column(String)
+    rated = Column(String)
+    awards = Column(String)
+    rotten_tomatoes_rating = Column(Integer)
+    meta_critic_rating = Column(Integer)
+
+    def __repr__(self) -> str:
+        """
+        Returns a string representation of the OMDBMovie instance.
+        """
+        return f"<OMDBMovie(imdb_id='{self.imdb_id}', title='{self.title}')>"
+
+    def as_dict(self) -> dict:
+        """
+        Returns a dictionary representation of the OMDBMovie instance.
+        Useful for debugging or serialization.
+        """
+        return {
+            "imdb_id": self.imdb_id,
+            "title": self.title,
+            "year": self.year,
+            "genre": self.genre,
+            "director": self.director,
+            "writer": self.writer,
+            "actors": self.actors,
+            "imdb_rating": self.imdb_rating,
+            "imdb_votes": self.imdb_votes,
+            "metascore": self.metascore,
+            "box_office": self.box_office,
+            "released": self.released,
+            "runtime": self.runtime,
+            "language": self.language,
+            "country": self.country,
+            "rated": self.rated,
+            "awards": self.awards,
+            "rotten_tomatoes_rating": self.rotten_tomatoes_rating,
+            "meta_critic_rating": self.meta_critic_rating,
+        }

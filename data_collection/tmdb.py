@@ -258,7 +258,7 @@ class TMDBClient:
         Returns:
             None
         """
-        from database.models import TMDBMovieBase  # Import the Movie model defined earlier.
+        from database.db_tables import TMDBMovieBase  # Import the Movie model defined earlier.
 
         merged_count = 0
         updated_count = 0
@@ -310,7 +310,7 @@ class TMDBClient:
         Returns:
             None
         """
-        from database.models import TMDBMovie  # Ensure this is the correct model import
+        from database.db_tables import TMDBMovie  # Ensure this is the correct model import
 
         merged_count = 0
         updated_count = 0
