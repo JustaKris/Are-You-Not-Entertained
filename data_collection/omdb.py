@@ -4,6 +4,7 @@ import requests
 from typing import Optional, List, Dict
 from src.utils import save_to_csv, store_to_csv
 
+
 class OMDBClient:
     def __init__(self, api_key: str, delay: float = 0.1):
         """
@@ -25,25 +26,6 @@ class OMDBClient:
             "Language", "Country", "Rated", "Awards"
         ]
 
-    def _sanitize_filename(self, s: str) -> str:
-        """
-        Sanitizes a string to be used as a filename by replacing non-alphanumeric characters with underscores.
-        """
-        return re.sub(r"[^\w\-]", "_", s)
-
-    def _extract_ratings(self, movie_data: Dict) -> None:
-        """
-        Processes the 'Ratings' field in the movie_data dictionary and extracts the Rotten Tomatoes
-        and Metacritic ratings, adding them as separate keys.
-        """
-        ratings = movie_data.get("Ratings", [])
-        for rating in ratings:
-            source = rating.get("Source")
-            value = rating.get("Value")
-            if source == "Rotten Tomatoes":
-                movie_data["ROTTEN_TOMATOES_RATING"] = value
-            elif source == "Metacritic":
-                movie_data["META_CRITIC_RATING"] = value
 
     def get_movie_by_imdb_id(self, imdb_id: str, save_to_file=False) -> Dict:
         """
@@ -84,6 +66,7 @@ class OMDBClient:
 
         time.sleep(self.delay)
         return new_data
+
 
     def get_movie_by_title(self, title: str, year: Optional[int] = None, save_to_file=False) -> Dict:
         """
@@ -126,7 +109,8 @@ class OMDBClient:
         time.sleep(self.delay)
         return new_data
 
-    def get_multiple_movies(self, imdb_ids: List[str], output_file_name: str = '01_omdb_movies.csv') -> None:
+
+    def get_multiple_movies(self, imdb_ids: List[str], save_to_file: bool = False, output_file_name: str = '01_omdb_movies.csv') -> None:
         """
         Retrieves movie data for a list of IMDb IDs, aggregates the results,
         prints progress, and saves them to a CSV file.
@@ -145,8 +129,34 @@ class OMDBClient:
             if data:
                 all_data.append(data)
             print(f"Processed {idx}/{total} movies")
-        save_to_csv(all_data, output_file_name, "./data/omdb")
+
+        if save_to_file:
+            save_to_csv(all_data, output_file_name, "./data/omdb")
+
         return all_data
+    
+
+    def _sanitize_filename(self, s: str) -> str:
+        """
+        Sanitizes a string to be used as a filename by replacing non-alphanumeric characters with underscores.
+        """
+        return re.sub(r"[^\w\-]", "_", s)
+    
+
+    def _extract_ratings(self, movie_data: Dict) -> None:
+        """
+        Processes the 'Ratings' field in the movie_data dictionary and extracts the Rotten Tomatoes
+        and Metacritic ratings, adding them as separate keys.
+        """
+        ratings = movie_data.get("Ratings", [])
+        for rating in ratings:
+            source = rating.get("Source")
+            value = rating.get("Value")
+            if source == "Rotten Tomatoes":
+                movie_data["ROTTEN_TOMATOES_RATING"] = value
+            elif source == "Metacritic":
+                movie_data["META_CRITIC_RATING"] = value
+
 
 # Example usage:
 if __name__ == "__main__":
@@ -166,5 +176,5 @@ if __name__ == "__main__":
 
     # Test fetching multiple movies:
     # imdb_ids = ["tt0111161", "tt0068646", "tt0071562"]
-    # movies = omdb_client.get_multiple_movies(imdb_ids)
+    # movies = omdb_client.get_multiple_movies(imdb_ids=imdb_ids, save_to_file=True)
     # print(movies)

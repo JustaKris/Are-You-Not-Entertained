@@ -23,7 +23,7 @@ class TMDBClient:
         self.session.params = {"api_key": self.api_key}
         logging.basicConfig(level=logging.INFO)
     
-    def fetch_tmdb_data(self, endpoint: str, features: Optional[List[str]] = None, total_pages: Optional[int] = None, output_file_name: str = 'default.csv') -> None:
+    def fetch_tmdb_data(self, endpoint: str, features: Optional[List[str]] = None, total_pages: Optional[int] = None, save_to_file: bool = False, output_file_name: str = 'default.csv') -> None:
         """
         Fetches data from the TMDB API, filters the results based on the specified features, 
         and saves the filtered data to a CSV file.
@@ -90,9 +90,13 @@ class TMDBClient:
             all_data = filtered_data
     
         # Save the filtered data to a CSV file in the "./data/tmdb" directory
-        save_to_csv(all_data, output_file_name, "./data/tmdb")
+        if save_to_file:
+            save_to_csv(all_data, output_file_name, "./data/tmdb")
+
+        return all_data
     
-    def get_movie_ids(self, start_year: int = 2025, min_vote_count: int = 350, output_file_name: str = '01_movie_ids.csv') -> None:
+    
+    def get_movie_ids(self, start_year: int = 2025, min_vote_count: int = 350, save_to_file: bool = False, output_file_name: str = '01_movie_ids.csv') -> None:
         """
         Constructs an endpoint for discovering movies based on a start year and minimum vote count,
         then fetches movie IDs and selected features from the TMDB API.
@@ -122,10 +126,11 @@ class TMDBClient:
             "&sort_by=primary_release_date.desc"
         )
         features = ["id", "genre_ids", "release_date", "vote_count", "vote_average", "title"]
-        self.fetch_tmdb_data(endpoint=endpoint, features=features, output_file_name=output_file_name)
+        data = self.fetch_tmdb_data(endpoint=endpoint, features=features, save_to_file=True if save_to_file else False, output_file_name=output_file_name)
+        return data
 
     
-    def get_movie_features(self, movie_ids: List[int], output_file_name: str = '02_movie_features.csv') -> None:
+    def get_movie_features(self, movie_ids: List[int], save_to_file: bool = False, output_file_name: str = '02_movie_features.csv') -> None:
         """
         Retrieves detailed movie features for each movie ID in the provided list.
         
@@ -203,19 +208,105 @@ class TMDBClient:
             time.sleep(self.delay)
 
         # Save the aggregated movie details to a CSV file in the "./data/tmdb" directory
-        save_to_csv(all_data, output_file_name, "./data/tmdb")
+        if save_to_file:
+            save_to_csv(all_data, output_file_name, "./data/tmdb")
+        return all_data
+
+
+    def save_movies_to_db(self, movies: List[Dict], session) -> None:
+        """
+        Saves a list of movie dictionaries to the PostgreSQL database using SQLAlchemy.
+        
+        Args:
+            movies (List[Dict]): List of movie data dictionaries.
+            session: An SQLAlchemy session.
+        
+        Returns:
+            None
+        """
+        from database.models import TMDBMovieBase  # Import the Movie model defined earlier.
+
+        merged_count = 0
+        for movie_data in movies:
+            # Map the movie_data dictionary to the Movie model.
+            # Adjust field names as necessary.
+            movie = TMDBMovieBase(
+                tmdb_id=movie_data.get("ID"),
+                title=movie_data.get("TITLE"),
+                release_date=movie_data.get("RELEASE_DATE"),
+                vote_count=movie_data.get("VOTE_COUNT"),
+                vote_average=movie_data.get("VOTE_AVERAGE"),
+                genre_ids=movie_data.get("GENRE_IDS") or movie_data.get("GENRE_ID")  # Example fallback
+                # ... assign other fields as needed.
+            )
+            # Wrap merge in a no_autoflush block to avoid premature flushing.
+            with session.no_autoflush:
+                session.merge(movie)
+            merged_count += 1
+
+        session.commit()
+        print(f"Merged {merged_count} movie ids into the database.")
+
+
+    def save_movie_features_to_db(self, movies: List[Dict], session) -> None:
+        """
+        Saves a list of movie feature dictionaries to the PostgreSQL database using SQLAlchemy.
+        This method uses session.merge() to perform an upsert operation: if a movie already exists (based on tmdb_id),
+        it will be updated; if not, a new record will be inserted.
+        
+        Args:
+            movies (List[Dict]): List of movie features (each a dict) as produced by get_movie_features.
+            session: An active SQLAlchemy session.
+        
+        Returns:
+            None
+        """
+        from database.models import TMDBMovie  # Ensure this is the correct model import
+
+        merged_count = 0
+        for movie_data in movies:
+            # Map the keys from your movie_data dictionary to your model attributes.
+            movie = TMDBMovie(
+                tmdb_id=movie_data.get("ID"),
+                imdb_id=movie_data.get("IMDB_ID"),
+                genre_id=movie_data.get("GENRE_ID"),
+                genre_name=movie_data.get("GENRE_NAME"),
+                release_date=movie_data.get("RELEASE_DATE"),
+                status=movie_data.get("STATUS"),
+                title=movie_data.get("TITLE"),
+                budget=movie_data.get("BUDGET"),
+                revenue=movie_data.get("REVENUE"),
+                runtime=movie_data.get("RUNTIME"),
+                vote_count=movie_data.get("VOTE_COUNT"),
+                vote_average=movie_data.get("VOTE_AVERAGE"),
+                popularity=movie_data.get("POPULARITY"),
+                production_company_id=movie_data.get("PRODUCTION_COMPANY_ID"),
+                production_company_name=movie_data.get("PRODUCTION_COMPANY_NAME"),
+                production_company_origin_country=movie_data.get("PRODUCTION_COMPANY_ORIGIN_COUNTRY"),
+                production_country_name=movie_data.get("PRODUCTION_COUNTRY_NAME"),
+                spoken_languages=movie_data.get("SPOKEN_LANGUAGES")
+            )
+            # Use merge to upsert the record.
+            session.merge(movie)
+            merged_count += 1
+
+        session.commit()
+        print(f"Merged {merged_count} movie features into the database.")
 
 
 if __name__ == "__main__":
     from config.config_loader import load_config
+    from src.utils import load_csv
 
-    # Load environment variables
+   # Load API key
     TMDB_API_KEY = load_config("TMDB_API_KEY")
-    if not TMDB_API_KEY:
-        print("TMDB_API_KEY not found!")
-    else:
-        # Initialize the TMDB client
-        tmdb_client = TMDBClient(api_key=TMDB_API_KEY)
-        
-        # Get movie IDs (and associated features) using the method
-        tmdb_client.get_movie_ids(start_year=2025, min_vote_count=200)
+
+    # Initialize the TMDB client
+    tmdb_client = TMDBClient(api_key=TMDB_API_KEY)
+    
+    # Get movie IDs (and associated features)
+    tmdb_client.get_movie_ids(start_year=2024, min_vote_count=350)
+
+    # Get movie features
+    # movie_ids = load_csv("01_movie_ids.csv")["ID"].tolist()
+    # tmdb_client.get_movie_features(movie_ids)
