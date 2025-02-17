@@ -3,6 +3,7 @@ import re
 import requests
 from typing import Optional, List, Dict
 from src.utils import save_to_csv, store_to_csv
+from database.db_utils import clean_na
 
 
 class OMDBClient:
@@ -110,17 +111,18 @@ class OMDBClient:
         return new_data
 
 
-    def get_multiple_movies(self, imdb_ids: List[str], save_to_file: bool = False, output_file_name: str = '01_omdb_movies.csv') -> None:
+    def get_multiple_movies(self, imdb_ids: List[str], save_to_file: bool = False, output_file_name: str = '01_omdb_movies.csv') -> List[Dict]:
         """
         Retrieves movie data for a list of IMDb IDs, aggregates the results,
-        prints progress, and saves them to a CSV file.
-
+        prints progress, cleans the data (replacing 'N/A' with None), and saves them to a CSV file.
+        
         Args:
             imdb_ids (List[str]): A list of IMDb IDs.
+            save_to_file (bool): Whether to save the result to a CSV file.
             output_file_name (str): The CSV filename for aggregated movie data.
-
+        
         Returns:
-            None
+            List[Dict]: The cleaned list of movie data dictionaries.
         """
         all_data: List[Dict] = []
         total = len(imdb_ids)
@@ -129,12 +131,15 @@ class OMDBClient:
             if data:
                 all_data.append(data)
             print(f"Processed {idx}/{total} movies")
-
+        
+        # Clean the data: replace any "N/A" with None.
+        cleaned_data = [clean_na(item) for item in all_data]
+        
         if save_to_file:
-            save_to_csv(all_data, output_file_name, "./data/omdb")
+            save_to_csv(cleaned_data, output_file_name, "./data/omdb")
+        
+        return cleaned_data
 
-        return all_data
-    
 
     def _sanitize_filename(self, s: str) -> str:
         """
@@ -156,6 +161,7 @@ class OMDBClient:
                 movie_data["ROTTEN_TOMATOES_RATING"] = value
             elif source == "Metacritic":
                 movie_data["META_CRITIC_RATING"] = value
+
 
     def parse_awards(awards_str: str):
         """

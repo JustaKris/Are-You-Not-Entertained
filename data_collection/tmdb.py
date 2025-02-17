@@ -4,6 +4,7 @@ import logging
 from typing import List, Dict, Optional
 
 from src.utils import save_to_csv
+from database.db_utils import clean_na
 
 
 class TMDBClient:
@@ -22,6 +23,7 @@ class TMDBClient:
         # Set the API key as a default parameter for all requests
         self.session.params = {"api_key": self.api_key}
         logging.basicConfig(level=logging.INFO)
+    
     
     def fetch_tmdb_data(self, endpoint: str, features: Optional[List[str]] = None, total_pages: Optional[int] = None, save_to_file: bool = False, output_file_name: str = 'default.csv') -> None:
         """
@@ -88,12 +90,15 @@ class TMDBClient:
                     filtered_movie[key.upper()] = movie.get(key)
                 filtered_data.append(filtered_movie)
             all_data = filtered_data
+
+        # Clean the data: replace any "N/A" with None.
+        cleaned_data = [clean_na(item) for item in all_data]
     
         # Save the filtered data to a CSV file in the "./data/tmdb" directory
         if save_to_file:
-            save_to_csv(all_data, output_file_name, "./data/tmdb")
+            save_to_csv(cleaned_data, output_file_name, "./data/tmdb")
 
-        return all_data
+        return cleaned_data
     
     
     def get_movie_ids(self, start_year: int = 2025, min_vote_count: int = 350, save_to_file: bool = False, output_file_name: str = '01_movie_ids.csv') -> None:
@@ -207,44 +212,13 @@ class TMDBClient:
             logging.info(f"Fetched movie {idx}/{total_movies}: ID {movie_id}")
             time.sleep(self.delay)
 
+            # Clean the data: replace any "N/A" with None.
+            cleaned_data = [clean_na(item) for item in all_data]
+
         # Save the aggregated movie details to a CSV file in the "./data/tmdb" directory
         if save_to_file:
-            save_to_csv(all_data, output_file_name, "./data/tmdb")
-        return all_data
-
-
-    # def save_movies_to_db(self, movies: List[Dict], session) -> None:
-    #     """
-    #     Saves a list of movie dictionaries to the PostgreSQL database using SQLAlchemy.
-        
-    #     Args:
-    #         movies (List[Dict]): List of movie data dictionaries.
-    #         session: An SQLAlchemy session.
-        
-    #     Returns:
-    #         None
-    #     """
-    #     from database.models import TMDBMovieBase  # Import the Movie model defined earlier.
-
-    #     merged_count = 0
-    #     for movie_data in movies:
-    #         # Map the movie_data dictionary to the Movie model.
-    #         # Adjust field names as necessary.
-    #         movie = TMDBMovieBase(
-    #             tmdb_id=movie_data.get("ID"),
-    #             title=movie_data.get("TITLE"),
-    #             release_date=movie_data.get("RELEASE_DATE"),
-    #             vote_count=movie_data.get("VOTE_COUNT"),
-    #             vote_average=movie_data.get("VOTE_AVERAGE"),
-    #             genre_ids=movie_data.get("GENRE_IDS") or movie_data.get("GENRE_ID")  # Example fallback
-    #             # ... assign other fields as needed.
-    #         )
-    #         # Wrap merge in a no_autoflush block to avoid premature flushing.
-    #         session.merge(movie)
-    #         merged_count += 1
-
-    #     session.commit()
-    #     print(f"Merged {merged_count} movie ids into the database.")
+            save_to_csv(cleaned_data, output_file_name, "./data/tmdb")
+        return cleaned_data
 
 
     def save_movies_to_db(self, movies: List[Dict], session) -> None:

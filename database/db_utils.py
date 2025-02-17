@@ -1,9 +1,7 @@
 from database.db_tables import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from data_collection.tmdb import TMDBClient
-from data_collection.omdb import OMDBClient
-from database.db_tables import TMDBMovieBase, TMDBMovie, OMDBMovie
+from database.db_tables import TMDBMovie, OMDBMovie
 from typing import List
 
 
@@ -14,29 +12,67 @@ def init_db(db_url: str):
     return Session
 
 
-def get_missing_omdb_ids(session) -> List[str]:
+def get_missing_omdb_ids(session, limit: int = None) -> List[str]:
     """
     Queries the TMDB movie base table (table 02) and the OMDB movies table (table 03)
-    and returns a list of IMDb IDs that are present in the TMDB table but not already in the OMDB table.
+    and returns a list of IMDb IDs (sorted by most recent release_date) that are present in the TMDB table
+    but not already in the OMDB table.
     
     Args:
         session: An active SQLAlchemy session.
+        limit (int, optional): The maximum number of missing IMDb IDs to return. 
+                               If None, returns all missing IDs.
     
     Returns:
-        List[str]: A list of IMDb IDs missing from the OMDB movies table.
+        List[str]: A list of missing IMDb IDs from the OMDB movies table, ordered by release_date descending.
     """
-    # Query all IMDb IDs from the TMDB base table (table 02)
-    tmdb_ids = {row.imdb_id for row in session.query(TMDBMovie.imdb_id).all() if row.imdb_id}
-
-    # Query all IMDb IDs from the OMDB movies table (table 03)
-    omdb_ids = {row.imdb_id for row in session.query(OMDBMovie.imdb_id).all() if row.imdb_id}
-
-    # Return those IDs that are in the TMDB table but not in the OMDB table
-    missing_ids = list(tmdb_ids - omdb_ids)
+    # Build a subquery to get all imdb_ids already in OMDB
+    omdb_subq = session.query(OMDBMovie.imdb_id)
+    
+    # Query TMDBMovie rows whose imdb_id is not in the OMDB table, ordered by release_date descending.
+    query = session.query(TMDBMovie).filter(~TMDBMovie.imdb_id.in_(omdb_subq)).order_by(TMDBMovie.release_date.desc())
+    
+    if limit is not None:
+        query = query.limit(limit + 1)
+    
+    missing_movies = query.all()
+    
+    # Extract the imdb_id from each movie
+    missing_ids = [movie.imdb_id for movie in missing_movies if movie.imdb_id]
     return missing_ids
 
 
+def clean_na(d: dict, na_values=None, replace_with=None) -> dict:
+    """
+    Cleans a dictionary by replacing 'NA' values.
+
+    :param d: Dictionary to clean.
+    :param na_values: Set of values considered as "NA" (default: common placeholders).
+    :param replace_with: Value to replace NA values with (default: None).
+    :return: New dictionary with cleaned values.
+    """
+    if na_values is None:
+        na_values = {"N/A", "null", "None", None, ""}  # Default NA values
+
+    def clean_value(v):
+        if isinstance(v, list):
+            return [clean_value(item) for item in v]  # Recursively clean lists
+        elif isinstance(v, tuple):
+            return tuple(clean_value(item) for item in v)  # Convert back to tuple
+        elif isinstance(v, set):
+            return {clean_value(item) for item in v}  # Convert back to set
+        elif isinstance(v, dict):  
+            return clean_na(v, na_values, replace_with)  # Recursively clean nested dicts
+        return replace_with if v in na_values else v  # Handle normal values
+
+    return {k: clean_value(v) for k, v in d.items()}
+
+
+
 if __name__ == "__main__":
+    from data_collection.tmdb import TMDBClient
+    from data_collection.omdb import OMDBClient
+    from database.db_tables import TMDBMovieBase
     from config.config_loader import load_config
 
     # Initialize local PostgreSQL session
@@ -51,13 +87,13 @@ if __name__ == "__main__":
     tmdb_client = TMDBClient(api_key=TMDB_API_KEY)
 
     # Get movie IDs (and associated features)
-    movies = tmdb_client.get_movie_ids(start_year=2024, min_vote_count=250)
-    tmdb_client.save_movies_to_db(movies, session)  # Push IDs to DB
+    # movies = tmdb_client.get_movie_ids(start_year=2024, min_vote_count=250)
+    # tmdb_client.save_movies_to_db(movies, session)  # Push IDs to DB
 
     # Get movie features and push to DB
     movie_ids = [movie.tmdb_id for movie in session.query(TMDBMovieBase.tmdb_id).all()]
-    movies = tmdb_client.get_movie_features(movie_ids)
-    tmdb_client.save_movie_features_to_db(movies, session)
+    # movies = tmdb_client.get_movie_features(movie_ids)
+    # tmdb_client.save_movie_features_to_db(movies, session)
 
     # OMDB ---------------------------------------------------
     # Load API key and client
