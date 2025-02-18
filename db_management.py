@@ -19,8 +19,8 @@ if __name__ == "__main__":
     tmdb_client = TMDBClient(api_key=TMDB_API_KEY)
 
     # Get movie IDs (and associated features)
-    # movies = tmdb_client.get_movie_ids(start_year=1950, min_vote_count=300)
-    # tmdb_client.save_movies_to_db(movies, session)  # Push IDs to DB
+    movies = tmdb_client.get_movie_ids(start_year=1950, min_vote_count=300)
+    tmdb_client.save_movies_to_db(movies, session)  # Push IDs to DB
 
     # # Get movie features and push to DB
     # movie_ids = [movie.tmdb_id for movie in session.query(TMDBMovieBase.tmdb_id).all()]
@@ -34,5 +34,5 @@ if __name__ == "__main__":
 
     # Test fetching and pushing multiple movies to DB:
     imdb_ids = get_missing_omdb_ids(session, 1000)  # Add missing IDs
-    movies = omdb_client.get_multiple_movies(imdb_ids=imdb_ids, save_to_file=True)
-    omdb_client.save_multiple_movies_to_db(movies, session)
+    # movies = omdb_client.get_multiple_movies(imdb_ids=imdb_ids, save_to_file=True)
+    # omdb_client.save_multiple_movies_to_db(movies, session)

@@ -52,7 +52,7 @@ def clean_na(d: dict, na_values=None, replace_with=None) -> dict:
     :return: New dictionary with cleaned values.
     """
     if na_values is None:
-        na_values = {"N/A", "null", "None", None, ""}  # Default NA values
+        na_values = {"N/A", "null", "None", None, "", 0}  # Default NA values
 
     def clean_value(v):
         if isinstance(v, list):
