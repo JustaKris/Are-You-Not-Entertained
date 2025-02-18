@@ -33,7 +33,7 @@ def get_missing_omdb_ids(session, limit: int = None) -> List[str]:
     query = session.query(TMDBMovie).filter(~TMDBMovie.imdb_id.in_(omdb_subq)).order_by(TMDBMovie.release_date.desc())
     
     if limit is not None:
-        query = query.limit(limit + 1)
+        query = query.limit(limit)
     
     missing_movies = query.all()
     

@@ -12,4 +12,5 @@ Flask
 ipykernel
 sqlalchemy
 psycopg2
+dill
 -e .
