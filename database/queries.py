@@ -19,7 +19,6 @@ prepped_data_query = """
         omdb_m.imdb_rating,
         omdb_m.imdb_votes,
         omdb_m.metascore,
-        omdb_m.box_office,
         omdb_m.rated as "age_rating",
         omdb_m.awards,
         omdb_m.rotten_tomatoes_rating,
