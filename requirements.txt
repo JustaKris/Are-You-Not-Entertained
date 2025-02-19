@@ -13,4 +13,6 @@ ipykernel
 sqlalchemy
 psycopg2
 dill
+pyprojroot
+bs4
 -e .
