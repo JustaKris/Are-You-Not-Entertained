@@ -33,6 +33,6 @@ if __name__ == "__main__":
     omdb_client = OMDBClient(api_key=api_key, delay=0.05)
 
     # Test fetching and pushing multiple movies to DB:
-    imdb_ids = get_missing_omdb_ids(session, 1000)  # Add missing IDs
+    imdb_ids = get_missing_omdb_ids(session, 1002)  # Add missing IDs
     movies = omdb_client.get_multiple_movies(imdb_ids=imdb_ids, save_to_file=True)
     omdb_client.save_multiple_movies_to_db(movies, session)
