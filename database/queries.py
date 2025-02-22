@@ -29,6 +29,4 @@ prepped_data_query = """
         tmdb_b.tmdb_id = tmdb_f.tmdb_id
     inner join public."03_omdb_movies" omdb_m on
         tmdb_f.imdb_id = omdb_m.imdb_id
-    where
-        extract(year from tmdb_b.release_date) >= 2010;
 """
