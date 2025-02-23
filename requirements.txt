@@ -17,4 +17,5 @@ dill
 pyprojroot
 bs4
 verstack==4.1.8
+mlflow
 -e .
