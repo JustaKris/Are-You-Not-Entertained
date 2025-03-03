@@ -2,8 +2,8 @@ import time
 import re
 import requests
 from typing import Optional, List, Dict
-from src.utils import save_to_csv, store_to_csv
-from database.db_utils import clean_na
+from src.utils.utils import save_to_csv, store_to_csv
+from database.utils import clean_na
 
 
 class OMDBClient:
@@ -222,7 +222,7 @@ class OMDBClient:
         Returns:
             None
         """
-        from database.db_tables import OMDBMovie  # Ensure this import matches your project structure
+        from database.models import OMDBMovie  # Ensure this import matches your project structure
 
         merged_count = 0
         updated_count = 0

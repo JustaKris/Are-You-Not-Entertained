@@ -3,8 +3,8 @@ import requests
 import logging
 from typing import List, Dict, Optional
 
-from src.utils import save_to_csv
-from database.db_utils import clean_na
+from src.utils.utils import save_to_csv
+from database.utils import clean_na
 
 
 class TMDBClient:
@@ -133,6 +133,39 @@ class TMDBClient:
         features = ["id", "genre_ids", "release_date", "vote_count", "vote_average", "title"]
         data = self.fetch_tmdb_data(endpoint=endpoint, features=features, save_to_file=True if save_to_file else False, output_file_name=output_file_name)
         return data
+    
+
+    def batch_get_movie_ids(client, start_year: int, end_year: int, min_vote_count: int) -> List[Dict]:
+        """
+        Fetch movie IDs in batches for each year between start_year and end_year.
+        
+        Args:
+            client (TMDBClient): Instance of the TMDBClient.
+            start_year (int): The starting year.
+            end_year (int): The ending year.
+            min_vote_count (int): The minimum vote count for filtering.
+        
+        Returns:
+            List[Dict]: Combined list of movie dictionaries.
+        """
+        all_movies = []
+        # Loop over each year in the specified range
+        for year in range(start_year, end_year + 1):
+            # Construct the endpoint to narrow the query to the given year
+            endpoint = (
+                f"discover/movie?include_adult=false&include_video=false&language=en-US"
+                f"&page=1&primary_release_date.gte={year}-01-01&primary_release_date.lte={year}-12-31"
+                f"&vote_count.gte={min_vote_count}&sort_by=primary_release_date.desc"
+            )
+            logging.info(f"Fetching movies for year: {year}")
+            # Define features to be fetched
+            features = ["id", "genre_ids", "release_date", "vote_count", "vote_average", "title"]
+            movies = client.fetch_tmdb_data(endpoint=endpoint, features=features, save_to_file=False)
+            
+            if movies:
+                all_movies.extend(movies)
+        
+        return all_movies
 
     
     def get_movie_features(self, movie_ids: List[int], save_to_file: bool = False, output_file_name: str = '02_movie_features.csv') -> None:
@@ -232,7 +265,7 @@ class TMDBClient:
         Returns:
             None
         """
-        from database.db_tables import TMDBMovieBase  # Import the Movie model defined earlier.
+        from database.models import TMDBMovieBase  # Import the Movie model defined earlier.
 
         merged_count = 0
         updated_count = 0
@@ -261,8 +294,11 @@ class TMDBClient:
                     vote_average=movie_data.get("VOTE_AVERAGE"),
                     genre_ids=movie_data.get("GENRE_IDS") or movie_data.get("GENRE_ID")
                 )
-                session.add(new_movie)
-                inserted_count += 1
+                try:
+                    session.add(new_movie)
+                    inserted_count += 1
+                except:
+                    print("Skipping movie.")
 
             merged_count += 1
 
@@ -284,7 +320,7 @@ class TMDBClient:
         Returns:
             None
         """
-        from database.db_tables import TMDBMovie  # Ensure this is the correct model import
+        from database.models import TMDBMovie  # Ensure this is the correct model import
 
         merged_count = 0
         updated_count = 0
@@ -340,7 +376,7 @@ class TMDBClient:
 
 if __name__ == "__main__":
     from config.config_loader import load_config
-    from src.utils import load_csv
+    from src.utils.utils import load_csv
 
    # Load API key
     TMDB_API_KEY = load_config("TMDB_API_KEY")

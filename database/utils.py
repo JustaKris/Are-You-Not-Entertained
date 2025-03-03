@@ -1,7 +1,7 @@
-from database.db_tables import Base
+from database.models import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from database.db_tables import TMDBMovie, OMDBMovie
+from database.models import TMDBMovieBase, TMDBMovie, OMDBMovie
 from typing import List
 
 
@@ -10,6 +10,37 @@ def init_db(db_url: str):
     Base.metadata.create_all(engine)  # Create tables if they don't exist.
     Session = sessionmaker(bind=engine)
     return Session
+
+
+def get_missing_tmdb_features_by_id(session, limit: int = None) -> List[str]:
+    """
+    Queries the TMDB movie base table (table 02) and the OMDB movies table (table 03)
+    and returns a list of IMDb IDs (sorted by most recent release_date) that are present in the TMDB table
+    but not already in the OMDB table.
+    
+    Args:
+        session: An active SQLAlchemy session.
+        limit (int, optional): The maximum number of missing IMDb IDs to return. 
+                               If None, returns all missing IDs.
+    
+    Returns:
+        List[str]: A list of missing IMDb IDs from the OMDB movies table, ordered by release_date descending.
+    """
+    # Build a subquery to get all imdb_ids already in TMDB
+    tmdb_features_subq = session.query(TMDBMovie.tmdb_id)
+    # print(tmdb_features_subq)
+    
+    # Query TMDBMovie rows whose tmdb_id is not in the TMDB features table, ordered by release_date descending.
+    query = session.query(TMDBMovieBase).filter(~TMDBMovieBase.tmdb_id.in_(tmdb_features_subq)).order_by(TMDBMovieBase.release_date.desc())
+    
+    if limit is not None:
+        query = query.limit(limit)
+    
+    missing_movies = query.all()
+    
+    # Extract the imdb_id from each movie
+    missing_ids = [movie.tmdb_id for movie in missing_movies if movie.tmdb_id]
+    return missing_ids
 
 
 def get_missing_omdb_ids(session, limit: int = None) -> List[str]:
@@ -72,7 +103,7 @@ def clean_na(d: dict, na_values=None, replace_with=None) -> dict:
 if __name__ == "__main__":
     from data_collection.tmdb import TMDBClient
     from data_collection.omdb import OMDBClient
-    from database.db_tables import TMDBMovieBase
+    from database.models import TMDBMovieBase
     from config.config_loader import load_config
 
     # Initialize local PostgreSQL session

@@ -1,7 +1,7 @@
 from data_collection.tmdb import TMDBClient
 from data_collection.omdb import OMDBClient
 from config.config_loader import load_config
-from src.utils import load_csv
+from src.utils.utils import load_csv
 
 
 def main():
