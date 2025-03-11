@@ -1,15 +1,28 @@
-from database.models import Base
-from sqlalchemy import create_engine
+import pandas as pd
+from database.models import Base, TMDBMovieBase, TMDBMovie, OMDBMovie
+from database.queries import prepped_data_query
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from database.models import TMDBMovieBase, TMDBMovie, OMDBMovie
 from typing import List
 
 
-def init_db(db_url: str):
+def init_db_session(db_url: str):
     engine = create_engine(db_url)
     Base.metadata.create_all(engine)  # Create tables if they don't exist.
     Session = sessionmaker(bind=engine)
-    return Session
+    print("Database session initialized.")
+    return Session()
+
+
+def fetch_data_from_db(session):
+    # Execute and fetch results
+    data = session.execute(text(prepped_data_query))
+    # Close the DB session
+    session.close()
+    # Convert to DataFrame
+    df = pd.DataFrame(data.fetchall(), columns=data.keys())
+    print("Data queried and prepped.")
+    return df
 
 
 def get_missing_tmdb_features_by_id(session, limit: int = None) -> List[str]:
