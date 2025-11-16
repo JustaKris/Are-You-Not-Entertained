@@ -1,0 +1,264 @@
+[project]
+name = "are-you-not-entertained"
+version = "0.1.0"
+description = "End-to-end machine learning pipeline for movie & TV performance analysis and box-office prediction. Includes data ingestion, preprocessing, model training, experiment tracking, and simple web delivery."
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+keywords = [
+    "machine-learning",
+    "data-science",
+    "movies",
+    "box-office",
+    "ml-pipeline",
+    "prediction",
+    "mlflow"
+]
+authors = [
+    {name = "JustaKris"}
+]
+maintainers = [
+    {name = "JustaKris"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Framework :: FastAPI",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: Linguistic",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    # --- Core scientific stack ---
+    "numpy>=2.1,<3.0",
+    "pandas>=2.2,<3.0",
+    "polars>=1.7,<2.0",                     # Optional modern alternative – blazing fast
+    "scikit-learn>=1.5,<2.0",
+    "xgboost>=2.0,<3.0",                    # v2+ highly stable now
+
+    # --- Visualization ---
+    "matplotlib>=3.8,<4.0",
+    "seaborn>=0.13,<0.15",
+    "plotly>=6.0,<7.0",                     # Loose enough but avoids future breakage
+
+    # --- Configuration / Serialization ---
+    "python-dotenv>=1.0,<2.0",
+    "ruamel.yaml>=0.18,<1.0",               # Safer PyYAML alternative
+    "cloudpickle>=3.0,<4.0",                # Better than dill for model serialization
+
+    # --- Web / API ---
+    "fastapi>=0.110,<1.0",
+    "uvicorn>=0.30,<1.0",
+    "httpx>=0.27,<1.0",                     # Modern async HTTP client
+
+    # --- Database / ORM ---
+    "sqlalchemy>=2.0,<3.0",
+    "psycopg2-binary>=2.9,<3.0",
+
+    # --- Utilities ---
+    "beautifulsoup4>=4.12,<5.0",
+    "lxml>=5.2,<6.0",                       # Fast XML/HTML backend
+    "pyprojroot>=0.3,<1.0",                 # Keep if you're using it
+
+    # --- Experiment tracking ---
+    "mlflow>=2.15,<2.20",
+    "pyarrow>=16.1,<17.0",
+]
+
+[dependency-groups]
+
+dev = [
+    "pytest>=8.3,<9.0",
+    "pytest-cov>=6.0,<7.0",
+    "pytest-asyncio>=0.24,<0.25",
+    "black>=24.0,<25.0",
+    "flake8>=7.1,<8.0",
+    "flake8-pyproject>=1.2,<2.0",
+    "isort>=5.13,<6.0",
+    "mypy>=1.13,<2.0",
+    "pip-audit>=2.9,<3.0",
+    "ruff>=0.6,<1.0"                        # optional: very fast linter/formatter
+]
+
+llm-openai = [
+    "openai>=1.0,<2.0"
+]
+
+llm-anthropic = [
+    "anthropic>=0.40,<1.0"
+]
+
+notebooks = [
+    "jupyterlab>=4.2,<5.0",
+    "ipykernel>=6.29,<7.0",
+    "ipywidgets>=8.1,<9.0",
+    "widgetsnbextension>=4.0,<5.0",
+    "matplotlib>=3.8,<4.0",
+    "seaborn>=0.13,<0.15",
+    "plotly>=6.0,<7.0",
+    "wordcloud>=1.9,<2.0"
+]
+
+docs = [
+    "mkdocs>=1.6,<2.0",
+    "mkdocs-material>=9.5,<10.0"
+]
+
+# Black configuration
+[tool.black]
+line-length = 100
+target-version = ['py311', 'py312', 'py313']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | notebooks
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+skip_glob = ["notebooks/*", ".venv/*", "venv/*"]
+
+# mypy configuration
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+no_implicit_optional = false
+warn_redundant_casts = false
+warn_unused_ignores = false
+warn_no_return = false
+strict_optional = false
+ignore_missing_imports = true
+
+# Flake8 configuration
+[tool.flake8]
+max-line-length = 100
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "*.egg-info",
+    ".tox",
+    ".pytest_cache",
+    "reports",
+    "notebooks",
+    ".ipynb_checkpoints",
+]
+ignore = ["E203", "E266", "E501", "W503", "W504", "F401"]
+max-complexity = 15
+select = ["E", "W", "F", "C", "N"]
+per-file-ignores = [
+    "__init__.py:F401,E402",
+    "src/__init__.py:F401",
+]
+
+# Pytest configuration
+[tool.pytest.ini_options]
+# Test discovery patterns
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Test paths
+testpaths = ["tests"]
+
+# Additional options
+addopts = [
+    "--verbose",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html:reports/coverage/html",
+    "--cov-report=xml:reports/coverage/coverage.xml",
+    "--cov-fail-under=60",
+    "--strict-markers",
+    "--disable-warnings",
+]
+
+# Asyncio settings
+asyncio_mode = "auto"
+
+# Markers for categorizing tests
+markers = [
+    "unit: Unit tests for individual functions",
+    "integration: Integration tests for API endpoints",
+    "slow: Tests that take longer to run",
+    "requires_model: Tests that require ML model loading",
+]
+
+# Filter warnings - ignore ChromaDB's Pydantic v2.11 deprecation warnings
+# These are third-party library issues (ChromaDB using model_fields on instances)
+filterwarnings = [
+    "ignore:Accessing the 'model_fields' attribute on the instance is deprecated.*",
+]
+
+# Ignore directories
+norecursedirs = [
+    ".git",
+    ".tox",
+    "dist",
+    "build",
+    "*.egg",
+    "reports",
+    ".venv",
+    "venv",
+    ".pytest_cache",
+    "__pycache__",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+data_file = "reports/coverage/.coverage"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.coverage.html]
+directory = "reports/coverage/html"
+
+[tool.coverage.xml]
+output = "reports/coverage/coverage.xml"
