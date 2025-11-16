@@ -1,5 +1,5 @@
 [project]
-name = "are-you-not-entertained"
+name = "AYNE"
 version = "0.1.0"
 description = "End-to-end machine learning pipeline for movie & TV performance analysis and box-office prediction. Includes data ingestion, preprocessing, model training, experiment tracking, and simple web delivery."
 license = { text = "MIT" }
