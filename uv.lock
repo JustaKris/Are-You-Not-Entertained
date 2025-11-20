@@ -174,6 +174,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "cloudpickle" },
+    { name = "duckdb" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "lxml" },
@@ -185,9 +186,11 @@ dependencies = [
     { name = "polars" },
     { name = "psycopg2-binary" },
     { name = "pyarrow" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "pyprojroot" },
     { name = "python-dotenv" },
-    { name = "ruamel-yaml" },
+    { name = "pyyaml" },
     { name = "scikit-learn" },
     { name = "seaborn" },
     { name = "sqlalchemy" },
@@ -233,6 +236,7 @@ notebooks = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.12,<5.0" },
     { name = "cloudpickle", specifier = ">=3.0,<4.0" },
+    { name = "duckdb", specifier = ">=1.4.2" },
     { name = "fastapi", specifier = ">=0.110,<1.0" },
     { name = "httpx", specifier = ">=0.27,<1.0" },
     { name = "lxml", specifier = ">=5.2,<6.0" },
@@ -244,9 +248,11 @@ requires-dist = [
     { name = "polars", specifier = ">=1.7,<2.0" },
     { name = "psycopg2-binary", specifier = ">=2.9,<3.0" },
     { name = "pyarrow", specifier = ">=16.1,<17.0" },
+    { name = "pydantic", specifier = ">=2.0,<3.0" },
+    { name = "pydantic-settings", specifier = ">=2.0,<3.0" },
     { name = "pyprojroot", specifier = ">=0.3,<1.0" },
     { name = "python-dotenv", specifier = ">=1.0,<2.0" },
-    { name = "ruamel-yaml", specifier = ">=0.18,<1.0" },
+    { name = "pyyaml", specifier = ">=6.0,<7.0" },
     { name = "scikit-learn", specifier = ">=1.5,<2.0" },
     { name = "seaborn", specifier = ">=0.13,<0.15" },
     { name = "sqlalchemy", specifier = ">=2.0,<3.0" },
@@ -886,6 +892,38 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b2/9d/c3b43da9515bd270df0f80548d9944e389870713cc1fe2b8fb35fe2bcefd/docstring_parser-0.17.0.tar.gz", hash = "sha256:583de4a309722b3315439bb31d64ba3eebada841f2e2cee23b99df001434c912", size = 27442, upload-time = "2025-07-21T07:35:01.868Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/55/e2/2537ebcff11c1ee1ff17d8d0b6f4db75873e3b0fb32c2d4a2ee31ecb310a/docstring_parser-0.17.0-py3-none-any.whl", hash = "sha256:cf2569abd23dce8099b300f9b4fa8191e9582dda731fd533daf54c4551658708", size = 36896, upload-time = "2025-07-21T07:35:00.684Z" },
+]
+
+[[package]]
+name = "duckdb"
+version = "1.4.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/81/99/ac6c105118751cc3ccae980b12e44847273f3402e647ec3197aff2251e23/duckdb-1.4.2.tar.gz", hash = "sha256:df81acee3b15ecb2c72eb8f8579fb5922f6f56c71f5c8892ea3bc6fab39aa2c4", size = 18469786, upload-time = "2025-11-12T13:18:04.203Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1a/76/5b79eac0abcb239806da1d26f20515882a8392d0729a031af9e61d494dd4/duckdb-1.4.2-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:b2d882672b61bc6117a2c524cf64ea519d2e829295951d214f04e126f1549b09", size = 29005908, upload-time = "2025-11-12T13:16:44.454Z" },
+    { url = "https://files.pythonhosted.org/packages/73/1a/324d7787fdb0de96872ff7b48524830930494b45abf9501875be7456faa2/duckdb-1.4.2-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:995ec9c1fc3ce5fbfe5950b980ede2a9d51b35fdf2e3f873ce94c22fc3355fdc", size = 15398994, upload-time = "2025-11-12T13:16:46.802Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/c6/a2a072ca73f91a32c0db1254dd84fec30f4d673f9d57d853802aedf867fa/duckdb-1.4.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:19d2c2f3cdf0242cad42e803602bbc2636706fc1d2d260ffac815ea2e3a018e8", size = 13727492, upload-time = "2025-11-12T13:16:49.097Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/d5/8f84b3685a8730f47e68bce46dbce789cb85c915a8c6aafdf85830589eb3/duckdb-1.4.2-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7a496a04458590dcec8e928122ebe2ecbb42c3e1de4119f5461f7bf547acbe79", size = 18456479, upload-time = "2025-11-12T13:16:51.66Z" },
+    { url = "https://files.pythonhosted.org/packages/30/7c/709a80e72a3bf013fa890fc767d2959a8a2a15abee4088559ddabcb9399f/duckdb-1.4.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:0c2315b693f201787c9892f31eb9a0484d3c648edb3578a86dc8c1284dd2873a", size = 20458319, upload-time = "2025-11-12T13:16:54.24Z" },
+    { url = "https://files.pythonhosted.org/packages/93/ff/e0b0dd10e6da48a262f3e054378a3781febf28af3381c0e1e901d0390b3c/duckdb-1.4.2-cp311-cp311-win_amd64.whl", hash = "sha256:bdd2d808806ceeeec33ba89665a0bb707af8815f2ca40e6c4c581966c0628ba1", size = 12320864, upload-time = "2025-11-12T13:16:56.798Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/29/2f68c57e7c4242fedbf4b3fdc24fce2ffcf60640c936621d8a645593a161/duckdb-1.4.2-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:9356fe17af2711e0a5ace4b20a0373e03163545fd7516e0c3c40428f44597052", size = 29015814, upload-time = "2025-11-12T13:16:59.329Z" },
+    { url = "https://files.pythonhosted.org/packages/34/b7/030cc278a4ae788800a833b2901b9a7da7a6993121053c4155c359328531/duckdb-1.4.2-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:946a8374c0252db3fa41165ab9952b48adc8de06561a6b5fd62025ac700e492f", size = 15403892, upload-time = "2025-11-12T13:17:02.141Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/a2/67f4798a7a29bd0813f8a1e94a83e857e57f5d1ba14cf3edc5551aad0095/duckdb-1.4.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:389fa9abe4ca37d091332a2f8c3ebd713f18e87dc4cb5e8efd3e5aa8ddf8885f", size = 13733622, upload-time = "2025-11-12T13:17:04.502Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/ac/d0d0e3feae9663334b2336f15785d280b54a56c3ffa10334e20a51a87ecd/duckdb-1.4.2-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7be8c0c40f2264b91500b89c688f743e1c7764966e988f680b1f19416b00052e", size = 18470220, upload-time = "2025-11-12T13:17:07.049Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/52/7570a50430cbffc8bd702443ac28a446b0fa4f77747a3821d4b37a852b15/duckdb-1.4.2-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c6a21732dd52a76f1e61484c06d65800b18f57fe29e8102a7466c201a2221604", size = 20481138, upload-time = "2025-11-12T13:17:09.459Z" },
+    { url = "https://files.pythonhosted.org/packages/95/5e/be05f46a290ea27630c112ff9e01fd01f585e599967fc52fe2edc7bc2039/duckdb-1.4.2-cp312-cp312-win_amd64.whl", hash = "sha256:769440f4507c20542ae2e5b87f6c6c6d3f148c0aa8f912528f6c97e9aedf6a21", size = 12330737, upload-time = "2025-11-12T13:17:12.02Z" },
+    { url = "https://files.pythonhosted.org/packages/70/c4/5054dbe79cf570b0c97db0c2eba7eb541cc561037360479059a3b57e4a32/duckdb-1.4.2-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:de646227fc2c53101ac84e86e444e7561aa077387aca8b37052f3803ee690a17", size = 29015784, upload-time = "2025-11-12T13:17:14.409Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/b8/97f4f07d9459f5d262751cccfb2f4256debb8fe5ca92370cebe21aab1ee2/duckdb-1.4.2-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:f1fac31babda2045d4cdefe6d0fd2ebdd8d4c2a333fbcc11607cfeaec202d18d", size = 15403788, upload-time = "2025-11-12T13:17:16.864Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/ea/112f33ace03682bafd4aaf0a3336da689b9834663e7032b3d678fd2902c9/duckdb-1.4.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:43ac632f40ab1aede9b4ce3c09ea043f26f3db97b83c07c632c84ebd7f7c0f4a", size = 13733603, upload-time = "2025-11-12T13:17:20.884Z" },
+    { url = "https://files.pythonhosted.org/packages/34/83/8d6f845a9a946e8b47b6253b9edb084c45670763e815feed6cfefc957e89/duckdb-1.4.2-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:77db030b48321bf785767b7b1800bf657dd2584f6df0a77e05201ecd22017da2", size = 18473725, upload-time = "2025-11-12T13:17:23.074Z" },
+    { url = "https://files.pythonhosted.org/packages/82/29/153d1b4fc14c68e6766d7712d35a7ab6272a801c52160126ac7df681f758/duckdb-1.4.2-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a456adbc3459c9dcd99052fad20bd5f8ef642be5b04d09590376b2eb3eb84f5c", size = 20481971, upload-time = "2025-11-12T13:17:26.703Z" },
+    { url = "https://files.pythonhosted.org/packages/58/b7/8d3a58b5ebfb9e79ed4030a0f2fbd7e404c52602e977b1e7ab51651816c7/duckdb-1.4.2-cp313-cp313-win_amd64.whl", hash = "sha256:2f7c61617d2b1da3da5d7e215be616ad45aa3221c4b9e2c4d1c28ed09bc3c1c4", size = 12330535, upload-time = "2025-11-12T13:17:29.175Z" },
+    { url = "https://files.pythonhosted.org/packages/25/46/0f316e4d0d6bada350b9da06691a2537c329c8948c78e8b5e0c4874bc5e2/duckdb-1.4.2-cp314-cp314-macosx_10_15_universal2.whl", hash = "sha256:422be8c6bdc98366c97f464b204b81b892bf962abeae6b0184104b8233da4f19", size = 29028616, upload-time = "2025-11-12T13:17:31.599Z" },
+    { url = "https://files.pythonhosted.org/packages/82/ab/e04a8f97865251b544aee9501088d4f0cb8e8b37339bd465c0d33857d411/duckdb-1.4.2-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:459b1855bd06a226a2838da4f14c8863fd87a62e63d414a7f7f682a7c616511a", size = 15410382, upload-time = "2025-11-12T13:17:34.14Z" },
+    { url = "https://files.pythonhosted.org/packages/47/ec/b8229517c2f9fe88a38bb1a172a2da4d0ff34996d319d74554fda80b6358/duckdb-1.4.2-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:20c45b4ead1ea4d23a1be1cd4f1dfc635e58b55f0dd11e38781369be6c549903", size = 13737588, upload-time = "2025-11-12T13:17:36.515Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/9a/63d26da9011890a5b893e0c21845c0c0b43c634bf263af3bbca64be0db76/duckdb-1.4.2-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2e552451054534970dc999e69ca5ae5c606458548c43fb66d772117760485096", size = 18477886, upload-time = "2025-11-12T13:17:39.136Z" },
+    { url = "https://files.pythonhosted.org/packages/23/35/b1fae4c5245697837f6f63e407fa81e7ccc7948f6ef2b124cd38736f4d1d/duckdb-1.4.2-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:128c97dab574a438d7c8d020670b21c68792267d88e65a7773667b556541fa9b", size = 20483292, upload-time = "2025-11-12T13:17:41.501Z" },
+    { url = "https://files.pythonhosted.org/packages/25/5e/6f5ebaabc12c6db62f471f86b5c9c8debd57f11aa1b2acbbcc4c68683238/duckdb-1.4.2-cp314-cp314-win_amd64.whl", hash = "sha256:dfcc56a83420c0dec0b83e97a6b33addac1b7554b8828894f9d203955591218c", size = 12830520, upload-time = "2025-11-12T13:17:43.93Z" },
 ]
 
 [[package]]
@@ -3177,6 +3215,20 @@ wheels = [
 ]
 
 [[package]]
+name = "pydantic-settings"
+version = "2.12.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "typing-inspection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/43/4b/ac7e0aae12027748076d72a8764ff1c9d82ca75a7a52622e67ed3f765c54/pydantic_settings-2.12.0.tar.gz", hash = "sha256:005538ef951e3c2a68e1c08b292b5f2e71490def8589d4221b95dab00dafcfd0", size = 194184, upload-time = "2025-11-10T14:25:47.013Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/60/5d4751ba3f4a40a6891f24eec885f51afd78d208498268c734e256fb13c4/pydantic_settings-2.12.0-py3-none-any.whl", hash = "sha256:fddb9fd99a5b18da837b29710391e945b1e30c135477f484084ee513adb93809", size = 51880, upload-time = "2025-11-10T14:25:45.546Z" },
+]
+
+[[package]]
 name = "pyflakes"
 version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3660,62 +3712,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/da/8a/22b7beea3ee0d44b1916c0c1cb0ee3af23b700b6da9f04991899d0c555d4/rsa-4.9.1.tar.gz", hash = "sha256:e7bdbfdb5497da4c07dfd35530e1a902659db6ff241e39d9953cad06ebd0ae75", size = 29034, upload-time = "2025-04-16T09:51:18.218Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/64/8d/0133e4eb4beed9e425d9a98ed6e081a55d195481b7632472be1af08d2f6b/rsa-4.9.1-py3-none-any.whl", hash = "sha256:68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762", size = 34696, upload-time = "2025-04-16T09:51:17.142Z" },
-]
-
-[[package]]
-name = "ruamel-yaml"
-version = "0.18.16"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "ruamel-yaml-clib", marker = "python_full_version < '3.14' and platform_python_implementation == 'CPython'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/c7/ee630b29e04a672ecfc9b63227c87fd7a37eb67c1bf30fe95376437f897c/ruamel.yaml-0.18.16.tar.gz", hash = "sha256:a6e587512f3c998b2225d68aa1f35111c29fad14aed561a26e73fab729ec5e5a", size = 147269, upload-time = "2025-10-22T17:54:02.346Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/73/bb1bc2529f852e7bf64a2dec885e89ff9f5cc7bbf6c9340eed30ff2c69c5/ruamel.yaml-0.18.16-py3-none-any.whl", hash = "sha256:048f26d64245bae57a4f9ef6feb5b552a386830ef7a826f235ffb804c59efbba", size = 119858, upload-time = "2025-10-22T17:53:59.012Z" },
-]
-
-[[package]]
-name = "ruamel-yaml-clib"
-version = "0.2.14"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d8/e9/39ec4d4b3f91188fad1842748f67d4e749c77c37e353c4e545052ee8e893/ruamel.yaml.clib-0.2.14.tar.gz", hash = "sha256:803f5044b13602d58ea378576dd75aa759f52116a0232608e8fdada4da33752e", size = 225394, upload-time = "2025-09-22T19:51:23.753Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b3/9f/3c51e9578b8c36fcc4bdd271a1a5bb65963a74a4b6ad1a989768a22f6c2a/ruamel.yaml.clib-0.2.14-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:5bae1a073ca4244620425cd3d3aa9746bde590992b98ee8c7c8be8c597ca0d4e", size = 270207, upload-time = "2025-09-23T14:24:11.445Z" },
-    { url = "https://files.pythonhosted.org/packages/4a/16/cb02815bc2ae9c66760c0c061d23c7358f9ba51dae95ac85247662b7fbe2/ruamel.yaml.clib-0.2.14-cp311-cp311-macosx_13_0_arm64.whl", hash = "sha256:0a54e5e40a7a691a426c2703b09b0d61a14294d25cfacc00631aa6f9c964df0d", size = 137780, upload-time = "2025-09-22T19:50:37.734Z" },
-    { url = "https://files.pythonhosted.org/packages/31/c6/fc687cd1b93bff8e40861eea46d6dc1a6a778d9a085684e4045ff26a8e40/ruamel.yaml.clib-0.2.14-cp311-cp311-manylinux2014_aarch64.whl", hash = "sha256:10d9595b6a19778f3269399eff6bab642608e5966183abc2adbe558a42d4efc9", size = 641590, upload-time = "2025-09-22T19:50:41.978Z" },
-    { url = "https://files.pythonhosted.org/packages/45/5d/65a2bc08b709b08576b3f307bf63951ee68a8e047cbbda6f1c9864ecf9a7/ruamel.yaml.clib-0.2.14-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dba72975485f2b87b786075e18a6e5d07dc2b4d8973beb2732b9b2816f1bad70", size = 738090, upload-time = "2025-09-22T19:50:39.152Z" },
-    { url = "https://files.pythonhosted.org/packages/fb/d0/a70a03614d9a6788a3661ab1538879ed2aae4e84d861f101243116308a37/ruamel.yaml.clib-0.2.14-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:29757bdb7c142f9595cc1b62ec49a3d1c83fab9cef92db52b0ccebaad4eafb98", size = 700744, upload-time = "2025-09-22T19:50:40.811Z" },
-    { url = "https://files.pythonhosted.org/packages/77/30/c93fa457611f79946d5cb6cc97493ca5425f3f21891d7b1f9b44eaa1b38e/ruamel.yaml.clib-0.2.14-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:557df28dbccf79b152fe2d1b935f6063d9cc431199ea2b0e84892f35c03bb0ee", size = 742321, upload-time = "2025-09-23T18:42:48.916Z" },
-    { url = "https://files.pythonhosted.org/packages/40/85/e2c54ad637117cd13244a4649946eaa00f32edcb882d1f92df90e079ab00/ruamel.yaml.clib-0.2.14-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:26a8de280ab0d22b6e3ec745b4a5a07151a0f74aad92dd76ab9c8d8d7087720d", size = 743805, upload-time = "2025-09-22T19:50:43.58Z" },
-    { url = "https://files.pythonhosted.org/packages/81/50/f899072c38877d8ef5382e0b3d47f8c4346226c1f52d6945d6f64fec6a2f/ruamel.yaml.clib-0.2.14-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:e501c096aa3889133d674605ebd018471bc404a59cbc17da3c5924421c54d97c", size = 769529, upload-time = "2025-09-22T19:50:45.707Z" },
-    { url = "https://files.pythonhosted.org/packages/99/7c/96d4b5075e30c65ea2064e40c2d657c7c235d7b6ef18751cf89a935b9041/ruamel.yaml.clib-0.2.14-cp311-cp311-win32.whl", hash = "sha256:915748cfc25b8cfd81b14d00f4bfdb2ab227a30d6d43459034533f4d1c207a2a", size = 100256, upload-time = "2025-09-22T19:50:48.26Z" },
-    { url = "https://files.pythonhosted.org/packages/7d/8c/73ee2babd04e8bfcf1fd5c20aa553d18bf0ebc24b592b4f831d12ae46cc0/ruamel.yaml.clib-0.2.14-cp311-cp311-win_amd64.whl", hash = "sha256:4ccba93c1e5a40af45b2f08e4591969fa4697eae951c708f3f83dcbf9f6c6bb1", size = 118234, upload-time = "2025-09-22T19:50:47.019Z" },
-    { url = "https://files.pythonhosted.org/packages/b4/42/ccfb34a25289afbbc42017e4d3d4288e61d35b2e00cfc6b92974a6a1f94b/ruamel.yaml.clib-0.2.14-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:6aeadc170090ff1889f0d2c3057557f9cd71f975f17535c26a5d37af98f19c27", size = 271775, upload-time = "2025-09-23T14:24:12.771Z" },
-    { url = "https://files.pythonhosted.org/packages/82/73/e628a92e80197ff6a79ab81ec3fa00d4cc082d58ab78d3337b7ba7043301/ruamel.yaml.clib-0.2.14-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:5e56ac47260c0eed992789fa0b8efe43404a9adb608608631a948cee4fc2b052", size = 138842, upload-time = "2025-09-22T19:50:49.156Z" },
-    { url = "https://files.pythonhosted.org/packages/2b/c5/346c7094344a60419764b4b1334d9e0285031c961176ff88ffb652405b0c/ruamel.yaml.clib-0.2.14-cp312-cp312-manylinux2014_aarch64.whl", hash = "sha256:a911aa73588d9a8b08d662b9484bc0567949529824a55d3885b77e8dd62a127a", size = 647404, upload-time = "2025-09-22T19:50:52.921Z" },
-    { url = "https://files.pythonhosted.org/packages/df/99/65080c863eb06d4498de3d6c86f3e90595e02e159fd8529f1565f56cfe2c/ruamel.yaml.clib-0.2.14-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a05ba88adf3d7189a974b2de7a9d56731548d35dc0a822ec3dc669caa7019b29", size = 753141, upload-time = "2025-09-22T19:50:50.294Z" },
-    { url = "https://files.pythonhosted.org/packages/3d/e3/0de85f3e3333f8e29e4b10244374a202a87665d1131798946ee22cf05c7c/ruamel.yaml.clib-0.2.14-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:fb04c5650de6668b853623eceadcdb1a9f2fee381f5d7b6bc842ee7c239eeec4", size = 703477, upload-time = "2025-09-22T19:50:51.508Z" },
-    { url = "https://files.pythonhosted.org/packages/d9/25/0d2f09d8833c7fd77ab8efeff213093c16856479a9d293180a0d89f6bed9/ruamel.yaml.clib-0.2.14-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:df3ec9959241d07bc261f4983d25a1205ff37703faf42b474f15d54d88b4f8c9", size = 741157, upload-time = "2025-09-23T18:42:50.408Z" },
-    { url = "https://files.pythonhosted.org/packages/d3/8c/959f10c2e2153cbdab834c46e6954b6dd9e3b109c8f8c0a3cf1618310985/ruamel.yaml.clib-0.2.14-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:fbc08c02e9b147a11dfcaa1ac8a83168b699863493e183f7c0c8b12850b7d259", size = 745859, upload-time = "2025-09-22T19:50:54.497Z" },
-    { url = "https://files.pythonhosted.org/packages/ed/6b/e580a7c18b485e1a5f30a32cda96b20364b0ba649d9d2baaf72f8bd21f83/ruamel.yaml.clib-0.2.14-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:c099cafc1834d3c5dac305865d04235f7c21c167c8dd31ebc3d6bbc357e2f023", size = 770200, upload-time = "2025-09-22T19:50:55.718Z" },
-    { url = "https://files.pythonhosted.org/packages/ef/44/3455eebc761dc8e8fdced90f2b0a3fa61e32ba38b50de4130e2d57db0f21/ruamel.yaml.clib-0.2.14-cp312-cp312-win32.whl", hash = "sha256:b5b0f7e294700b615a3bcf6d28b26e6da94e8eba63b079f4ec92e9ba6c0d6b54", size = 98829, upload-time = "2025-09-22T19:50:58.895Z" },
-    { url = "https://files.pythonhosted.org/packages/76/ab/5121f7f3b651db93de546f8c982c241397aad0a4765d793aca1dac5eadee/ruamel.yaml.clib-0.2.14-cp312-cp312-win_amd64.whl", hash = "sha256:a37f40a859b503304dd740686359fcf541d6fb3ff7fc10f539af7f7150917c68", size = 115570, upload-time = "2025-09-22T19:50:57.981Z" },
-    { url = "https://files.pythonhosted.org/packages/d7/ae/e3811f05415594025e96000349d3400978adaed88d8f98d494352d9761ee/ruamel.yaml.clib-0.2.14-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:7e4f9da7e7549946e02a6122dcad00b7c1168513acb1f8a726b1aaf504a99d32", size = 269205, upload-time = "2025-09-23T14:24:15.06Z" },
-    { url = "https://files.pythonhosted.org/packages/72/06/7d51f4688d6d72bb72fa74254e1593c4f5ebd0036be5b41fe39315b275e9/ruamel.yaml.clib-0.2.14-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:dd7546c851e59c06197a7c651335755e74aa383a835878ca86d2c650c07a2f85", size = 137417, upload-time = "2025-09-22T19:50:59.82Z" },
-    { url = "https://files.pythonhosted.org/packages/5a/08/b4499234a420ef42960eeb05585df5cc7eb25ccb8c980490b079e6367050/ruamel.yaml.clib-0.2.14-cp313-cp313-manylinux2014_aarch64.whl", hash = "sha256:1c1acc3a0209ea9042cc3cfc0790edd2eddd431a2ec3f8283d081e4d5018571e", size = 642558, upload-time = "2025-09-22T19:51:03.388Z" },
-    { url = "https://files.pythonhosted.org/packages/b6/ba/1975a27dedf1c4c33306ee67c948121be8710b19387aada29e2f139c43ee/ruamel.yaml.clib-0.2.14-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2070bf0ad1540d5c77a664de07ebcc45eebd1ddcab71a7a06f26936920692beb", size = 744087, upload-time = "2025-09-22T19:51:00.897Z" },
-    { url = "https://files.pythonhosted.org/packages/20/15/8a19a13d27f3bd09fa18813add8380a29115a47b553845f08802959acbce/ruamel.yaml.clib-0.2.14-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:9bd8fe07f49c170e09d76773fb86ad9135e0beee44f36e1576a201b0676d3d1d", size = 699709, upload-time = "2025-09-22T19:51:02.075Z" },
-    { url = "https://files.pythonhosted.org/packages/19/ee/8d6146a079ad21e534b5083c9ee4a4c8bec42f79cf87594b60978286b39a/ruamel.yaml.clib-0.2.14-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:ff86876889ea478b1381089e55cf9e345707b312beda4986f823e1d95e8c0f59", size = 708926, upload-time = "2025-09-23T18:42:51.707Z" },
-    { url = "https://files.pythonhosted.org/packages/a9/f5/426b714abdc222392e68f3b8ad323930d05a214a27c7e7a0f06c69126401/ruamel.yaml.clib-0.2.14-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:1f118b707eece8cf84ecbc3e3ec94d9db879d85ed608f95870d39b2d2efa5dca", size = 740202, upload-time = "2025-09-22T19:51:04.673Z" },
-    { url = "https://files.pythonhosted.org/packages/3d/ac/3c5c2b27a183f4fda8a57c82211721c016bcb689a4a175865f7646db9f94/ruamel.yaml.clib-0.2.14-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:b30110b29484adc597df6bd92a37b90e63a8c152ca8136aad100a02f8ba6d1b6", size = 765196, upload-time = "2025-09-22T19:51:05.916Z" },
-    { url = "https://files.pythonhosted.org/packages/92/2e/06f56a71fd55021c993ed6e848c9b2e5e9cfce180a42179f0ddd28253f7c/ruamel.yaml.clib-0.2.14-cp313-cp313-win32.whl", hash = "sha256:f4e97a1cf0b7a30af9e1d9dad10a5671157b9acee790d9e26996391f49b965a2", size = 98635, upload-time = "2025-09-22T19:51:08.183Z" },
-    { url = "https://files.pythonhosted.org/packages/51/79/76aba16a1689b50528224b182f71097ece338e7a4ab55e84c2e73443b78a/ruamel.yaml.clib-0.2.14-cp313-cp313-win_amd64.whl", hash = "sha256:090782b5fb9d98df96509eecdbcaffd037d47389a89492320280d52f91330d78", size = 115238, upload-time = "2025-09-22T19:51:07.081Z" },
-    { url = "https://files.pythonhosted.org/packages/21/e2/a59ff65c26aaf21a24eb38df777cb9af5d87ba8fc8107c163c2da9d1e85e/ruamel.yaml.clib-0.2.14-cp314-cp314-macosx_10_15_universal2.whl", hash = "sha256:7df6f6e9d0e33c7b1d435defb185095386c469109de723d514142632a7b9d07f", size = 271441, upload-time = "2025-09-23T14:24:16.498Z" },
-    { url = "https://files.pythonhosted.org/packages/6b/fa/3234f913fe9a6525a7b97c6dad1f51e72b917e6872e051a5e2ffd8b16fbb/ruamel.yaml.clib-0.2.14-cp314-cp314-macosx_15_0_arm64.whl", hash = "sha256:70eda7703b8126f5e52fcf276e6c0f40b0d314674f896fc58c47b0aef2b9ae83", size = 137970, upload-time = "2025-09-22T19:51:09.472Z" },
-    { url = "https://files.pythonhosted.org/packages/ef/ec/4edbf17ac2c87fa0845dd366ef8d5852b96eb58fcd65fc1ecf5fe27b4641/ruamel.yaml.clib-0.2.14-cp314-cp314-musllinux_1_2_i686.whl", hash = "sha256:a0cb71ccc6ef9ce36eecb6272c81afdc2f565950cdcec33ae8e6cd8f7fc86f27", size = 739639, upload-time = "2025-09-22T19:51:10.566Z" },
-    { url = "https://files.pythonhosted.org/packages/15/18/b0e1fafe59051de9e79cdd431863b03593ecfa8341c110affad7c8121efc/ruamel.yaml.clib-0.2.14-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:e7cb9ad1d525d40f7d87b6df7c0ff916a66bc52cb61b66ac1b2a16d0c1b07640", size = 764456, upload-time = "2025-09-22T19:51:11.736Z" },
-    { url = "https://files.pythonhosted.org/packages/e7/cd/150fdb96b8fab27fe08d8a59fe67554568727981806e6bc2677a16081ec7/ruamel_yaml_clib-0.2.14-cp314-cp314-win32.whl", hash = "sha256:9b4104bf43ca0cd4e6f738cb86326a3b2f6eef00f417bd1e7efb7bdffe74c539", size = 102394, upload-time = "2025-11-14T21:57:36.703Z" },
-    { url = "https://files.pythonhosted.org/packages/bd/e6/a3fa40084558c7e1dc9546385f22a93949c890a8b2e445b2ba43935f51da/ruamel_yaml_clib-0.2.14-cp314-cp314-win_amd64.whl", hash = "sha256:13997d7d354a9890ea1ec5937a219817464e5cc344805b37671562a401ca3008", size = 122673, upload-time = "2025-11-14T21:57:38.177Z" },
 ]
 
 [[package]]

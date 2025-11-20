@@ -1,0 +1,34 @@
+# =============================================================================
+# Production Environment Configuration
+# =============================================================================
+# This file contains non-sensitive configuration for the production environment.
+# Sensitive data (API keys, passwords) should be in .env file or Azure Key Vault.
+# =============================================================================
+
+# Application Settings
+app_name: "Are You Not Entertained"
+environment: "production"
+debug: false
+
+# Logging
+log_level: "WARNING"
+use_json_logging: true
+
+# API Configuration
+tmdb_api_base_url: "https://api.themoviedb.org/3"
+omdb_api_base_url: "http://www.omdbapi.com"
+api_rate_limit: 40
+api_timeout: 30
+
+# Data Processing
+batch_size: 200
+random_seed: 42
+
+# FastAPI Server
+host: "0.0.0.0"
+port: 8000
+reload: false
+cors_origins:
+  - "https://yourapp.com"
+  - "https://www.yourapp.com"
+  - "https://*.azurewebsites.net"

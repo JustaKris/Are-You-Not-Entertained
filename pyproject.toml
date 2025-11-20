@@ -15,10 +15,10 @@ keywords = [
     "mlflow"
 ]
 authors = [
-    {name = "JustaKris"}
+    {name = "Kristiyan Bonev", email = "k.s.bonev@gmail.com"}
 ]
 maintainers = [
-    {name = "JustaKris"}
+    {name = "Kristiyan Bonev", email = "k.s.bonev@gmail.com"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -36,38 +36,42 @@ dependencies = [
     # --- Core scientific stack ---
     "numpy>=2.1,<3.0",
     "pandas>=2.2,<3.0",
-    "polars>=1.7,<2.0",                     # Optional modern alternative – blazing fast
+    "polars>=1.7,<2.0", # Optional modern alternative – blazing fast
     "scikit-learn>=1.5,<2.0",
-    "xgboost>=2.0,<3.0",                    # v2+ highly stable now
-
+    "xgboost>=2.0,<3.0", # v2+ highly stable now
     # --- Visualization ---
     "matplotlib>=3.8,<4.0",
     "seaborn>=0.13,<0.15",
-    "plotly>=6.0,<7.0",                     # Loose enough but avoids future breakage
-
+    "plotly>=6.0,<7.0", # Loose enough but avoids future breakage
     # --- Configuration / Serialization ---
+    "pydantic>=2.0,<3.0", # Modern settings management
+    "pydantic-settings>=2.0,<3.0", # Pydantic settings from env/files
     "python-dotenv>=1.0,<2.0",
-    "ruamel.yaml>=0.18,<1.0",               # Safer PyYAML alternative
-    "cloudpickle>=3.0,<4.0",                # Better than dill for model serialization
-
+    "pyyaml>=6.0,<7.0", # YAML parsing for config files
+    "cloudpickle>=3.0,<4.0", # Better than dill for model serialization
     # --- Web / API ---
     "fastapi>=0.110,<1.0",
     "uvicorn>=0.30,<1.0",
-    "httpx>=0.27,<1.0",                     # Modern async HTTP client
-
+    "httpx>=0.27,<1.0", # Modern async HTTP client
     # --- Database / ORM ---
     "sqlalchemy>=2.0,<3.0",
     "psycopg2-binary>=2.9,<3.0",
-
     # --- Utilities ---
     "beautifulsoup4>=4.12,<5.0",
-    "lxml>=5.2,<6.0",                       # Fast XML/HTML backend
-    "pyprojroot>=0.3,<1.0",                 # Keep if you're using it
-
+    "lxml>=5.2,<6.0", # Fast XML/HTML backend
+    "pyprojroot>=0.3,<1.0", # Keep if you're using it
     # --- Experiment tracking ---
     "mlflow>=2.15,<2.20",
     "pyarrow>=16.1,<17.0",
+    "duckdb>=1.4.2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/JustaKris/Are-You-Not-Entertained"
+
+[project.scripts]
+# Console script entry-point migrated from setup.py
+are_you_not_entertained = "app:main"
 
 [dependency-groups]
 
