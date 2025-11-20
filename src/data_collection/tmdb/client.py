@@ -1,26 +1,33 @@
-"""Modern TMDB API client for DuckDB integration."""
+"""
+TMDB API client with async/await, rate limiting, and concurrent request management.
 
-import time
-import httpx
+Features:
+- Async/await using httpx.AsyncClient
+- Shared rate limiter with token bucket algorithm
+- Retry logic with exponential backoff
+- Concurrent request control
+"""
+
 from typing import List, Dict, Optional, Any
 from pathlib import Path
-import pyarrow as pa
-import pyarrow.parquet as pq
+import httpx
 
 from src.core.logging import get_logger
 from src.core.config import settings
-from .normalizers import normalize_discover_results, normalize_movie_details
+from src.data_collection.rate_limiter import AsyncRateLimiter, retry_with_backoff
+from src.data_collection.tmdb.normalizers import normalize_discover_results, normalize_movie_details
 
 logger = get_logger(__name__)
 
 
 class TMDBClient:
-    """TMDB API client optimized for batch data collection."""
+    """TMDB API client optimized for batch data collection with rate limiting."""
     
     def __init__(
         self,
         api_key: Optional[str] = None,
-        delay: float = 0.1,
+        requests_per_second: float = 4.0,
+        max_concurrent: int = 10,
         output_dir: Optional[Path] = None
     ):
         """
@@ -28,45 +35,90 @@ class TMDBClient:
         
         Args:
             api_key: TMDB API key (defaults to settings)
-            delay: Rate limit delay between requests (seconds)
-            output_dir: Directory for saving parquet files (defaults to settings.data_raw_dir/tmdb)
+            requests_per_second: Rate limit (requests per second)
+            max_concurrent: Maximum concurrent requests
+            output_dir: Directory for saving parquet files
         """
         self.api_key = api_key or settings.tmdb_api_key
         if not self.api_key:
             raise ValueError("TMDB API key is required")
         
         self.base_url = settings.tmdb_api_base_url
-        self.delay = delay
         self.output_dir = output_dir or (settings.data_raw_dir / "tmdb")  # type: ignore
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        logger.info(f"TMDB client initialized (output: {self.output_dir})")
+        # Rate limiting
+        self._rate_limiter = AsyncRateLimiter(
+            requests_per_second=requests_per_second,
+            max_concurrent=max_concurrent
+        )
+        
+        logger.info(
+            f"TMDB client initialized (rate: {requests_per_second} req/s, "
+            f"concurrent: {max_concurrent}, output: {self.output_dir})"
+        )
     
-    def _request(self, endpoint: str, params: Optional[Dict] = None) -> Dict:
-        """Make API request with error handling and rate limiting."""
+    async def _request(
+        self,
+        endpoint: str,
+        params: Optional[Dict] = None
+    ) -> Dict:
+        """
+        Make async API request with rate limiting and retry logic.
+        
+        Args:
+            endpoint: API endpoint
+            params: Query parameters
+            
+        Returns:
+            JSON response as dict
+        """
         params = params or {}
         params["api_key"] = self.api_key
-        
         url = f"{self.base_url}/{endpoint}"
         
-        try:
-            with httpx.Client(timeout=settings.api_timeout) as client:
-                response = client.get(url, params=params)
-                response.raise_for_status()
-                time.sleep(self.delay)
-                return response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error fetching {endpoint}: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Error fetching {endpoint}: {e}")
-            raise
+        async def make_request():
+            async with self._rate_limiter:
+                async with httpx.AsyncClient(timeout=settings.api_timeout) as client:
+                    response = await client.get(url, params=params)
+                    response.raise_for_status()
+                    return response.json()
+        
+        return await retry_with_backoff(make_request, retry_count=3)
     
-    # ================================================================
-    # Discover Movies (Basic Info)
-    # ================================================================
+    async def discover_movies_page(
+        self,
+        year: int,
+        page: int,
+        min_vote_count: int = 200
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch a single page of discovered movies.
+        
+        Args:
+            year: Release year
+            page: Page number
+            min_vote_count: Minimum vote count filter
+            
+        Returns:
+            List of normalized movie dictionaries
+        """
+        endpoint = "discover/movie"
+        params = {
+            "primary_release_date.gte": f"{year}-01-01",
+            "primary_release_date.lte": f"{year}-12-31",
+            "vote_count.gte": min_vote_count,
+            "sort_by": "primary_release_date.desc",
+            "include_adult": "false",
+            "include_video": "false",
+            "page": page
+        }
+        
+        response = await self._request(endpoint, params)
+        movies = response.get("results", [])
+        return normalize_discover_results(movies)
     
-    def discover_movies(
+    async def discover_movies(
         self,
         start_year: int,
         end_year: Optional[int] = None,
@@ -74,16 +126,16 @@ class TMDBClient:
         max_pages: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """
-        Discover movies by year and vote count.
+        Discover movies by year range with concurrent page fetching.
         
         Args:
             start_year: Starting year
             end_year: Ending year (defaults to start_year)
             min_vote_count: Minimum vote count filter
             max_pages: Maximum pages to fetch per year
-        
+            
         Returns:
-            List of movie dictionaries with basic info
+            List of normalized movie dictionaries
         """
         end_year = end_year or start_year
         all_movies = []
@@ -91,6 +143,10 @@ class TMDBClient:
         for year in range(start_year, end_year + 1):
             logger.info(f"Discovering TMDB movies for year {year}...")
             
+            # Get first page to determine total pages
+            first_page = await self.discover_movies_page(year, 1, min_vote_count)
+            
+            # Fetch first page to get total
             endpoint = "discover/movie"
             params = {
                 "primary_release_date.gte": f"{year}-01-01",
@@ -101,9 +157,7 @@ class TMDBClient:
                 "include_video": "false",
                 "page": 1
             }
-            
-            # Get first page to determine total pages
-            response = self._request(endpoint, params)
+            response = await self._request(endpoint, params)
             total_pages = response.get("total_pages", 1)
             
             if max_pages:
@@ -111,60 +165,96 @@ class TMDBClient:
             
             logger.info(f"Fetching {total_pages} pages for year {year}")
             
-            # Fetch all pages
-            year_movies = []
-            for page in range(1, total_pages + 1):
-                params["page"] = page
-                response = self._request(endpoint, params)
-                movies = response.get("results", [])
-                year_movies.extend(movies)
-                logger.debug(f"Fetched page {page}/{total_pages}")
+            # Fetch remaining pages concurrently
+            if total_pages > 1:
+                tasks = [
+                    self.discover_movies_page(year, page, min_vote_count)
+                    for page in range(2, total_pages + 1)
+                ]
+                
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                
+                # Collect results
+                year_movies = first_page.copy()
+                for result in results:
+                    if isinstance(result, Exception):
+                        logger.error(f"Failed to fetch page: {result}")
+                    else:
+                        year_movies.extend(result)
+            else:
+                year_movies = first_page
             
             logger.info(f"Discovered {len(year_movies)} movies for year {year}")
-            all_movies.extend(normalize_discover_results(year_movies))
+            all_movies.extend(year_movies)
         
         logger.info(f"Total movies discovered: {len(all_movies)}")
         return all_movies
     
-    # ================================================================
-    # Get Movie Details (Full Features)
-    # ================================================================
-    
-    def get_movie_details(self, tmdb_id: int) -> Optional[Dict[str, Any]]:
-        """Fetch full movie details by TMDB ID."""
+    async def get_movie_details(self, tmdb_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Fetch full movie details by TMDB ID.
+        
+        Args:
+            tmdb_id: TMDB movie ID
+            
+        Returns:
+            Normalized movie details or None on error
+        """
         endpoint = f"movie/{tmdb_id}"
         try:
-            response = self._request(endpoint)
+            response = await self._request(endpoint)
             return normalize_movie_details(response)
         except Exception as e:
             logger.error(f"Failed to fetch details for TMDB ID {tmdb_id}: {e}")
             return None
     
-    def get_batch_movie_details(self, tmdb_ids: List[int]) -> List[Dict[str, Any]]:
-        """Fetch details for multiple movies."""
-        movies = []
-        total = len(tmdb_ids)
+    async def get_batch_movie_details(
+        self,
+        tmdb_ids: List[int],
+        progress_callback: Optional[callable] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch details for multiple movies concurrently.
         
-        for idx, tmdb_id in enumerate(tmdb_ids, 1):
-            logger.info(f"Fetching movie {idx}/{total}: TMDB ID {tmdb_id}")
-            movie = self.get_movie_details(tmdb_id)
-            if movie:
-                movies.append(movie)
+        Args:
+            tmdb_ids: List of TMDB movie IDs
+            progress_callback: Optional callback(current, total) for progress updates
+            
+        Returns:
+            List of normalized movie details
+        """
+        total = len(tmdb_ids)
+        logger.info(f"Fetching details for {total} movies")
+        
+        movies = []
+        completed = 0
+        
+        # Create tasks for all movies
+        async def fetch_with_progress(tmdb_id: int) -> Optional[Dict[str, Any]]:
+            nonlocal completed
+            result = await self.get_movie_details(tmdb_id)
+            completed += 1
+            
+            if progress_callback:
+                progress_callback(completed, total)
+            elif completed % 10 == 0 or completed == total:
+                logger.info(f"Progress: {completed}/{total} movies fetched")
+            
+            return result
+        
+        tasks = [fetch_with_progress(tmdb_id) for tmdb_id in tmdb_ids]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Filter out None and exceptions
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Task failed: {result}")
+            elif result is not None:
+                movies.append(result)
         
         logger.info(f"Successfully fetched {len(movies)}/{total} movies")
         return movies
     
-    # ================================================================
-    # Storage
-    # ================================================================
-    
-    def save_to_parquet(self, movies: List[Dict[str, Any]], filename: str = "tmdb_movies.parquet"):
-        """Save movie data to parquet file."""
-        if not movies:
-            logger.warning("No data to save")
-            return
-        
-        table = pa.Table.from_pylist(movies)
-        output_path = self.output_dir / filename
-        pq.write_table(table, output_path)
-        logger.info(f"Saved {len(movies)} rows → {output_path}")
+    async def close(self):
+        """Cleanup method (placeholder for future resource cleanup)."""
+        pass

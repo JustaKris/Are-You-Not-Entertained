@@ -257,6 +257,57 @@ class DuckDBClient:
         sql = f"COPY (SELECT * FROM {table_name}) TO '{parquet_path}' (FORMAT PARQUET)"
         logger.info("Exporting table %s to parquet %s", table_name, parquet_path)
         self.execute(sql)
+    
+    def batch_update_timestamps(self, table_name: str, id_column: str, timestamp_column: str, ids: List[Any], timestamp: str) -> None:
+        """
+        Batch update timestamps for multiple records.
+        
+        Args:
+            table_name: Target table name
+            id_column: ID column name
+            timestamp_column: Timestamp column to update
+            ids: List of IDs to update
+            timestamp: Timestamp value (ISO format string)
+        """
+        if not ids:
+            return
+        
+        ids_str = ",".join(str(id) for id in ids)
+        sql = f"UPDATE {table_name} SET {timestamp_column} = ? WHERE {id_column} IN ({ids_str})"
+        self.execute(sql, [timestamp])
+        logger.debug(f"Updated {len(ids)} records in {table_name}.{timestamp_column}")
+    
+    def get_collection_stats(self) -> pd.DataFrame:
+        """
+        Get summary statistics about data collection status.
+        
+        Returns:
+            DataFrame with collection statistics
+        """
+        query = """
+        SELECT 
+            COUNT(DISTINCT m.movie_id) as total_movies,
+            COUNT(DISTINCT CASE WHEN m.last_tmdb_update IS NOT NULL THEN m.movie_id END) as with_tmdb,
+            COUNT(DISTINCT CASE WHEN m.last_omdb_update IS NOT NULL THEN m.movie_id END) as with_omdb,
+            COUNT(DISTINCT CASE WHEN m.last_full_refresh IS NOT NULL THEN m.movie_id END) as fully_refreshed,
+            COUNT(DISTINCT CASE WHEN m.data_frozen = TRUE THEN m.movie_id END) as frozen,
+            COUNT(DISTINCT CASE 
+                WHEN m.release_date >= CURRENT_DATE - INTERVAL '60 days' THEN m.movie_id 
+            END) as recent_movies,
+            COUNT(DISTINCT CASE 
+                WHEN m.release_date < CURRENT_DATE - INTERVAL '60 days' 
+                 AND m.release_date >= CURRENT_DATE - INTERVAL '180 days' THEN m.movie_id 
+            END) as established_movies,
+            COUNT(DISTINCT CASE 
+                WHEN m.release_date < CURRENT_DATE - INTERVAL '180 days' 
+                 AND m.release_date >= CURRENT_DATE - INTERVAL '365 days' THEN m.movie_id 
+            END) as mature_movies,
+            COUNT(DISTINCT CASE 
+                WHEN m.release_date < CURRENT_DATE - INTERVAL '365 days' THEN m.movie_id 
+            END) as archived_movies
+        FROM movies m
+        """
+        return self.query(query)
 
     def close(self):
         """Close the DuckDB connection."""

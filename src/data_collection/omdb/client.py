@@ -1,100 +1,166 @@
-"""Modern OMDB API client for DuckDB integration."""
+"""
+Async OMDB API client with rate limiting and retry logic.
 
-import time
-import httpx
-from typing import Optional, List, Dict, Any
-import pyarrow as pa
-import pyarrow.parquet as pq
+Features:
+- Async/await using httpx.AsyncClient
+- Rate limiting via shared AsyncRateLimiter
+- Semaphore for concurrent request control
+- Exponential backoff retry logic via retry_with_backoff
+"""
+
+import asyncio
+from typing import List, Dict, Optional, Any
 from pathlib import Path
+import httpx
 
 from src.core.logging import get_logger
 from src.core.config import settings
-from .normalizers import normalize_movie_response
+from src.data_collection.omdb.normalizers import normalize_movie_response
+from src.data_collection.rate_limiter import AsyncRateLimiter, retry_with_backoff
 
 logger = get_logger(__name__)
 
 
 class OMDBClient:
-    """OMDB API client optimized for batch data collection."""
+    """Async OMDB API client optimized for batch data collection with rate limiting."""
     
     def __init__(
         self,
         api_key: Optional[str] = None,
-        delay: float = 0.1,
+        requests_per_second: float = 2.0,
+        max_concurrent: int = 5,
         output_dir: Optional[Path] = None
     ):
         """
-        Initialize OMDB client.
+        Initialize async OMDB client.
         
         Args:
             api_key: OMDB API key (defaults to settings)
-            delay: Rate limit delay between requests (seconds)
-            output_dir: Directory for saving parquet files (defaults to settings.data_raw_dir/omdb)
+            requests_per_second: Rate limit (requests per second)
+            max_concurrent: Maximum concurrent requests
+            output_dir: Directory for saving parquet files
         """
         self.api_key = api_key or settings.omdb_api_key
         if not self.api_key:
             raise ValueError("OMDB API key is required")
         
         self.base_url = settings.omdb_api_base_url
-        self.delay = delay
         self.output_dir = output_dir or (settings.data_raw_dir / "omdb")  # type: ignore
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        logger.info(f"OMDB client initialized (output: {self.output_dir})")
+        # Shared rate limiter
+        self._rate_limiter = AsyncRateLimiter(
+            requests_per_second=requests_per_second,
+            max_concurrent=max_concurrent
+        )
+        
+        logger.info(
+            f"OMDB client initialized (rate: {requests_per_second} req/s, "
+            f"concurrent: {max_concurrent}, output: {self.output_dir})"
+        )
     
-    # -------------------------------------------------------------
-    # API calls
-    # -------------------------------------------------------------
-
-    def get_movie_by_imdb_id(self, imdb_id: str) -> Optional[Dict[str, Any]]:
-        """Fetch movie by IMDb ID."""
-        params = {"apikey": self.api_key, "i": imdb_id}
+    async def _request(
+        self,
+        params: Dict,
+        retry_count: int = 3
+    ) -> Dict:
+        """
+        Make async API request with rate limiting and retry logic.
+        
+        Args:
+            params: Query parameters
+            retry_count: Number of retries on failure
+            
+        Returns:
+            JSON response as dict
+        """
+        params["apikey"] = self.api_key
+        
+        async def make_request():
+            async with self._rate_limiter:
+                async with httpx.AsyncClient(timeout=settings.api_timeout) as client:
+                    response = await client.get(self.base_url, params=params)
+                    response.raise_for_status()
+                    return response.json()
+        
+        return await retry_with_backoff(make_request, retry_count=retry_count)
+    
+    async def get_movie_by_imdb_id(self, imdb_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetch movie by IMDb ID.
+        
+        Args:
+            imdb_id: IMDb ID (e.g., 'tt0111161')
+            
+        Returns:
+            Normalized movie data or None on error
+        """
+        if not imdb_id:
+            return None
+        
+        params = {"i": imdb_id}
         
         try:
-            with httpx.Client(timeout=settings.api_timeout) as client:
-                resp = client.get(self.base_url, params=params)
-                resp.raise_for_status()
-                time.sleep(self.delay)
-        except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error fetching {imdb_id}: {e}")
-            return None
+            data = await self._request(params)
+            return normalize_movie_response(data)
         except Exception as e:
-            logger.error(f"Error fetching {imdb_id}: {e}")
+            logger.error(f"Failed to fetch OMDB data for {imdb_id}: {e}")
             return None
-
-        data = resp.json()
-        return normalize_movie_response(data)
-
-    # -------------------------------------------------------------
-    # Batch mode
-    # -------------------------------------------------------------
-
-    def get_batch_movies(self, imdb_ids: List[str]) -> List[Dict[str, Any]]:
-        """Fetch multiple movies by IMDb ID."""
-        results = []
-        total = len(imdb_ids)
+    
+    async def get_batch_movies(
+        self,
+        imdb_ids: List[str],
+        progress_callback: Optional[callable] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch multiple movies by IMDb ID concurrently.
         
-        for i, imdb_id in enumerate(imdb_ids, start=1):
-            logger.info(f"Fetching movie {i}/{total}: {imdb_id}")
-            row = self.get_movie_by_imdb_id(imdb_id)
-            if row:
-                results.append(row)
+        Args:
+            imdb_ids: List of IMDb IDs
+            progress_callback: Optional callback(current, total) for progress updates
+            
+        Returns:
+            List of normalized movie data
+        """
+        # Filter out None/empty IDs
+        valid_ids = [id for id in imdb_ids if id]
+        total = len(valid_ids)
         
-        logger.info(f"Successfully fetched {len(results)}/{total} movies")
-        return results
-
-    # -------------------------------------------------------------
-    # Storage
-    # -------------------------------------------------------------
-
-    def save_to_parquet(self, movies: List[Dict[str, Any]], filename: str = "omdb_movies.parquet"):
-        """Save movie data to parquet file."""
-        if not movies:
-            logger.warning("No data to save")
-            return
+        if total == 0:
+            logger.warning("No valid IMDb IDs provided")
+            return []
         
-        table = pa.Table.from_pylist(movies)
-        output_path = self.output_dir / filename
-        pq.write_table(table, output_path)
-        logger.info(f"Saved {len(movies)} rows → {output_path}")
-
+        logger.info(f"Fetching OMDB data for {total} movies")
+        
+        movies = []
+        completed = 0
+        
+        # Create tasks for all movies
+        async def fetch_with_progress(imdb_id: str) -> Optional[Dict[str, Any]]:
+            nonlocal completed
+            result = await self.get_movie_by_imdb_id(imdb_id)
+            completed += 1
+            
+            if progress_callback:
+                progress_callback(completed, total)
+            elif completed % 10 == 0 or completed == total:
+                logger.info(f"Progress: {completed}/{total} movies fetched")
+            
+            return result
+        
+        tasks = [fetch_with_progress(imdb_id) for imdb_id in valid_ids]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Filter out None and exceptions
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Task failed: {result}")
+            elif result is not None:
+                movies.append(result)
+        
+        logger.info(f"Successfully fetched {len(movies)}/{total} movies")
+        return movies
+    
+    async def close(self):
+        """Cleanup method (placeholder for future resource cleanup)."""
+        pass

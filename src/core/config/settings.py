@@ -77,14 +77,19 @@ class Settings(BaseSettings):
         description="Raw data directory (defaults to data_dir/raw)"
     )
     
-    data_intermediate_dir: Optional[Path] = Field(
-        default=None,
-        description="Intermediate data directory (defaults to data_dir/intermediate)"
-    )
-    
     data_processed_dir: Optional[Path] = Field(
         default=None,
         description="Processed data directory (defaults to data_dir/processed)"
+    )
+    
+    data_artifacts_dir: Optional[Path] = Field(
+        default=None,
+        description="Artifacts directory for model outputs (defaults to data_dir/artifacts)"
+    )
+    
+    data_db_dir: Optional[Path] = Field(
+        default=None,
+        description="Database directory (defaults to data_dir/db)"
     )
     
     models_dir: Optional[Path] = Field(
@@ -253,11 +258,14 @@ class Settings(BaseSettings):
         if self.data_raw_dir is None:
             self.data_raw_dir = self.data_dir / "raw"
         
-        if self.data_intermediate_dir is None:
-            self.data_intermediate_dir = self.data_dir / "intermediate"
-        
         if self.data_processed_dir is None:
             self.data_processed_dir = self.data_dir / "processed"
+        
+        if self.data_artifacts_dir is None:
+            self.data_artifacts_dir = self.data_dir / "artifacts"
+        
+        if self.data_db_dir is None:
+            self.data_db_dir = self.data_dir / "db"
         
         if self.models_dir is None:
             self.models_dir = self.project_root / "models"
@@ -266,10 +274,10 @@ class Settings(BaseSettings):
             self.logs_dir = self.project_root / "logs"
         
         if self.duckdb_path is None:
-            self.duckdb_path = self.data_intermediate_dir / "movies.duckdb"
+            self.duckdb_path = self.data_db_dir / "movies.duckdb"
         
         # Ensure critical directories exist
-        for directory in [self.data_dir, self.data_raw_dir, self.data_intermediate_dir,
-                         self.data_processed_dir, self.models_dir, self.logs_dir]:
+        for directory in [self.data_dir, self.data_raw_dir, self.data_processed_dir,
+                         self.data_artifacts_dir, self.data_db_dir, self.models_dir, self.logs_dir]:
             if directory:
                 directory.mkdir(parents=True, exist_ok=True)
