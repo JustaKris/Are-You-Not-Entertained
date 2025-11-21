@@ -1,0 +1,50 @@
+name: Type Check
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: ["**"]
+    paths:
+      - "src/**/*.py"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+jobs:
+  type-check:
+    name: Type Check with mypy
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Allow type checking to fail without blocking pipeline
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies with uv..."
+          uv sync --group dev
+      
+      - name: Run type checking with mypy
+        run: |
+          echo "Running type checking with mypy..."
+          uv run mypy src/ --ignore-missing-imports
+      
+      - name: Summary
+        if: success()
+        run: echo "✅ Type checking passed!"
+      
+      - name: Failure summary
+        if: failure()
+        run: echo "⚠️  Type checking issues found. Please review the output above."

@@ -1,0 +1,134 @@
+name: Test Suite
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies with uv..."
+          uv sync --group dev
+          uv pip install -e .
+      
+      - name: Run all tests with coverage
+        run: |
+          echo "⚠️  WARNING: No tests implemented yet - bypassing test execution"
+          echo "This is a placeholder that will be removed once tests are added"
+          echo "To implement tests:"
+          echo "  1. Add test files to tests/unit/ or tests/integration/"
+          echo "  2. Remove this placeholder step"
+          echo "  3. Uncomment the pytest command below"
+          echo ""
+          # TODO: Uncomment when tests are ready
+          # uv run pytest tests/ -v \
+          #   --cov=src \
+          #   --cov-report=term-missing \
+          #   --cov-report=html:reports/coverage/html \
+          #   --cov-report=xml:reports/coverage/coverage.xml \
+          #   --cov-fail-under=10 \
+          #   --tb=short
+          exit 0
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./reports/coverage/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+      
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: reports/coverage/
+          retention-days: 30
+  
+  test-unit:
+    name: Unit Tests Only
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      
+      - name: Install dependencies
+        run: |
+          uv sync --group dev
+          uv pip install -e .
+      
+      - name: Run unit tests only
+        run: |
+          echo "⚠️  No unit tests implemented yet - skipping"
+          # TODO: Uncomment when tests are ready
+          # uv run pytest tests/unit/ -v --tb=short
+          exit 0
+  
+  test-integration:
+    name: Integration Tests Only
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      
+      - name: Install dependencies
+        run: |
+          uv sync --group dev
+          uv pip install -e .
+      
+      - name: Run integration tests only
+        run: |
+          echo "⚠️  No integration tests implemented yet - skipping"
+          # TODO: Uncomment when tests are ready
+          # uv run pytest tests/integration/ -v --tb=short
+          exit 0

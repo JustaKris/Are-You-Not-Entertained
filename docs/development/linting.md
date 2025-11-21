@@ -1,6 +1,6 @@
 # Linting Guide
 
-Code quality checks and linting for the TV-HML project using Ruff and other tools.
+Code quality checks and linting for the Are You Not Entertained (AYNE) project using Ruff and other tools.
 
 ## Quick Start
 
@@ -276,19 +276,23 @@ Write-Host "`nAll checks passed!" -ForegroundColor Green
 
 ## CI/CD Integration
 
-Linting runs automatically in GitLab CI:
+Linting runs automatically in GitHub Actions:
 
 ```yaml
-lint:
-  stage: quality
-  script:
-    - uv run ruff check src/ tests/
-    - uv run mypy src/ tests/ --ignore-missing-imports
-    - uv run bandit -r src/
-  allow_failure: false
+- name: Run ruff linting
+  run: |
+    uv run ruff check src/ tests/
+
+- name: Run type checking
+  run: |
+    uv run mypy src/ tests/ --ignore-missing-imports
+
+- name: Run security scan
+  run: |
+    uv run bandit -r src/
 ```
 
-See [CI/CD Documentation](ci-cd.md) for complete pipeline.
+See `.github/workflows/lint.yml`, `.github/workflows/type-check.yml`, and `.github/workflows/security.yml` for complete workflows.
 
 ## IDE Integration
 
@@ -395,7 +399,7 @@ uv run pre-commit install
 - **[Formatting Guide](formatting.md)** - Code formatting standards
 - **[Security Guide](security.md)** - Security scanning and best practices
 - **[Code Style](code-style.md)** - General style guidelines
-- **[CI/CD Pipeline](ci-cd.md)** - Automated quality checks
+- **GitHub Actions Workflows** - See `.github/workflows/` for automated quality checks
 
 ## Resources
 

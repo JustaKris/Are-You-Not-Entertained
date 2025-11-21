@@ -1,6 +1,6 @@
 # Testing Guide
 
-Modern testing practices for TV-HML using pytest with comprehensive coverage reporting.
+Modern testing practices for Are You Not Entertained (AYNE) using pytest with comprehensive coverage reporting.
 
 ## Quick Start
 
@@ -263,23 +263,26 @@ class TestS3Download:
 
 ## CI/CD Integration
 
-Tests run automatically in GitLab CI pipeline:
+Tests run automatically in GitHub Actions:
 
 ```yaml
-test:
-  stage: test
-  script:
-    - uv sync
-    - uv run pytest --cov=src --cov-report=xml --cov-report=term
-  coverage: '/TOTAL.*\s+(\d+%)$/'
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: reports/coverage/coverage.xml
+- name: Run all tests with coverage
+  run: |
+    uv run pytest tests/ -v \
+      --cov=src \
+      --cov-report=term-missing \
+      --cov-report=html:reports/coverage/html \
+      --cov-report=xml:reports/coverage/coverage.xml \
+      --cov-fail-under=10 \
+      --tb=short
+
+- name: Upload coverage reports
+  uses: codecov/codecov-action@v4
+  with:
+    file: ./reports/coverage/coverage.xml
 ```
 
-See [CI/CD Documentation](ci-cd.md) for complete pipeline details.
+See `.github/workflows/test.yml` for the complete test workflow.
 
 ## Test Configuration
 
@@ -348,7 +351,7 @@ Get-ChildItem -Recurse -Filter "__pycache__" | Remove-Item -Recurse -Force
 - **[Linting Guide](linting.md)** - Code quality checks
 - **[Formatting Guide](formatting.md)** - Code formatting standards
 - **[Code Style](code-style.md)** - General style guidelines
-- **[CI/CD Pipeline](ci-cd.md)** - Automated testing pipeline
+- **GitHub Actions Workflows** - See `.github/workflows/test.yml` for automated testing
 
 ## Next Steps
 

@@ -137,23 +137,21 @@ This allows:
 
 ### CI Configuration
 
-File: `.gitlab/jobs/markdown-lint.yml`
+File: `.github/workflows/markdown-lint.yml`
 
 ```yaml
-Markdown Lint:
-  stage: markdown-lint
-  image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
-  script:
-    - uv run pymarkdown scan docs/ README.md
-  allow_failure: true  # Won't block pipeline
+- name: Run markdown linting
+  run: |
+    uv run pymarkdown scan docs/ README.md
+  continue-on-error: true  # Won't block pipeline
 ```
 
 ### Failure Behavior
 
-- **Status**: `allow_failure: true` (warnings only)
-- **When**: Runs on pushes/MRs with doc changes
+- **Status**: `continue-on-error: true` (warnings only)
+- **When**: Runs on pushes/PRs with doc changes
 - **Impact**: Non-blocking - won't prevent merges
-- **Visibility**: Shows warning badge in GitLab MR
+- **Visibility**: Shows warning in GitHub Actions
 
 ## Best Practices
 

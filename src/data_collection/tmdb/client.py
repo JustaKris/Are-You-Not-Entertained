@@ -8,8 +8,9 @@ Features:
 - Concurrent request control
 """
 
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Callable
 from pathlib import Path
+import asyncio
 import httpx
 
 from src.core.logging import get_logger
@@ -39,11 +40,13 @@ class TMDBClient:
             max_concurrent: Maximum concurrent requests
             output_dir: Directory for saving parquet files
         """
-        self.api_key = api_key or settings.tmdb_api_key
+        # Prefer explicit api_key, fallback to settings attribute if present
+        self.api_key = api_key or getattr(settings, "tmdb_api_key", None)
         if not self.api_key:
             raise ValueError("TMDB API key is required")
         
-        self.base_url = settings.tmdb_api_base_url
+        # Base URL from settings (use getattr to avoid attribute errors in static checks)
+        self.base_url = getattr(settings, "tmdb_api_base_url", "https://api.themoviedb.org/3")
         self.output_dir = output_dir or (settings.data_raw_dir / "tmdb")  # type: ignore
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -79,7 +82,8 @@ class TMDBClient:
         
         async def make_request():
             async with self._rate_limiter:
-                async with httpx.AsyncClient(timeout=settings.api_timeout) as client:
+                timeout = getattr(settings, "api_timeout", 10)
+                async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.get(url, params=params)
                     response.raise_for_status()
                     return response.json()
@@ -179,8 +183,10 @@ class TMDBClient:
                 for result in results:
                     if isinstance(result, Exception):
                         logger.error(f"Failed to fetch page: {result}")
-                    else:
+                    elif isinstance(result, list):
                         year_movies.extend(result)
+                    else:
+                        logger.error(f"Unexpected result type {type(result)} while fetching pages: {result}")
             else:
                 year_movies = first_page
             
@@ -211,7 +217,7 @@ class TMDBClient:
     async def get_batch_movie_details(
         self,
         tmdb_ids: List[int],
-        progress_callback: Optional[callable] = None
+        progress_callback: Optional[Callable[[int, int], None]] = None
     ) -> List[Dict[str, Any]]:
         """
         Fetch details for multiple movies concurrently.

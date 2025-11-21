@@ -1,6 +1,6 @@
 # Security Guide
 
-Security practices and vulnerability scanning for the TV-HML project.
+Security practices and vulnerability scanning for the Are You Not Entertained (AYNE) project.
 
 ## Overview
 
@@ -8,7 +8,7 @@ Security best practices include:
 
 - **Static security scanning** with Bandit
 - **Dependency vulnerability scanning** with pip-audit  
-- **Secret scanning** via GitLab Cycode
+- **Secret scanning** via GitHub
 - **Secure coding practices**
 - **CI/CD security gates**
 
@@ -74,29 +74,33 @@ uv run pip-audit
 uv lock --upgrade
 ```
 
-## Secret Scanning (GitLab Cycode)
+## Secret Scanning
 
-Cycode scans on every push. If blocked:
+GitHub provides built-in secret scanning for public repositories. For private repositories, enable it in Settings → Security & Analysis → Secret scanning.
+
+If a secret is detected:
 
 1. Remove the secret from code
-2. Rewrite git history
+2. Rewrite git history if needed
 3. Force push with `--force-with-lease`
-4. Rotate the exposed secret
+4. Rotate the exposed secret immediately
 
 ## CI/CD Integration
 
-Security scans run automatically:
+Security scans run automatically in GitHub Actions:
 
 ```yaml
-security-scan:
-  stage: security
-  script:
-    - uv run bandit -r src/ -f json -o bandit-report.json
-    - uv run pip-audit
-  allow_failure: false
+- name: Run bandit security scan
+  run: |
+    uv run bandit -r src/ -f json -o bandit-report.json --skip B104,B108 || true
+    uv run bandit -r src/ --skip B104,B108
+
+- name: Check for known vulnerabilities
+  run: |
+    uv run pip-audit --desc --skip-editable || true
 ```
 
 ## Related Documentation
 
 - **[Linting Guide](linting.md)** - Code quality checks
-- **[CI/CD Pipeline](ci-cd.md)** - Automated security scanning
+- **GitHub Actions Workflows** - See `.github/workflows/security.yml` for automated security scanning

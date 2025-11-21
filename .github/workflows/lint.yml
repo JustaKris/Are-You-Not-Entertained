@@ -1,0 +1,62 @@
+name: Lint Python Code
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: ["**"]
+    paths:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint Python
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies with uv..."
+          uv sync --group dev
+      
+      - name: Run ruff linting
+        run: |
+          echo "Running ruff linting..."
+          uv run ruff check src/ tests/
+      
+      - name: Run ruff format check
+        run: |
+          echo "Running ruff formatting check..."
+          uv run ruff format --check src/ tests/
+      
+      - name: Check code formatting with Black
+        run: |
+          echo "Checking code formatting with Black..."
+          uv run black --check src/ tests/
+      
+      - name: Summary
+        if: ${{ success() }}
+        run: |
+          echo "✅ Python linting passed!"
+      
+      - name: Failure summary
+        if: ${{ failure() }}
+        run: |
+          echo "❌ Python linting issues found. Please review the output above."

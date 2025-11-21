@@ -389,15 +389,12 @@ uv run pre-commit autoupdate
 
 ## CI/CD Integration
 
-Format checking in GitLab CI:
+Format checking in GitHub Actions:
 
 ```yaml
-format-check:
-  stage: quality
-  script:
-    - uv sync
-    - uv run ruff format --check src/ tests/
-  allow_failure: false
+- name: Run ruff format check
+  run: |
+    uv run ruff format --check src/ tests/
 ```
 
 This ensures code is properly formatted before merging.

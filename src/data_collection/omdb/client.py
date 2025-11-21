@@ -9,7 +9,7 @@ Features:
 """
 
 import asyncio
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Callable
 from pathlib import Path
 import httpx
 
@@ -40,11 +40,16 @@ class OMDBClient:
             max_concurrent: Maximum concurrent requests
             output_dir: Directory for saving parquet files
         """
-        self.api_key = api_key or settings.omdb_api_key
+        self.api_key = api_key or getattr(settings, "omdb_api_key", None) or getattr(settings, "OMDB_API_KEY", None)
         if not self.api_key:
             raise ValueError("OMDB API key is required")
         
-        self.base_url = settings.omdb_api_base_url
+        # Support multiple possible setting names and provide a sensible default
+        self.base_url = getattr(
+            settings,
+            "omdb_api_base_url",
+            getattr(settings, "OMDB_API_BASE_URL", "http://www.omdbapi.com/")
+        )
         self.output_dir = output_dir or (settings.data_raw_dir / "omdb")  # type: ignore
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -78,7 +83,8 @@ class OMDBClient:
         
         async def make_request():
             async with self._rate_limiter:
-                async with httpx.AsyncClient(timeout=settings.api_timeout) as client:
+                timeout_value = getattr(settings, "api_timeout", 10.0)
+                async with httpx.AsyncClient(timeout=timeout_value) as client:
                     response = await client.get(self.base_url, params=params)
                     response.raise_for_status()
                     return response.json()
@@ -110,7 +116,7 @@ class OMDBClient:
     async def get_batch_movies(
         self,
         imdb_ids: List[str],
-        progress_callback: Optional[callable] = None
+        progress_callback: Optional[Callable[[int, int], None]] = None
     ) -> List[Dict[str, Any]]:
         """
         Fetch multiple movies by IMDb ID concurrently.

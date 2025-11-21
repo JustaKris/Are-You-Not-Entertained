@@ -6,7 +6,7 @@
 
 ## Overview
 
-The TV-HML project uses a centralized logging configuration (`src/tv_hml/utils/logging.py`) that provides:
+The Are You Not Entertained (AYNE) project uses a centralized logging configuration (`src/core/logging.py`) that provides:
 
 - **JSON logging** for production/cloud environments (Azure, AWS, Docker)
 - **Colorized console logging** for local development
