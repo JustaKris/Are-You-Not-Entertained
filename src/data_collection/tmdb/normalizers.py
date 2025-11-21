@@ -1,13 +1,13 @@
 """Normalizers for TMDB API responses."""
 
-from typing import List, Dict, Any
 from datetime import datetime, timezone
+from typing import Any, Dict, List
 
 from .models import (
     TMDBDiscoverMovie,
-    TMDBMovieDetails,
     TMDBDiscoverMovieNormalized,
-    TMDBMovieDetailsNormalized
+    TMDBMovieDetails,
+    TMDBMovieDetailsNormalized,
 )
 
 
@@ -17,22 +17,21 @@ def utc_now() -> str:
 
 
 def normalize_discover_results(movies: List[Dict]) -> List[Dict[str, Any]]:
-    """
-    Normalize TMDB discover API response to storage format.
-    
+    """Normalize TMDB discover API response to storage format.
+
     Args:
         movies: Raw movie dictionaries from TMDB discover API
-        
+
     Returns:
         List of normalized movie dictionaries ready for storage
     """
     normalized = []
     timestamp = utc_now()
-    
+
     for movie_data in movies:
         # Parse with Pydantic for validation
         movie = TMDBDiscoverMovie(**movie_data)
-        
+
         # Convert to normalized storage format
         normalized_movie = TMDBDiscoverMovieNormalized(
             tmdb_id=movie.tmdb_id,
@@ -42,27 +41,26 @@ def normalize_discover_results(movies: List[Dict]) -> List[Dict[str, Any]]:
             vote_average=movie.vote_average,
             popularity=movie.popularity,
             genre_ids=",".join(map(str, movie.genre_ids)),
-            last_updated_utc=timestamp
+            last_updated_utc=timestamp,
         )
-        
+
         normalized.append(normalized_movie.model_dump())
-    
+
     return normalized
 
 
 def normalize_movie_details(movie_data: Dict) -> Dict[str, Any]:
-    """
-    Normalize TMDB movie details API response to storage format.
-    
+    """Normalize TMDB movie details API response to storage format.
+
     Args:
         movie_data: Raw movie dictionary from TMDB details API
-        
+
     Returns:
         Normalized movie dictionary ready for storage
     """
     # Parse with Pydantic for validation
     movie = TMDBMovieDetails(**movie_data)
-    
+
     # Convert to normalized storage format
     normalized_movie = TMDBMovieDetailsNormalized(
         tmdb_id=movie.id,
@@ -81,7 +79,7 @@ def normalize_movie_details(movie_data: Dict) -> Dict[str, Any]:
         production_countries=",".join([c.name for c in movie.production_countries]),
         spoken_languages=",".join([lang.english_name for lang in movie.spoken_languages]),
         overview=movie.overview,
-        last_updated_utc=utc_now()
+        last_updated_utc=utc_now(),
     )
-    
+
     return normalized_movie.model_dump()

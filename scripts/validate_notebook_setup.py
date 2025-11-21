@@ -1,21 +1,17 @@
 """Quick validation that notebook imports work correctly."""
 
 import os
+
 from pyprojroot import here
+
+# Test imports
+from src.core.config import settings
+from src.data.query_utils import load_full_dataset
+
 os.chdir(here())
 
 print("Testing notebook imports...")
 print("=" * 60)
-
-# Test imports
-from src.core.config import settings
-from src.data.query_utils import (
-    load_full_dataset,
-    get_movies_with_financials,
-    save_processed_data,
-    save_artifacts,
-    get_db_client
-)
 
 print("✅ All imports successful!")
 print(f"✅ Database location: {settings.duckdb_path}")

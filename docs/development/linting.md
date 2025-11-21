@@ -6,13 +6,13 @@ Code quality checks and linting for the Are You Not Entertained (AYNE) project u
 
 ```powershell
 # Run all linting checks
-uv run ruff check src/ tests/
+uv run ruff check src/ scripts/ tests/
 
 # Auto-fix issues where possible
-uv run ruff check --fix src/ tests/
+uv run ruff check --fix src/ scripts/ tests/
 
 # Type checking
-uv run mypy src/ tests/ --ignore-missing-imports
+uv run mypy src/ scripts/ tests/ --ignore-missing-imports
 
 # Security scan
 uv run bandit -r src/
@@ -35,7 +35,7 @@ uv run ruff check src/tv_hml/config/schema.py
 uv run ruff check src/ --output-format=full
 
 # Auto-fix safe issues
-uv run ruff check --fix src/ tests/
+uv run ruff check --fix src/ scripts/ tests/
 ```
 
 ### What Ruff Checks
@@ -87,8 +87,8 @@ Static type checking catches bugs before runtime.
 # Type check source code
 uv run mypy src/
 
-# Include tests
-uv run mypy src/ tests/
+# Include scripts and tests
+uv run mypy src/ scripts/ tests/
 
 # Ignore missing imports
 uv run mypy src/ --ignore-missing-imports
@@ -210,7 +210,7 @@ Ruff handles import sorting automatically.
 
 ```powershell
 # Sort imports with Ruff
-uv run ruff check --select I --fix src/ tests/
+uv run ruff check --select I --fix src/ scripts/ tests/
 ```
 
 ### Import Order
@@ -241,13 +241,13 @@ from tv_hml.utils.calendar import get_days_in_month
 
 ```powershell
 # Lint with Ruff
-uv run ruff check src/ tests/
+uv run ruff check src/ scripts/ tests/
 
 # Format check
-uv run ruff format --check src/ tests/
+uv run ruff format --check src/ scripts/ tests/
 
 # Type check
-uv run mypy src/ tests/ --ignore-missing-imports
+uv run mypy src/ scripts/ tests/ --ignore-missing-imports
 
 # Security scan
 uv run bandit -r src/
@@ -260,11 +260,11 @@ Create `lint.ps1`:
 ```powershell
 # Run all linting checks
 Write-Host "Running Ruff linter..." -ForegroundColor Cyan
-uv run ruff check src/ tests/
+uv run ruff check src/ scripts/ tests/
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host "`nRunning type checker..." -ForegroundColor Cyan
-uv run mypy src/ tests/ --ignore-missing-imports
+uv run mypy src/ scripts/ tests/ --ignore-missing-imports
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host "`nRunning security scanner..." -ForegroundColor Cyan
@@ -281,11 +281,11 @@ Linting runs automatically in GitHub Actions:
 ```yaml
 - name: Run ruff linting
   run: |
-    uv run ruff check src/ tests/
+    uv run ruff check src/ scripts/ tests/
 
 - name: Run type checking
   run: |
-    uv run mypy src/ tests/ --ignore-missing-imports
+    uv run mypy src/ scripts/ tests/ --ignore-missing-imports
 
 - name: Run security scan
   run: |
@@ -354,7 +354,7 @@ uv run mypy src/ --ignore-missing-imports
 
 ```powershell
 # Let Ruff fix automatically
-uv run ruff check --select I --fix src/
+uv run ruff check --select I --fix src/ scripts/ tests/
 ```
 
 ## Pre-commit Hooks

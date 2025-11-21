@@ -1,12 +1,13 @@
 """Test script for new data query utilities."""
 
+import pandas as pd
+
 from src.data.query_utils import (
-    load_full_dataset,
     get_movies_with_financials,
     get_table_info,
-    save_processed_data
+    load_full_dataset,
+    save_processed_data,
 )
-import pandas as pd
 
 print("=" * 60)
 print("Testing Data Query Utilities")
@@ -29,7 +30,7 @@ print(f"   Average revenue: ${df_fin['revenue'].mean():,.0f}")
 print("\n3. Testing get_table_info()...")
 info = get_table_info("movies")
 print(f"   ✅ Table 'movies' has {len(info)} columns")
-print(f"   First 5 columns:")
+print("   First 5 columns:")
 for _, row in info.head().iterrows():
     print(f"      - {row['column_name']}: {row['column_type']}")
 

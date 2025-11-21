@@ -6,10 +6,10 @@ Code formatting standards for the TV-HML project using Ruff and pre-commit hooks
 
 ```powershell
 # Format all code
-uv run ruff format src/ tests/
+uv run ruff format src/ scripts/ tests/
 
 # Check formatting without changes
-uv run ruff format --check src/ tests/
+uv run ruff format --check src/ scripts/ tests/
 
 # Format specific files
 uv run ruff format src/tv_hml/config/schema.py
@@ -25,14 +25,17 @@ Ruff's formatter is compatible with Black but much faster.
 # Format source code
 uv run ruff format src/
 
+# Format scripts
+uv run ruff format scripts/
+
 # Format tests
 uv run ruff format tests/
 
 # Format everything
-uv run ruff format src/ tests/
+uv run ruff format src/ scripts/ tests/
 
 # Check without modifying
-uv run ruff format --check src/ tests/
+uv run ruff format --check src/ scripts/ tests/
 
 # Show what would change
 uv run ruff format --diff src/
@@ -394,7 +397,7 @@ Format checking in GitHub Actions:
 ```yaml
 - name: Run ruff format check
   run: |
-    uv run ruff format --check src/ tests/
+    uv run ruff format --check src/ scripts/ tests/
 ```
 
 This ensures code is properly formatted before merging.
@@ -534,13 +537,13 @@ Before committing:
 
 ```powershell
 # Check if formatting needed
-uv run ruff format --check src/ tests/
+uv run ruff format --check src/ scripts/ tests/
 
 # See what would change
-uv run ruff format --diff src/ tests/
+uv run ruff format --diff src/ scripts/ tests/
 
 # Apply formatting
-uv run ruff format src/ tests/
+uv run ruff format src/ scripts/ tests/
 ```
 
 Exit codes:

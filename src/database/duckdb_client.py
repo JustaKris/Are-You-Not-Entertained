@@ -1,5 +1,4 @@
-"""
-duckdb_client.py
+"""duckdb_client.py
 ----------------
 A small DuckDB wrapper providing:
 - connection management
@@ -13,21 +12,21 @@ Place this file in: src/data/duckdb_client.py
 """
 
 from __future__ import annotations
+
 from pathlib import Path
-from typing import Optional, Sequence, List, Dict, Any
+from typing import Any, Dict, List, Optional, Sequence
 
 import duckdb
 import pandas as pd
 
-from src.core.logging import get_logger
 from src.core.config import settings
+from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 
 
 class DuckDBClient:
-    """
-    Minimal DuckDB client wrapper.
+    """Minimal DuckDB client wrapper.
 
     Examples:
         db = DuckDBClient()  # uses DB_FILE from paths
@@ -38,6 +37,12 @@ class DuckDBClient:
     """
 
     def __init__(self, db_path: Optional[str | Path] = None, read_only: bool = False):
+        """Initialize DuckDB client with specified database path.
+
+        Args:
+            db_path: Path to DuckDB database file (defaults to settings.duckdb_path)
+            read_only: Whether to open database in read-only mode
+        """
         self.db_path = Path(db_path) if db_path else settings.duckdb_path  # type: ignore
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.read_only = read_only
@@ -50,8 +55,7 @@ class DuckDBClient:
     # Basic exec/query
     # ----------------------
     def execute(self, sql: str, params: Optional[Sequence[Any]] = None) -> Any:
-        """
-        Execute a SQL statement. For DDL/DML you can call this.
+        """Execute a SQL statement. For DDL/DML you can call this.
         Returns the DuckDB relation (caller can call .df()).
         """
         logger.debug("Executing SQL: %s", sql if len(sql) < 500 else sql[:500] + "...")
@@ -60,9 +64,7 @@ class DuckDBClient:
         return self._conn.execute(sql)
 
     def query(self, sql: str, params: Optional[Sequence[Any]] = None) -> pd.DataFrame:
-        """
-        Execute a SELECT query and return a pandas DataFrame.
-        """
+        """Execute a SELECT query and return a pandas DataFrame."""
         rel = self.execute(sql, params)
         df = rel.df()
         logger.debug("Query returned %d rows", len(df))
@@ -72,9 +74,7 @@ class DuckDBClient:
     # Schema management
     # ----------------------
     def create_tables_from_sql(self, schema_path: Optional[Path | str] = None) -> None:
-        """
-        Execute a schema SQL file (schema.sql) to create all tables.
-        """
+        """Execute a schema SQL file (schema.sql) to create all tables."""
         schema_path = Path(schema_path) if schema_path else (Path(__file__).parent / "schema.sql")
         if not schema_path.exists():
             logger.error("Schema file not found: %s", schema_path)
@@ -90,9 +90,7 @@ class DuckDBClient:
     # Parquet helpers
     # ----------------------
     def import_parquet(self, table_name: str, parquet_path: str | Path) -> None:
-        """
-        Create or replace a DuckDB table from a Parquet file (full import).
-        """
+        """Create or replace a DuckDB table from a Parquet file (full import)."""
         parquet_path = Path(parquet_path)
         if not parquet_path.exists():
             raise FileNotFoundError(parquet_path)
@@ -102,9 +100,7 @@ class DuckDBClient:
         self.execute(sql)
 
     def append_parquet(self, table_name: str, parquet_path: str | Path) -> None:
-        """
-        Append rows from parquet to an existing table. If table doesn't exist, it will create it.
-        """
+        """Append rows from parquet to an existing table. If table doesn't exist, it will create it."""
         parquet_path = Path(parquet_path)
         if not parquet_path.exists():
             raise FileNotFoundError(parquet_path)
@@ -119,9 +115,7 @@ class DuckDBClient:
         self.execute(sql)
 
     def table_exists(self, table_name: str) -> bool:
-        """
-        Check whether a table exists in the DB (DuckDB system table).
-        """
+        """Check whether a table exists in the DB (DuckDB system table)."""
         try:
             df = self.query(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main' AND table_name = ?",
@@ -136,9 +130,10 @@ class DuckDBClient:
     # ----------------------
     # Upsert helpers (safe pattern)
     # ----------------------
-    def upsert_dataframe(self, table_name: str, df: pd.DataFrame, key_columns: Sequence[str]) -> None:
-        """
-        Upsert a pandas DataFrame into an existing DuckDB table using a temp view pattern.
+    def upsert_dataframe(
+        self, table_name: str, df: pd.DataFrame, key_columns: Sequence[str]
+    ) -> None:
+        """Upsert a pandas DataFrame into an existing DuckDB table using a temp view pattern.
 
         Pattern:
           1) Register the incoming df as a temp view named '__staging'
@@ -163,7 +158,9 @@ class DuckDBClient:
         staging_view = "__staging_upsert"
 
         # Register DataFrame as a DuckDB view
-        logger.debug("Registering staging DataFrame as view %s for upsert into %s", staging_view, table_name)
+        logger.debug(
+            "Registering staging DataFrame as view %s for upsert into %s", staging_view, table_name
+        )
         self._conn.register(staging_view, df)
 
         # Build WHERE clause: (col1 = staging.col1 OR col1 IN (SELECT col1 FROM staging))
@@ -177,11 +174,13 @@ class DuckDBClient:
             SELECT 1 FROM {staging_view} AS staging WHERE {key_pred}
         )
         """
-        
+
         # Build column list for INSERT - only insert columns present in DataFrame
         columns = list(df.columns)
         columns_str = ", ".join(columns)
-        insert_sql = f"INSERT INTO {table_name} ({columns_str}) SELECT {columns_str} FROM {staging_view}"
+        insert_sql = (
+            f"INSERT INTO {table_name} ({columns_str}) SELECT {columns_str} FROM {staging_view}"
+        )
         logger.info("Upserting into %s (delete existing keys -> insert new rows)", table_name)
 
         # Execute delete then insert
@@ -197,10 +196,10 @@ class DuckDBClient:
 
         logger.info("Upsert complete: %s rows upserted into %s", len(df), table_name)
 
-    def upsert_records(self, table_name: str, records: Sequence[Dict[str, Any]], key_columns: Sequence[str]):
-        """
-        Convenience wrapper: turn records (list of dict) into DataFrame and upsert.
-        """
+    def upsert_records(
+        self, table_name: str, records: Sequence[Dict[str, Any]], key_columns: Sequence[str]
+    ):
+        """Convenience wrapper: turn records (list of dict) into DataFrame and upsert."""
         if not records:
             logger.info("upsert_records: no records provided")
             return
@@ -211,8 +210,7 @@ class DuckDBClient:
     # Refresh state helpers
     # ----------------------
     def get_movies_due_for_refresh(self, limit: Optional[int] = 1000) -> pd.DataFrame:
-        """
-        Return movies that are due for refresh based on movie_refresh_state.next_refresh_due,
+        """Return movies that are due for refresh based on movie_refresh_state.next_refresh_due,
         OR movies not present in refresh_state table (first time).
         """
         limit_clause = f"LIMIT {limit}" if limit is not None else ""
@@ -228,8 +226,7 @@ class DuckDBClient:
         return self.query(sql)
 
     def set_next_refresh(self, movie_id: int, next_refresh_ts: Optional[str]):
-        """
-        Insert/update the next_refresh_due for a movie in movie_refresh_state.
+        """Insert/update the next_refresh_due for a movie in movie_refresh_state.
         If the row does not exist, create it.
         """
         if not self.table_exists("movie_refresh_state"):
@@ -257,11 +254,12 @@ class DuckDBClient:
         sql = f"COPY (SELECT * FROM {table_name}) TO '{parquet_path}' (FORMAT PARQUET)"
         logger.info("Exporting table %s to parquet %s", table_name, parquet_path)
         self.execute(sql)
-    
-    def batch_update_timestamps(self, table_name: str, id_column: str, timestamp_column: str, ids: List[Any], timestamp: str) -> None:
-        """
-        Batch update timestamps for multiple records.
-        
+
+    def batch_update_timestamps(
+        self, table_name: str, id_column: str, timestamp_column: str, ids: List[Any], timestamp: str
+    ) -> None:
+        """Batch update timestamps for multiple records.
+
         Args:
             table_name: Target table name
             id_column: ID column name
@@ -271,39 +269,38 @@ class DuckDBClient:
         """
         if not ids:
             return
-        
+
         ids_str = ",".join(str(id) for id in ids)
         sql = f"UPDATE {table_name} SET {timestamp_column} = ? WHERE {id_column} IN ({ids_str})"
         self.execute(sql, [timestamp])
         logger.debug(f"Updated {len(ids)} records in {table_name}.{timestamp_column}")
-    
+
     def get_collection_stats(self) -> pd.DataFrame:
-        """
-        Get summary statistics about data collection status.
-        
+        """Get summary statistics about data collection status.
+
         Returns:
             DataFrame with collection statistics
         """
         query = """
-        SELECT 
+        SELECT
             COUNT(DISTINCT m.movie_id) as total_movies,
             COUNT(DISTINCT CASE WHEN m.last_tmdb_update IS NOT NULL THEN m.movie_id END) as with_tmdb,
             COUNT(DISTINCT CASE WHEN m.last_omdb_update IS NOT NULL THEN m.movie_id END) as with_omdb,
             COUNT(DISTINCT CASE WHEN m.last_full_refresh IS NOT NULL THEN m.movie_id END) as fully_refreshed,
             COUNT(DISTINCT CASE WHEN m.data_frozen = TRUE THEN m.movie_id END) as frozen,
-            COUNT(DISTINCT CASE 
-                WHEN m.release_date >= CURRENT_DATE - INTERVAL '60 days' THEN m.movie_id 
+            COUNT(DISTINCT CASE
+                WHEN m.release_date >= CURRENT_DATE - INTERVAL '60 days' THEN m.movie_id
             END) as recent_movies,
-            COUNT(DISTINCT CASE 
-                WHEN m.release_date < CURRENT_DATE - INTERVAL '60 days' 
-                 AND m.release_date >= CURRENT_DATE - INTERVAL '180 days' THEN m.movie_id 
+            COUNT(DISTINCT CASE
+                WHEN m.release_date < CURRENT_DATE - INTERVAL '60 days'
+                 AND m.release_date >= CURRENT_DATE - INTERVAL '180 days' THEN m.movie_id
             END) as established_movies,
-            COUNT(DISTINCT CASE 
-                WHEN m.release_date < CURRENT_DATE - INTERVAL '180 days' 
-                 AND m.release_date >= CURRENT_DATE - INTERVAL '365 days' THEN m.movie_id 
+            COUNT(DISTINCT CASE
+                WHEN m.release_date < CURRENT_DATE - INTERVAL '180 days'
+                 AND m.release_date >= CURRENT_DATE - INTERVAL '365 days' THEN m.movie_id
             END) as mature_movies,
-            COUNT(DISTINCT CASE 
-                WHEN m.release_date < CURRENT_DATE - INTERVAL '365 days' THEN m.movie_id 
+            COUNT(DISTINCT CASE
+                WHEN m.release_date < CURRENT_DATE - INTERVAL '365 days' THEN m.movie_id
             END) as archived_movies
         FROM movies m
         """

@@ -1,10 +1,12 @@
-name: Security Scan
+name: security-audit
 
 on:
   pull_request:
     branches: ["**"]
     paths:
       - "src/**/*.py"
+      - "scripts/**/*.py"
+      - "tests/**/*.py"
       - "pyproject.toml"
   push:
     branches:
@@ -12,6 +14,8 @@ on:
       - master
     paths:
       - "src/**/*.py"
+      - "scripts/**/*.py"
+      - "tests/**/*.py"
       - "pyproject.toml"
   schedule:
     # Run weekly security scans on Mondays at 9 AM UTC
@@ -19,8 +23,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  security-scan:
-    name: Security Scan
+  security:
+    name: Security Audit
     runs-on: ubuntu-latest
     continue-on-error: true
     
@@ -62,3 +66,13 @@ jobs:
           name: security-reports
           path: bandit-report.json
           retention-days: 30
+      
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ Security audit passed!"
+      
+      - name: Failure summary
+        if: failure()
+        run: |
+          echo "⚠️  Security issues found. Please review the output above."

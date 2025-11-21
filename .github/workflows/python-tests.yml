@@ -1,4 +1,4 @@
-name: Test Suite
+name: python-tests
 
 on:
   pull_request:
@@ -8,18 +8,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Run Tests
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -58,77 +61,23 @@ jobs:
         with:
           file: ./reports/coverage/coverage.xml
           flags: unittests
-          name: codecov-umbrella
+          name: codecov-umbrella-py${{ matrix.python-version }}
           fail_ci_if_error: false
       
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coverage-report
+          name: coverage-report-py${{ matrix.python-version }}
           path: reports/coverage/
           retention-days: 30
-  
-  test-unit:
-    name: Unit Tests Only
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-      
-      - name: Install dependencies
+      - name: Summary
+        if: success()
         run: |
-          uv sync --group dev
-          uv pip install -e .
+          echo "✅ Tests passed on Python ${{ matrix.python-version }}!"
       
-      - name: Run unit tests only
+      - name: Failure summary
+        if: failure()
         run: |
-          echo "⚠️  No unit tests implemented yet - skipping"
-          # TODO: Uncomment when tests are ready
-          # uv run pytest tests/unit/ -v --tb=short
-          exit 0
-  
-  test-integration:
-    name: Integration Tests Only
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-      
-      - name: Install dependencies
-        run: |
-          uv sync --group dev
-          uv pip install -e .
-      
-      - name: Run integration tests only
-        run: |
-          echo "⚠️  No integration tests implemented yet - skipping"
-          # TODO: Uncomment when tests are ready
-          # uv run pytest tests/integration/ -v --tb=short
-          exit 0
+          echo "❌ Tests failed on Python ${{ matrix.python-version }}. Please review the output above."

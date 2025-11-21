@@ -1,4 +1,4 @@
-name: Lint Python Code
+name: python-lint
 
 on:
   pull_request:
@@ -7,23 +7,27 @@ on:
     branches: ["**"]
     paths:
       - "src/**/*.py"
+      - "scripts/**/*.py"
       - "tests/**/*.py"
       - "pyproject.toml"
   workflow_dispatch:
 
 jobs:
   lint:
-    name: Lint Python
+    name: Lint
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -39,24 +43,24 @@ jobs:
       - name: Run ruff linting
         run: |
           echo "Running ruff linting..."
-          uv run ruff check src/ tests/
+          uv run ruff check src/ scripts/ tests/
       
       - name: Run ruff format check
         run: |
-          echo "Running ruff formatting check..."
-          uv run ruff format --check src/ tests/
+          echo "Running ruff format check..."
+          uv run ruff format --check src/ scripts/ tests/
       
       - name: Check code formatting with Black
         run: |
           echo "Checking code formatting with Black..."
-          uv run black --check src/ tests/
+          uv run black --check src/ scripts/ tests/
       
       - name: Summary
-        if: ${{ success() }}
+        if: success()
         run: |
-          echo "✅ Python linting passed!"
+          echo "✅ Python linting passed on Python ${{ matrix.python-version }}!"
       
       - name: Failure summary
-        if: ${{ failure() }}
+        if: failure()
         run: |
-          echo "❌ Python linting issues found. Please review the output above."
+          echo "❌ Python linting issues found on Python ${{ matrix.python-version }}. Please review the output above."

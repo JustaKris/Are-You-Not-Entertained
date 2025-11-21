@@ -1,18 +1,20 @@
 """Pydantic models for OMDB API responses."""
 
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from typing import List, Optional
+
+from pydantic import BaseModel
 
 
 class OMDBRating(BaseModel):
     """OMDB rating from external source."""
+
     Source: str
     Value: str
 
 
 class OMDBMovieResponse(BaseModel):
     """Model for OMDB API full response."""
-    
+
     Response: str
     imdbID: Optional[str] = None
     Title: Optional[str] = None
@@ -33,14 +35,16 @@ class OMDBMovieResponse(BaseModel):
     Awards: Optional[str] = None
     Ratings: Optional[List[OMDBRating]] = None
     Error: Optional[str] = None
-    
+
     class Config:
+        """Pydantic config for field aliasing."""
+
         populate_by_name = True
 
 
 class OMDBMovieNormalized(BaseModel):
     """Normalized OMDB movie for storage."""
-    
+
     imdb_id: Optional[str]
     title: Optional[str]
     year: Optional[int]

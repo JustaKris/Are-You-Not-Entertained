@@ -1,13 +1,13 @@
 """Pydantic models for TMDB API responses."""
 
-from typing import Optional, List
+from typing import List, Optional
+
 from pydantic import BaseModel, Field
-from datetime import datetime
 
 
 class TMDBDiscoverMovie(BaseModel):
     """Model for TMDB discover API response movie item."""
-    
+
     tmdb_id: int = Field(..., alias="id")
     title: str
     release_date: Optional[str] = None
@@ -15,19 +15,23 @@ class TMDBDiscoverMovie(BaseModel):
     vote_average: float
     popularity: float
     genre_ids: List[int]
-    
+
     class Config:
+        """Pydantic config for field aliasing."""
+
         populate_by_name = True
 
 
 class TMDBGenre(BaseModel):
     """TMDB genre object."""
+
     id: int
     name: str
 
 
 class TMDBProductionCompany(BaseModel):
     """TMDB production company object."""
+
     id: int
     name: str
     logo_path: Optional[str] = None
@@ -36,12 +40,14 @@ class TMDBProductionCompany(BaseModel):
 
 class TMDBProductionCountry(BaseModel):
     """TMDB production country object."""
+
     iso_3166_1: str
     name: str
 
 
 class TMDBSpokenLanguage(BaseModel):
     """TMDB spoken language object."""
+
     english_name: str
     iso_639_1: str
     name: str
@@ -49,7 +55,7 @@ class TMDBSpokenLanguage(BaseModel):
 
 class TMDBMovieDetails(BaseModel):
     """Model for TMDB movie details API response."""
-    
+
     id: int
     imdb_id: Optional[str] = None
     title: str
@@ -66,14 +72,16 @@ class TMDBMovieDetails(BaseModel):
     production_countries: List[TMDBProductionCountry]
     spoken_languages: List[TMDBSpokenLanguage]
     overview: Optional[str] = None
-    
+
     class Config:
+        """Pydantic config for field aliasing."""
+
         populate_by_name = True
 
 
 class TMDBDiscoverMovieNormalized(BaseModel):
     """Normalized TMDB discover movie for storage."""
-    
+
     tmdb_id: int
     title: str
     release_date: Optional[str]
@@ -86,7 +94,7 @@ class TMDBDiscoverMovieNormalized(BaseModel):
 
 class TMDBMovieDetailsNormalized(BaseModel):
     """Normalized TMDB movie details for storage."""
-    
+
     tmdb_id: int
     imdb_id: Optional[str]
     title: str

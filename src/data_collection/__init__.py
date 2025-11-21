@@ -16,16 +16,11 @@ Usage:
 """
 
 # Import clients for convenient access
-from .tmdb import TMDBClient
 from .omdb import OMDBClient
-from .the_numbers import scrape_the_numbers
 from .orchestrator import DataCollectionOrchestrator
-from .refresh_strategy import (
-    MovieAge,
-    RefreshThresholds,
-    get_movie_age,
-    calculate_refresh_plan
-)
+from .refresh_strategy import MovieAge, RefreshThresholds, calculate_refresh_plan, get_movie_age
+from .the_numbers import scrape_the_numbers
+from .tmdb import TMDBClient
 
 __all__ = [
     "TMDBClient",
@@ -35,5 +30,5 @@ __all__ = [
     "MovieAge",
     "RefreshThresholds",
     "get_movie_age",
-    "calculate_refresh_plan"
+    "calculate_refresh_plan",
 ]

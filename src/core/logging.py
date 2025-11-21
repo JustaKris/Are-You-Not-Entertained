@@ -1,5 +1,4 @@
-"""
-Centralized logging configuration for both local development and
+"""Centralized logging configuration for both local development and
 production deployments (Docker, Azure, AWS, Kubernetes).
 
 Features:
@@ -15,14 +14,13 @@ import logging
 import sys
 from typing import Any, Dict
 
-
 # ===============================================================
 # JSON FORMATTER
 # ===============================================================
 
+
 class JsonFormatter(logging.Formatter):
-    """
-    Formatter that outputs logs as structured JSON.
+    """Formatter that outputs logs as structured JSON.
 
     This is recommended for production because:
     - JSON logs can be parsed by Azure Monitor, CloudWatch, Datadog, Loki, etc.
@@ -58,9 +56,9 @@ class JsonFormatter(logging.Formatter):
 # COLORIZED FORMATTER
 # ===============================================================
 
+
 class ColoredFormatter(logging.Formatter):
-    """
-    Formatter that adds ANSI colors to log levels for readability.
+    """Formatter that adds ANSI colors to log levels for readability.
 
     This is ideal for local development:
     - Easier to visually parse logs
@@ -68,10 +66,10 @@ class ColoredFormatter(logging.Formatter):
     """
 
     COLORS = {
-        "DEBUG": "\033[36m",     # Cyan
-        "INFO": "\033[32m",      # Green
-        "WARNING": "\033[33m",   # Yellow
-        "ERROR": "\033[31m",     # Red
+        "DEBUG": "\033[36m",  # Cyan
+        "INFO": "\033[32m",  # Green
+        "WARNING": "\033[33m",  # Yellow
+        "ERROR": "\033[31m",  # Red
         "CRITICAL": "\033[35m",  # Magenta
     }
     RESET = "\033[0m"
@@ -93,9 +91,9 @@ class ColoredFormatter(logging.Formatter):
 # FILTERS
 # ===============================================================
 
+
 class ChromaDBTelemetryFilter(logging.Filter):
-    """
-    Suppresses extremely noisy messages from ChromaDB's telemetry subsystem.
+    """Suppresses extremely noisy messages from ChromaDB's telemetry subsystem.
 
     These messages are not useful and pollute logs.
     """
@@ -108,13 +106,13 @@ class ChromaDBTelemetryFilter(logging.Filter):
 # CORE CONFIGURATION FUNCTION
 # ===============================================================
 
+
 def configure_logging(
     level: str = "INFO",
     use_json: bool = False,
     include_uvicorn: bool = True,
 ) -> None:
-    """
-    Configure application-wide logging.
+    """Configure application-wide logging.
 
     Args:
         level: Default logging level (INFO, DEBUG, WARNING, ...)
@@ -170,9 +168,9 @@ def configure_logging(
 # LOGGER RETRIEVAL
 # ===============================================================
 
+
 def get_logger(name: str) -> logging.Logger:
-    """
-    Retrieve a logger by name.
+    """Retrieve a logger by name.
 
     Preferred over calling logging.getLogger() directly because:
     - It enforces consistent usage across the project
