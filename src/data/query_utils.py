@@ -331,7 +331,7 @@ def save_processed_data(df: pd.DataFrame, filename: str, format: str = "parquet"
         >>> # ... preprocessing ...
         >>> save_processed_data(df_clean, "movies_preprocessed", format="parquet")
     """
-    output_dir = settings.data_processed_dir
+    output_dir = Path(getattr(settings, "data_processed_dir", Path.cwd() / "data" / "processed"))
     output_dir.mkdir(parents=True, exist_ok=True)  # type: ignore
     
     if format == "parquet":
@@ -367,7 +367,7 @@ def save_artifacts(df: pd.DataFrame, filename: str, format: str = "parquet") -> 
         >>> save_artifacts(X_train, "X_train", format="parquet")
         >>> save_artifacts(y_train, "y_train", format="parquet")
     """
-    output_dir = settings.data_artifacts_dir
+    output_dir = Path(getattr(settings, "data_artifacts_dir", Path.cwd() / "data" / "artifacts"))
     output_dir.mkdir(parents=True, exist_ok=True)  # type: ignore
     
     if format == "parquet":
