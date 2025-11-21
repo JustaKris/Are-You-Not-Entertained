@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "End-to-end machine learning pipeline for movie & TV performance analysis and box-office prediction. Includes data ingestion, preprocessing, model training, experiment tracking, and simple web delivery."
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.11,<3.15"
+requires-python = ">=3.11,<3.13"
 keywords = [
     "machine-learning",
     "data-science",
