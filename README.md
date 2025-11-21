@@ -1,4 +1,4 @@
-# 🎬 Are You Not Entertained?
+# 🎬 Are You Not Entertained (Legacy Version)?
 
 > A comprehensive machine learning pipeline for predicting movie box office success, analyzing audience preferences, and identifying performance trends.
 
