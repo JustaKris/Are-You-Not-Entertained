@@ -1,0 +1,47 @@
+# -----------------------
+# 🧹 Lint Stage - Python
+# -----------------------
+Lint Python:
+  stage: lint
+  image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+  variables:
+    LINT_PATHS: "src/ tests/"
+  cache:
+    key: "${CI_COMMIT_REF_SLUG}-uv-lint"
+    paths:
+      - .venv/
+  before_script:
+    - echo "Installing dependencies with uv..."
+    - uv sync --group dev
+  script:
+    - echo "Running ruff linting..."
+    - uv run ruff check $LINT_PATHS
+    
+    - echo "Running ruff formatting check..."
+    - uv run ruff format --check $LINT_PATHS
+    
+    - echo "Checking code formatting with Black..."
+    - uv run black --check $LINT_PATHS
+    
+  after_script:
+    - |
+      if [ $CI_JOB_STATUS == 'success' ]; then
+        echo -e "\033[1;32m✅ Python linting passed!\033[0m"
+      else
+        echo -e "\033[1;31m❌ Python linting issues found. Please review the output above.\033[0m"
+      fi
+  allow_failure: false
+  rules:
+    # Always run on merge requests
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    # Run on push when Python files change
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "src/**/*"
+        - "tests/**/*"
+        - "pyproject.toml"
+      when: always
+    # Manual option
+    - when: manual
+      allow_failure: true

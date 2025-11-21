@@ -1,0 +1,38 @@
+# -----------------------
+# 🔍 Type Check Stage
+# -----------------------
+Type Check:
+  stage: type-check
+  image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+  cache:
+    key: "${CI_COMMIT_REF_SLUG}-uv-typecheck"
+    paths:
+      - .venv/
+  before_script:
+    - echo "Installing dependencies with uv..."
+    - uv sync --group dev
+  script:
+    - echo "Running type checking with mypy..."
+    - uv run mypy src/ --ignore-missing-imports
+    
+  after_script:
+    - |
+      if [ $CI_JOB_STATUS == 'success' ]; then
+        echo -e "\033[1;32m✅ Type checking passed!\033[0m"
+      else
+        echo -e "\033[1;33m⚠️  Type checking issues found. Please review the output above.\033[0m"
+      fi
+  allow_failure: true  # Allow type checking to fail without blocking pipeline
+  rules:
+    # Always run on merge requests
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    # Run on push when Python files change
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "src/**/*"
+        - "pyproject.toml"
+      when: always
+    # Manual option
+    - when: manual
+      allow_failure: true
