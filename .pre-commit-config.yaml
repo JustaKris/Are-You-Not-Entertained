@@ -71,7 +71,8 @@ repos:
   - id: bandit
     args: [-c, pyproject.toml, -f, json, -q]
     additional_dependencies: ['.[toml]']
-    exclude: ^tests/
+    # Exclude tests and scripts directory (test helper scripts often use asserts/quick checks)
+    exclude: ^(tests/|scripts/)
 
   # Markdown linting (disabled - many existing violations)
   # Uncomment and run: pre-commit run markdownlint --all-files to fix
