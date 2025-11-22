@@ -10,12 +10,10 @@ Modern best practices:
 - Clean separation of concerns
 """
 
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from ayne.core.config import settings
 from ayne.core.logging import get_logger
 from ayne.database.duckdb_client import DuckDBClient
 
@@ -307,86 +305,3 @@ def execute_custom_query(query: str) -> pd.DataFrame:
         return df
     finally:
         db.close()
-
-
-# def save_processed_data(df: pd.DataFrame, filename: str, format: str = "parquet") -> Path:
-#     """Save processed DataFrame to the processed data directory.
-
-#     Args:
-#         df: DataFrame to save
-#         filename: Name of the file (without extension)
-#         format: Format to save ('parquet', 'csv', 'feather')
-
-#     Returns:
-#         Path to the saved file
-
-#     Example:
-#         >>> df_clean = load_full_dataset()
-#         >>> # ... preprocessing ...
-#         >>> save_processed_data(df_clean, "movies_preprocessed", format="parquet")
-#     """
-#     output_dir = Path(getattr(settings, "data_processed_dir", Path.cwd() / "data" / "processed"))
-#     output_dir.mkdir(parents=True, exist_ok=True)  # type: ignore
-
-#     if format == "parquet":
-#         output_path = output_dir / f"{filename}.parquet"  # type: ignore
-#         df.to_parquet(output_path, index=False)
-#     elif format == "csv":
-#         output_path = output_dir / f"{filename}.csv"  # type: ignore
-#         df.to_csv(output_path, index=False)
-#     elif format == "feather":
-#         output_path = output_dir / f"{filename}.feather"  # type: ignore
-#         df.to_feather(output_path)
-#     else:
-#         raise ValueError(f"Unsupported format: {format}")
-
-#     logger.info(f"Saved {len(df)} rows to {output_path}")
-#     return output_path
-
-
-# def save_artifacts(df: pd.DataFrame, filename: str, format: str = "parquet") -> Path:
-#     """Save model artifacts (features, predictions) to the artifacts directory.
-
-#     .. deprecated::
-#         Use ayne.utils.io.save_artifacts() instead.
-#         This function is kept for backward compatibility.
-
-#     Args:
-#         df: DataFrame to save
-#         filename: Name of the file (without extension)
-#         format: Format to save ('parquet', 'csv', 'feather')
-
-#     Returns:
-#         Path to the saved file
-
-#     Example:
-#         >>> # Save training features
-#         >>> save_artifacts(X_train, "X_train", format="parquet")
-#         >>> save_artifacts(y_train, "y_train", format="parquet")
-#     """
-#     output_dir = Path(getattr(settings, "data_artifacts_dir", Path.cwd() / "data" / "artifacts"))
-#     output_dir.mkdir(parents=True, exist_ok=True)  # type: ignore
-
-#     if format == "parquet":
-#         output_path = output_dir / f"{filename}.parquet"  # type: ignore
-#         df.to_parquet(output_path, index=False)
-#     elif format == "csv":
-#         output_path = output_dir / f"{filename}.csv"  # type: ignore
-#         df.to_csv(output_path, index=False)
-#     elif format == "feather":
-#         output_path = output_dir / f"{filename}.feather"  # type: ignore
-#         df.to_feather(output_path)
-#     else:
-#         raise ValueError(f"Unsupported format: {format}")
-
-#     logger.info(f"Saved artifacts: {len(df)} rows to {output_path}")
-#     return output_path
-
-
-# NOTE: For new code, prefer using the utilities in ayne.utils.io module:
-# - save_dataframe() / load_dataframe() for general I/O
-# - save_processed_data() / load_processed_data() for processed data
-# - save_artifacts() / load_artifacts() for model artifacts
-#
-# The above functions in this module are kept for backward compatibility
-# with existing notebooks but will delegate to ayne.utils.io in future versions.

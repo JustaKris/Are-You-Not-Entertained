@@ -2,11 +2,11 @@
 
 import pandas as pd
 
+from ayne.utils.io import save_processed_data
 from ayne.utils.query_utils import (
     get_movies_with_financials,
     get_table_info,
     load_full_dataset,
-    save_processed_data,
 )
 
 print("=" * 60)

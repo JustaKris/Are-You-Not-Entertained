@@ -1,8 +1,5 @@
 """Quick test script to verify DuckDB setup works."""
 
-import sys
-from pathlib import Path
-
 import pandas as pd
 
 from ayne.core.logging import configure_logging, get_logger

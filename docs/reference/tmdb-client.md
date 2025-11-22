@@ -19,6 +19,7 @@ The TMDB client is designed for batch data collection with the following feature
 **Purpose**: Find movies by year and filter criteria
 
 **Parameters**:
+
 - `primary_release_date.gte`: Start date (YYYY-MM-DD)
 - `primary_release_date.lte`: End date (YYYY-MM-DD)
 - `vote_count.gte`: Minimum vote count (default: 200)
@@ -36,9 +37,11 @@ The TMDB client is designed for batch data collection with the following feature
 **Purpose**: Fetch detailed information for a specific movie
 
 **Parameters**:
+
 - `movie_id`: TMDB movie ID
 
 **Response**: Comprehensive movie data including:
+
 - Basic info (title, overview, release_date)
 - Financial data (budget, revenue)
 - Metadata (runtime, genres, production companies)
@@ -167,6 +170,7 @@ client = TMDBClient(
 ### Discover Results
 
 Normalized fields:
+
 - `tmdb_id`: Movie ID
 - `title`: Movie title
 - `release_date`: Release date (YYYY-MM-DD)
@@ -177,6 +181,7 @@ Normalized fields:
 ### Movie Details
 
 Normalized fields:
+
 - `tmdb_id`: Movie ID
 - `imdb_id`: IMDb ID (for OMDB integration)
 - `title`: Movie title

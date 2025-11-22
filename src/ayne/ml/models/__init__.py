@@ -1,4 +1,4 @@
-"""
-Model related functionality for ML tasks.
+"""Model related functionality for ML tasks.
+
 File options: registry.py, train.py, predict.py, evaluate.py, serialize.py
 """

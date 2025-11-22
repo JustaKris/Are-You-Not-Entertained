@@ -1,8 +1,5 @@
 """Initialize DuckDB database with schema."""
 
-import sys
-from pathlib import Path
-
 from ayne.core.config import settings
 from ayne.core.logging import configure_logging, get_logger
 from ayne.database.duckdb_client import DuckDBClient

@@ -65,6 +65,7 @@ params = {
 ### What We Get
 
 Basic movie information:
+
 - `tmdb_id`: TMDB identifier
 - `title`: Movie title
 - `release_date`: Release date (YYYY-MM-DD)
@@ -75,6 +76,7 @@ Basic movie information:
 ### Storage
 
 Stored in `movies` table (main table):
+
 ```sql
 INSERT INTO movies (tmdb_id, title, release_date)
 VALUES (?, ?, ?)
@@ -104,11 +106,13 @@ print(f"Discovered {stats['discovered']} movies")
 **What**: Get comprehensive movie information
 
 **API Endpoint**:
+
 ```
 GET https://api.themoviedb.org/3/movie/{movie_id}
 ```
 
 **What We Get**:
+
 - Financial: `budget`, `revenue`
 - Metadata: `runtime`, `genres`, `production_companies`
 - Identifiers: `imdb_id` (crucial for OMDB)
@@ -123,11 +127,13 @@ GET https://api.themoviedb.org/3/movie/{movie_id}
 **Requires**: `imdb_id` from TMDB details (Phase 2A)
 
 **API Endpoint**:
+
 ```
 GET http://www.omdbapi.com/?i={imdb_id}
 ```
 
 **What We Get**:
+
 - **Ratings**: IMDb, Rotten Tomatoes, Metacritic
 - **Awards**: Text description of wins/nominations
 - **Box office**: US box office earnings
@@ -161,6 +167,7 @@ class MovieAge:
 ### Data Freezing
 
 Movies can be "frozen" (no more automatic updates) if:
+
 - Age > 365 days
 - No data changes for 3 consecutive refresh cycles
 
@@ -201,7 +208,7 @@ stats = await orchestrator.run_full_collection(
     discover_end_year=2024,
     discover_min_vote_count=200,
     max_discover_pages=10,
-    
+
     # Refresh settings
     refresh_limit=100  # Update up to 100 existing movies
 )
@@ -222,7 +229,8 @@ db.close()
 ### What Happens Internally
 
 1. **Discovery**:
-   ```
+
+   ```text
    → TMDB discover API (2024-01-01 to 2024-12-31)
    → Paginate through results
    → Normalize data
@@ -230,7 +238,8 @@ db.close()
    ```
 
 2. **Identify Movies for Refresh**:
-   ```
+
+   ```text
    → Query database for movies needing updates
    → Apply age-based refresh rules
    → Exclude frozen movies
@@ -238,14 +247,16 @@ db.close()
    ```
 
 3. **Calculate Refresh Plan**:
-   ```
+
+   ```text
    For each movie:
      → Check release date and last update times
      → Determine: needs_tmdb, needs_omdb
    ```
 
 4. **Fetch TMDB Details**:
-   ```
+
+   ```text
    → Extract tmdb_ids for movies needing TMDB updates
    → Batch fetch with rate limiting
    → Normalize and store in `tmdb_movies`
@@ -253,7 +264,8 @@ db.close()
    ```
 
 5. **Fetch OMDB Data**:
-   ```
+
+   ```text
    → Extract imdb_ids from `tmdb_movies` for movies needing OMDB
    → Batch fetch with rate limiting
    → Normalize and store in `omdb_movies`
@@ -261,7 +273,8 @@ db.close()
    ```
 
 6. **Freeze Check**:
-   ```
+
+   ```text
    → For each updated movie:
      → If >365 days old AND stable for 3 cycles
      → Set `data_frozen = TRUE`
@@ -324,6 +337,7 @@ await retry_with_backoff(
 ```
 
 **Retry schedule**:
+
 - Attempt 1: Immediate
 - Attempt 2: Wait 1s
 - Attempt 3: Wait 2s
@@ -346,6 +360,7 @@ for result in results:
 ### Partial Success
 
 If 100 movies are queued for OMDB update:
+
 - 95 succeed → Store those 95
 - 5 fail → Log errors, continue
 - Next refresh cycle will retry the 5 failures
@@ -361,15 +376,15 @@ CREATE TABLE movies (
     imdb_id VARCHAR,
     title VARCHAR,
     release_date DATE,
-    
+
     -- Tracking timestamps
     last_tmdb_update TIMESTAMP,
     last_omdb_update TIMESTAMP,
     last_full_refresh TIMESTAMP,
-    
+
     -- Freezing for stable movies
     data_frozen BOOLEAN DEFAULT FALSE,
-    
+
     -- Metadata
     created_at TIMESTAMP,
     updated_at TIMESTAMP
@@ -379,10 +394,12 @@ CREATE TABLE movies (
 ### Detail Tables
 
 **`tmdb_movies`**: Full TMDB data
+
 - Linked by `tmdb_id`
 - Contains: budget, revenue, genres, etc.
 
 **`omdb_movies`**: OMDB enrichment
+
 - Linked by `imdb_id`
 - Contains: ratings, awards, box office
 
@@ -391,15 +408,18 @@ CREATE TABLE movies (
 ### API Call Budgets
 
 **Daily limits** (approximate):
+
 - TMDB: 40,000 requests/day (free tier)
 - OMDB: 1,000 requests/day (free tier)
 
 **Our typical usage**:
+
 - Discovery: ~50 requests/year (with pagination)
 - Details: ~100 movies/refresh × 2 APIs = 200 requests
 - Total: ~250 requests per full collection run
 
 **Sustainable frequency**:
+
 - Run discovery: Weekly or monthly
 - Run refresh: Daily (100 movies × 2 APIs = 200 requests)
 

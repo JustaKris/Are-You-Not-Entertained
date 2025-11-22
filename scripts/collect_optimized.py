@@ -7,11 +7,8 @@ Features:
 - Efficient batch updates
 """
 
-import asyncio
-import sys
-from pathlib import Path
-
 import argparse
+import asyncio
 
 from ayne.core.config import settings
 from ayne.core.logging import configure_logging, get_logger
