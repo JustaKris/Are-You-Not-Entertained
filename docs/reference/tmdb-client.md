@@ -14,7 +14,7 @@ The TMDB client is designed for batch data collection with the following feature
 
 ## Key Endpoints Used
 
-### 1. Discover Movies (`/discover/movie`)
+### Discover Movies — `/discover/movie`
 
 **Purpose**: Find movies by year and filter criteria
 
@@ -31,7 +31,7 @@ The TMDB client is designed for batch data collection with the following feature
 
 **Rate Limit**: 4 requests/second (configurable)
 
-### 2. Movie Details (`/movie/{movie_id}`)
+### Movie Details — `/movie/{movie_id}`
 
 **Purpose**: Fetch detailed information for a specific movie
 
