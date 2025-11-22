@@ -33,9 +33,10 @@
 - **pandas** for data manipulation
 - **Jupyter** for exploratory analysis
 
-## 📦 Installation
+-## 📦 Installation
 
 ### Prerequisites
+
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) package manager (recommended)
 - API keys for TMDB and OMDB
@@ -233,12 +234,14 @@ print(settings.tmdb_api_key)      # API keys (from .env)
 ## 🎯 Roadmap
 
 ### Current Phase: Data Foundation ✅
+
 - [x] Automated data collection with refresh strategies
 - [x] DuckDB database with normalized schema
 - [x] Query utilities for analysis
 - [x] Modern Python project structure
 
 ### Next Phase: Analysis & Modeling 🚧
+
 - [ ] Feature engineering pipeline
 - [ ] Exploratory data analysis notebooks
 - [ ] Revenue prediction models (XGBoost, Random Forest)
@@ -246,6 +249,7 @@ print(settings.tmdb_api_key)      # API keys (from .env)
 - [ ] Cross-validation and hyperparameter tuning
 
 ### Future Phase: API & Deployment 📋
+
 - [ ] REST API for movie metrics
 - [ ] Model serving endpoints
 - [ ] Performance monitoring dashboard
@@ -286,8 +290,8 @@ uv run python scripts/validate_notebook_setup.py
 ## 🔑 API Keys
 
 Get free API keys from:
-- **TMDB**: https://www.themoviedb.org/settings/api
-- **OMDB**: https://www.omdbapi.com/
+- **TMDB**: [TMDB API](https://www.themoviedb.org/settings/api)
+- **OMDB**: [OMDB API](https://www.omdbapi.com/)
 
 Add to `.env`:
 ```bash
