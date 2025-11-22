@@ -214,12 +214,12 @@ No performance regression - system still achieves **5-8x faster** data collectio
 1. **Old imports no longer work**:
    ```python
    # ❌ OLD (removed)
-   from src.data_collection.tmdb import AsyncTMDBClient
-   from src.data_collection.omdb import AsyncOMDBClient
+   from ayne.data_collection.tmdb import AsyncTMDBClient
+   from ayne.data_collection.omdb import AsyncOMDBClient
    
    # ✅ NEW (current)
-   from src.data_collection.tmdb import TMDBClient
-   from src.data_collection.omdb import OMDBClient
+   from ayne.data_collection.tmdb import TMDBClient
+   from ayne.data_collection.omdb import OMDBClient
    ```
 
 2. **Class names changed**:

@@ -55,7 +55,7 @@ uv run python scripts/collect_optimized.py \
 ## Database Stats
 
 ```python
-from src.database.duckdb_client import DuckDBClient
+from ayne.database.duckdb_client import DuckDBClient
 db = DuckDBClient()
 stats = db.get_collection_stats()
 print(stats)

@@ -75,6 +75,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/copilot_artifacts/
 
 # PyBuilder
 .pybuilder/
@@ -164,8 +165,65 @@ cython_debug/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Project-specific data files
 config.py
 config/config.yaml
 tmdb_movie_data.csv
 commands.sh
+# *.duckdb
+*.duckdb.wal
+
+# Data directories (keep structure, ignore content)
+data/raw/*
+data/processed/*
+data/interim/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/interim/.gitkeep
+
+# Model artifacts
+models/*.pkl
+models/*.joblib
+models/*.h5
+models/*.pt
+artifacts/*.pkl
+artifacts/*.joblib
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Reports
+reports/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# API keys and secrets
+.env.local
+.env.*.local
+secrets.yaml
+credentials.json
+
+# Large data files
+*.csv
+*.parquet
+*.feather
+*.arrow
+!data/README.md
+!data/**/README.md

@@ -38,7 +38,7 @@ DuckDB-based analytical database for movie data storage and querying.
 ### Initialization
 
 ```python
-from src.database.duckdb_client import DuckDBClient
+from ayne.database.duckdb_client import DuckDBClient
 
 db = DuckDBClient()
 ```

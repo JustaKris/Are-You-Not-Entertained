@@ -82,7 +82,7 @@ database:
 #### Step 2: Initialize DuckDB Schema
 ```bash
 # Run this to create all tables
-python -c "from src.db.duckdb_client import DuckDBClient; db = DuckDBClient(); db.create_tables_from_sql()"
+python -c "from ayne.db.duckdb_client import DuckDBClient; db = DuckDBClient(); db.create_tables_from_sql()"
 ```
 
 #### Step 3: Migrate Data Collection Scripts
@@ -95,11 +95,11 @@ python -c "from src.db.duckdb_client import DuckDBClient; db = DuckDBClient(); d
 Modern data collection script using DuckDB.
 Replaces: scripts/update_db.py
 """
-from src.core.config import settings
-from src.core.logging import configure_logging, get_logger
-from src.db.duckdb_client import DuckDBClient
-from src.data_collection.tmdb import TMDBClient
-from src.data_collection.omdb import OMDBClient
+from ayne.core.config import settings
+from ayne.core.logging import configure_logging, get_logger
+from ayne.db.duckdb_client import DuckDBClient
+from ayne.data_collection.tmdb import TMDBClient
+from ayne.data_collection.omdb import OMDBClient
 import pandas as pd
 
 configure_logging(level=settings.log_level, use_json=settings.use_json_logging)
@@ -212,8 +212,8 @@ Pure data fetching - no database coupling.
 import time
 import httpx
 from typing import List, Dict, Optional
-from src.core.logging import get_logger
-from src.core.config import settings
+from ayne.core.logging import get_logger
+from ayne.core.config import settings
 
 logger = get_logger(__name__)
 
@@ -372,8 +372,8 @@ Pure data fetching - no database coupling.
 import time
 import httpx
 from typing import List, Dict, Optional
-from src.core.logging import get_logger
-from src.core.config import settings
+from ayne.core.logging import get_logger
+from ayne.core.config import settings
 
 logger = get_logger(__name__)
 
@@ -776,7 +776,7 @@ tests/
 import pytest
 import pandas as pd
 from pathlib import Path
-from src.db.duckdb_client import DuckDBClient
+from ayne.db.duckdb_client import DuckDBClient
 
 
 @pytest.fixture
@@ -1017,7 +1017,7 @@ performance = [
 ```
 I need to create a script that initializes the DuckDB database using the schema.sql file. 
 The script should:
-1. Import DuckDBClient from src.db.duckdb_client
+1. Import DuckDBClient from ayne.db.duckdb_client
 2. Create the database file if it doesn't exist
 3. Run the schema.sql to create all tables
 4. Add some basic validation (check that tables exist)

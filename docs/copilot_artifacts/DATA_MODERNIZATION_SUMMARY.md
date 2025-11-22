@@ -152,7 +152,7 @@ Comprehensive test script validating:
 
 ```python
 # Setup
-from src.data.query_utils import (
+from ayne.data.query_utils import (
     load_full_dataset,
     get_movies_with_financials,
     save_processed_data,
@@ -177,7 +177,7 @@ save_artifacts(y_train, "y_train", format="parquet")
 ### Direct Database Queries
 
 ```python
-from src.data.query_utils import execute_custom_query
+from ayne.data.query_utils import execute_custom_query
 
 # Custom SQL query
 query = """
@@ -220,7 +220,7 @@ data = pd.read_csv("./data/raw/0_base_data.csv")
 **New approach**:
 ```python
 # DO THIS INSTEAD
-from src.data.query_utils import load_full_dataset
+from ayne.data.query_utils import load_full_dataset
 data = load_full_dataset()
 ```
 
@@ -233,7 +233,7 @@ df.to_csv("data/processed/movies_clean.csv", index=False)
 **New saving**:
 ```python
 # NEW
-from src.data.query_utils import save_processed_data
+from ayne.data.query_utils import save_processed_data
 save_processed_data(df, "movies_clean", format="parquet")
 ```
 
@@ -250,14 +250,14 @@ save_processed_data(df, "movies_clean", format="parquet")
 
 ### Database Not Found
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 print(settings.duckdb_path)
 # Should print: .../data/db/movies.duckdb
 ```
 
 ### Test Connection
 ```python
-from src.data.query_utils import get_db_client
+from ayne.data.query_utils import get_db_client
 
 db = get_db_client(read_only=True)
 tables = db.query("SHOW TABLES")
@@ -267,7 +267,7 @@ db.close()
 
 ### Check Table Schema
 ```python
-from src.data.query_utils import get_table_info
+from ayne.data.query_utils import get_table_info
 
 info = get_table_info("movies")
 print(info)

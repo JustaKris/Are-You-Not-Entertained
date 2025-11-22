@@ -20,8 +20,8 @@ The `DataCollectionOrchestrator` coordinates:
 ### Full Collection
 
 ```python
-from src.data_collection.orchestrator import DataCollectionOrchestrator
-from src.database.duckdb_client import DuckDBClient
+from ayne.data_collection.orchestrator import DataCollectionOrchestrator
+from ayne.database.duckdb_client import DuckDBClient
 
 db = DuckDBClient()
 orchestrator = DataCollectionOrchestrator(db)

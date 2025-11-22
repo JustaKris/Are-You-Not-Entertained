@@ -22,7 +22,7 @@ uv add duckdb
 
 The import issue has been fixed. The file now correctly imports:
 ```python
-from src.core.paths import DATA_INTERMEDIATE_DIR
+from ayne.core.paths import DATA_INTERMEDIATE_DIR
 ```
 
 ### Step 3: Initialize Database (5 minutes)
@@ -32,9 +32,9 @@ Create a simple initialization script:
 ```python
 # scripts/init_database.py
 """Initialize DuckDB database with schema."""
-from src.db.duckdb_client import DuckDBClient
-from src.core.logging import configure_logging, get_logger
-from src.core.config import settings
+from ayne.db.duckdb_client import DuckDBClient
+from ayne.core.logging import configure_logging, get_logger
+from ayne.core.config import settings
 
 configure_logging(level="INFO")
 logger = get_logger(__name__)
@@ -73,7 +73,7 @@ python scripts/init_database.py
 ```python
 # scripts/test_database.py
 """Test database connectivity and basic operations."""
-from src.db.duckdb_client import DuckDBClient
+from ayne.db.duckdb_client import DuckDBClient
 import pandas as pd
 
 def main():
@@ -197,10 +197,10 @@ This is a MINIMAL version to get you started:
 ```python
 # scripts/collect_data_simple.py
 """Simple data collection script to get started."""
-from src.db.duckdb_client import DuckDBClient
-from src.data_collection.tmdb import TMDBClient
-from src.core.config import settings
-from src.core.logging import configure_logging, get_logger
+from ayne.db.duckdb_client import DuckDBClient
+from ayne.data_collection.tmdb import TMDBClient
+from ayne.core.config import settings
+from ayne.core.logging import configure_logging, get_logger
 import pandas as pd
 
 configure_logging(level="INFO")
@@ -315,7 +315,7 @@ uv sync
 **Solution**:
 ```python
 # Check path configuration
-from src.core.paths import DATA_INTERMEDIATE_DIR
+from ayne.core.paths import DATA_INTERMEDIATE_DIR
 print(DATA_INTERMEDIATE_DIR)
 
 # Ensure directory exists
@@ -327,7 +327,7 @@ DATA_INTERMEDIATE_DIR.mkdir(parents=True, exist_ok=True)
 **Solution**: Verify your API keys in `.env`:
 ```bash
 # Check keys are loaded
-python -c "from src.core.config import settings; print(f'TMDB: {settings.tmdb_api_key[:10]}...')"
+python -c "from ayne.core.config import settings; print(f'TMDB: {settings.tmdb_api_key[:10]}...')"
 ```
 
 ---

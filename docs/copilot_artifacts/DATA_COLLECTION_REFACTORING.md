@@ -38,20 +38,20 @@ src/data_collection/
 
 **New imports (recommended)**:
 ```python
-from src.data_collection.tmdb import TMDBClient
-from src.data_collection.omdb import OMDBClient
-from src.data_collection.the_numbers import scrape_the_numbers
+from ayne.data_collection.tmdb import TMDBClient
+from ayne.data_collection.omdb import OMDBClient
+from ayne.data_collection.the_numbers import scrape_the_numbers
 ```
 
 **Backward compatible imports** (also work):
 ```python
-from src.data_collection import TMDBClient, OMDBClient, scrape_the_numbers
+from ayne.data_collection import TMDBClient, OMDBClient, scrape_the_numbers
 ```
 
 **Old imports** (⚠️ no longer work):
 ```python
-from src.data_collection.tmdb_client import TMDBClient  # ❌ File moved
-from src.data_collection.omdb_client import OMDBClient  # ❌ File moved
+from ayne.data_collection.tmdb_client import TMDBClient  # ❌ File moved
+from ayne.data_collection.omdb_client import OMDBClient  # ❌ File moved
 ```
 
 ## Benefits of New Structure
@@ -68,8 +68,8 @@ tmdb/
 ### 2. **Easier Testing**
 ```python
 # Test individual components
-from src.data_collection.tmdb.client import TMDBClient
-from src.data_collection.tmdb.normalizers import normalize_response
+from ayne.data_collection.tmdb.client import TMDBClient
+from ayne.data_collection.tmdb.normalizers import normalize_response
 ```
 
 ### 3. **Clearer Organization**
@@ -110,15 +110,15 @@ src/database/
 **If you have code importing the old paths:**
 ```python
 # Old (no longer works)
-from src.data_collection.tmdb_client import TMDBClient
-from src.data_collection.omdb_client import OMDBClient
+from ayne.data_collection.tmdb_client import TMDBClient
+from ayne.data_collection.omdb_client import OMDBClient
 
 # New (recommended)
-from src.data_collection.tmdb import TMDBClient
-from src.data_collection.omdb import OMDBClient
+from ayne.data_collection.tmdb import TMDBClient
+from ayne.data_collection.omdb import OMDBClient
 
 # Alternative (also works)
-from src.data_collection import TMDBClient, OMDBClient
+from ayne.data_collection import TMDBClient, OMDBClient
 ```
 
 ### For Scripts
@@ -131,10 +131,10 @@ All scripts have been updated:
 If you have notebooks using `src.data_manipulation`, update to:
 ```python
 # Old
-from src.data_manipulation.io import save_dataframe, load_dataframe
+from ayne.data_manipulation.io import save_dataframe, load_dataframe
 
 # New approach - Use DuckDB
-from src.database.duckdb_client import DuckDBClient
+from ayne.database.duckdb_client import DuckDBClient
 db = DuckDBClient()
 df = db.query("SELECT * FROM movies")
 
@@ -152,7 +152,7 @@ All tests pass ✅:
 uv run python scripts/test_database.py
 
 # Import tests
-uv run python -c "from src.data_collection import TMDBClient, OMDBClient"
+uv run python -c "from ayne.data_collection import TMDBClient, OMDBClient"
 
 # Collection scripts
 uv run python scripts/collect_tmdb_data.py --start-year 2024

@@ -18,7 +18,7 @@ Shared rate limiter used by all API clients to prevent exceeding API quotas.
 ## Implementation
 
 ```python
-from src.data_collection.rate_limiter import AsyncRateLimiter
+from ayne.data_collection.rate_limiter import AsyncRateLimiter
 
 # Create rate limiter
 limiter = AsyncRateLimiter(

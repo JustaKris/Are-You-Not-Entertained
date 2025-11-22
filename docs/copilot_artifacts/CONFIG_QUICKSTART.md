@@ -24,7 +24,7 @@ pip install -e .
 
 ### 3. Use in Your Code
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 # That's it! Use settings anywhere:
 api_key = settings.tmdb_api_key
@@ -58,7 +58,7 @@ src/core/config/
 
 ### Get API Keys
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 tmdb_key = settings.tmdb_api_key
 omdb_key = settings.omdb_api_key

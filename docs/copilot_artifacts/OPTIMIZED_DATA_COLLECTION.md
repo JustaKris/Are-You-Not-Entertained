@@ -172,7 +172,7 @@ For each movie:
 4. Check if refresh needed for each source (TMDB/OMDB/Numbers)
 
 ```python
-from src.data_collection import calculate_refresh_plan
+from ayne.data_collection import calculate_refresh_plan
 
 plan = calculate_refresh_plan(movie)
 # Returns: {'needs_tmdb': True, 'needs_omdb': False, 'needs_numbers': True}
@@ -185,7 +185,7 @@ plan = calculate_refresh_plan(movie)
 The system tracks collection status:
 
 ```python
-from src.database.duckdb_client import DuckDBClient
+from ayne.database.duckdb_client import DuckDBClient
 
 db = DuckDBClient()
 stats = db.get_collection_stats()
@@ -246,8 +246,8 @@ Progress updates every 10 movies during batch operations.
 
 ```python
 import asyncio
-from src.database.duckdb_client import DuckDBClient
-from src.data_collection import DataCollectionOrchestrator
+from ayne.database.duckdb_client import DuckDBClient
+from ayne.data_collection import DataCollectionOrchestrator
 
 async def main():
     db = DuckDBClient()
@@ -274,8 +274,8 @@ asyncio.run(main())
 #### Custom Rate Limits
 
 ```python
-from src.data_collection.tmdb import AsyncTMDBClient
-from src.data_collection.omdb import AsyncOMDBClient
+from ayne.data_collection.tmdb import AsyncTMDBClient
+from ayne.data_collection.omdb import AsyncOMDBClient
 
 tmdb = AsyncTMDBClient(
     requests_per_second=5.0,  # Increase rate
@@ -316,7 +316,7 @@ omdb = AsyncOMDBClient(
 
 Check refresh intervals:
 ```python
-from src.database.duckdb_client import DuckDBClient
+from ayne.database.duckdb_client import DuckDBClient
 db = DuckDBClient()
 movies = db.query("""
     SELECT title, release_date, last_tmdb_update, 

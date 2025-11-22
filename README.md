@@ -44,18 +44,21 @@
 ### Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/JustaKris/Are-You-Not-Entertained.git
    cd Are-You-Not-Entertained
    ```
 
 2. **Install dependencies with uv**
+
    ```bash
    uv venv
    uv pip install -e "."
    ```
 
 3. **Configure environment**
+
    ```bash
    cp .env.example .env
    # Edit .env with your API keys:
@@ -64,6 +67,7 @@
    ```
 
 4. **Verify installation**
+
    ```bash
    uv run python scripts/validate_notebook_setup.py
    ```
@@ -86,6 +90,7 @@ uv run python scripts/collect_optimized.py
 ```
 
 **Features**:
+
 - Age-based refresh intervals (5-180 days based on movie age)
 - Concurrent API calls with rate limiting
 - Automatic data freezing for stable movies
@@ -96,7 +101,7 @@ uv run python scripts/collect_optimized.py
 The project uses DuckDB for analytical queries:
 
 ```python
-from src.data.query_utils import load_full_dataset, get_movies_with_financials
+from ayne.utils.query_utils import load_full_dataset, get_movies_with_financials
 
 # Load all movie data (joins all tables automatically)
 df = load_full_dataset()
@@ -106,7 +111,7 @@ print(f"Loaded {len(df)} movies")
 df_financial = get_movies_with_financials(min_budget=1_000_000)
 
 # Custom queries
-from src.data.query_utils import execute_custom_query
+from ayne.utils.query_utils import execute_custom_query
 query = """
     SELECT genre_names, COUNT(*) as count, AVG(revenue) as avg_revenue
     FROM movies m
@@ -118,6 +123,7 @@ df = execute_custom_query(query)
 ```
 
 **Database Tables**:
+
 - `movies` - Core movie information with identifiers
 - `tmdb_movies` - TMDB data (budget, revenue, genres, ratings)
 - `omdb_movies` - OMDB data (cast, crew, reviews, awards)
@@ -132,16 +138,18 @@ jupyter lab notebooks/
 ```
 
 **Available Notebooks**:
+
 - `01_movies_data_full_imputation.ipynb` - Data preprocessing and imputation
 - More analysis notebooks coming soon...
 
 **Notebook Usage**:
+
 ```python
 import os
 from pyprojroot import here
 os.chdir(here())
 
-from src.data.query_utils import load_full_dataset, save_processed_data
+from ayne.utils.query_utils import load_full_dataset, save_processed_data
 
 # Load from database
 data = load_full_dataset()
@@ -152,21 +160,25 @@ save_processed_data(df_clean, "movies_preprocessed", format="parquet")
 
 ## 📁 Project Structure
 
-```
+```text
 Are-You-Not-Entertained/
 ├── src/
-│   ├── core/                 # Configuration, logging, paths
-│   ├── data/                 # Data utilities and I/O
-│   │   └── query_utils.py   # Database query helpers
-│   ├── data_collection/      # API clients and orchestration
-│   │   ├── tmdb/            # TMDB client
-│   │   ├── omdb/            # OMDB client
-│   │   ├── rate_limiter.py  # Shared rate limiting
-│   │   ├── refresh_strategy.py  # Intelligent refresh logic
-│   │   └── orchestrator.py  # Collection coordinator
-│   ├── database/             # DuckDB client
-│   ├── features/             # Feature engineering (coming soon)
-│   └── models/               # ML models (coming soon)
+│   └── ayne/                 # Main package
+│       ├── core/             # Configuration, logging, exceptions
+│       ├── utils/            # Data utilities and I/O
+│       │   └── query_utils.py  # Database query helpers
+│       ├── data_collection/  # API clients and orchestration
+│       │   ├── tmdb/        # TMDB client
+│       │   ├── omdb/        # OMDB client
+│       │   ├── the_numbers/ # The Numbers scraper
+│       │   ├── rate_limiter.py     # Shared rate limiting
+│       │   ├── refresh_strategy.py # Intelligent refresh logic
+│       │   └── orchestrator.py     # Collection coordinator
+│       ├── database/         # DuckDB client
+│       ├── ml/              # ML models (coming soon)
+│       ├── api/             # REST API (coming soon)
+│       ├── cli/             # CLI interface (coming soon)
+│       └── web/             # Web interface (coming soon)
 ├── data/
 │   ├── db/                   # DuckDB database files
 │   ├── raw/                  # Immutable source data
@@ -181,7 +193,7 @@ Are-You-Not-Entertained/
 
 The project uses environment-specific YAML configs and `.env` for sensitive data:
 
-```
+```text
 configs/
 ├── development.yaml          # Local development
 ├── staging.yaml             # Testing environment  
@@ -189,13 +201,15 @@ configs/
 ```
 
 Set environment with:
+
 ```bash
 export ENVIRONMENT=development  # or staging, production
 ```
 
 Configuration is managed via Pydantic:
+
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 print(settings.duckdb_path)        # Database location
 print(settings.data_processed_dir) # Processed data directory
@@ -206,22 +220,26 @@ print(settings.tmdb_api_key)      # API keys (from .env)
 
 ### Core Tables
 
-**movies**
+#### Movies
+
 - Primary identifiers: `movie_id`, `tmdb_id`, `imdb_id`
 - Basic info: `title`, `release_date`
 - Refresh tracking: `last_tmdb_update`, `last_omdb_update`, `data_frozen`
 
-**tmdb_movies**
+#### TMDB Movies
+
 - Financial: `budget`, `revenue`
 - Ratings: `vote_average`, `vote_count`, `popularity`
 - Metadata: `genres`, `production_companies`, `production_countries`, `overview`
 
-**omdb_movies**
+#### OMDB Movies
+
 - Cast & Crew: `director`, `writer`, `actors`
 - Ratings: `imdb_rating`, `rotten_tomatoes_rating`, `metascore`
 - Details: `awards`, `genre`, `runtime`, `language`
 
-**numbers_movies**
+#### Numbers Movies
+
 - Financial: `production_budget`, `domestic_box_office`, `worldwide_box_office`
 
 ## 📚 Documentation
@@ -259,6 +277,7 @@ print(settings.tmdb_api_key)      # API keys (from .env)
 ## 🧪 Testing
 
 Run tests with pytest:
+
 ```bash
 # Test database connection
 uv run python scripts/test_database.py
@@ -273,27 +292,32 @@ uv run python scripts/validate_notebook_setup.py
 ## 📈 Performance
 
 **Data Collection**:
+
 - 5-8x faster than previous sync approach
 - 50 movies: ~5 seconds (async) vs ~30-40 seconds (sync)
 - Rate limiting prevents API blocks
 - Intelligent refresh reduces unnecessary calls
 
 **Database Queries**:
+
 - DuckDB ~10x faster than CSV loading for analytics
 - Columnar storage optimized for aggregations
 - Automatic indexing on primary keys
 
 **Storage**:
+
 - Parquet format: 70% smaller than CSV
 - Efficient compression and type preservation
 
 ## 🔑 API Keys
 
 Get free API keys from:
+
 - **TMDB**: [TMDB API](https://www.themoviedb.org/settings/api)
 - **OMDB**: [OMDB API](https://www.omdbapi.com/)
 
 Add to `.env`:
+
 ```bash
 TMDB_API_KEY=your_tmdb_api_key_here
 OMDB_API_KEY=your_omdb_api_key_here
@@ -310,6 +334,7 @@ MIT License - see [LICENSE](LICENSE) for details
 ## 🎓 Learning Outcomes
 
 This project demonstrates:
+
 - ✨ Modern async Python patterns and best practices
 - ✨ Database-centric data architecture with DuckDB
 - ✨ Type-safe configuration with Pydantic

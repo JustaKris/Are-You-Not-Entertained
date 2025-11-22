@@ -20,7 +20,7 @@ This replaces the previous `logger.py` module with a more robust, production-rea
 ### Basic Usage
 
 ```python
-from src.tv_hml.utils.logging import get_logger
+from ayne.tv_hml.utils.logging import get_logger
 
 # Get a logger for your module
 logger = get_logger(__name__)
@@ -271,7 +271,7 @@ logging.getLogger("some_noisy_library").setLevel(logging.ERROR)
 **Old Code (`logger.py`):**
 
 ```python
-from src.tv_hml.utils.logger import setup_logger, get_logger
+from ayne.tv_hml.utils.logger import setup_logger, get_logger
 
 # Setup with file handler
 logger = setup_logger(
@@ -285,7 +285,7 @@ logger = setup_logger(
 **New Code (`logging.py`):**
 
 ```python
-from src.tv_hml.utils.logging import configure_logging, get_logger
+from ayne.tv_hml.utils.logging import configure_logging, get_logger
 
 # Configure once at app startup
 configure_logging(level="INFO", use_json=False)

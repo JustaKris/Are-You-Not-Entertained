@@ -294,7 +294,7 @@ query = Query.from_(movies).select("*").where(movies.release_date > "2020-01-01"
 
 **Example**:
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 # Type-safe access
 api_key = settings.tmdb_api_key  # str | None

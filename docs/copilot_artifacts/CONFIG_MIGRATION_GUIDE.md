@@ -16,7 +16,7 @@ db_url = load_config("DB_URL")
 
 ### New System ✅
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 api_key = settings.tmdb_api_key
 db_url = settings.db_url
@@ -99,7 +99,7 @@ def get_movies():
 
 **After:**
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 def get_movies():
     api_key = settings.tmdb_api_key
@@ -118,7 +118,7 @@ session = init_db_session(load_config("DB_URL"))
 
 **After:**
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 session = init_db_session(settings.db_url)
 ```
@@ -153,7 +153,7 @@ Settings are loaded in this order (highest priority first):
 
 ### Basic Usage
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 # Access any setting
 print(f"Environment: {settings.environment}")
@@ -162,7 +162,7 @@ print(f"Debug mode: {settings.debug}")
 
 ### Environment Checks
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 if settings.is_production():
     # Production-specific logic
@@ -174,7 +174,7 @@ elif settings.is_development():
 
 ### Reload Settings (for testing)
 ```python
-from src.core.config import reload_settings
+from ayne.core.config import reload_settings
 
 # Reload with different environment
 settings = reload_settings(environment="production")
@@ -194,7 +194,7 @@ settings = reload_settings(environment="production")
 **Solution:**
 ```python
 # Correct import
-from src.core.config import settings
+from ayne.core.config import settings
 
 # NOT this
 from config.config_loader import load_config  # Old system

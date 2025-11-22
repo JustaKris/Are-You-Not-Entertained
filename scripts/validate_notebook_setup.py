@@ -5,8 +5,8 @@ import os
 from pyprojroot import here
 
 # Test imports
-from src.core.config import settings
-from src.data.query_utils import load_full_dataset
+from ayne.core.config import settings
+from ayne.utils.query_utils import load_full_dataset
 
 os.chdir(here())
 
@@ -14,8 +14,9 @@ print("Testing notebook imports...")
 print("=" * 60)
 
 print("✅ All imports successful!")
-print(f"✅ Database location: {settings.duckdb_path}")
-print(f"✅ Database exists: {settings.duckdb_path.exists()}")
+db_path = settings.duckdb_path  # type: ignore
+print(f"✅ Database location: {db_path}")
+print(f"✅ Database exists: {db_path.exists()}")
 
 # Test loading
 print("\nTesting data loading...")

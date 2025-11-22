@@ -3,16 +3,10 @@
 import sys
 from pathlib import Path
 
-# Add project root to path for direct execution
-if __name__ == "__main__":
-    project_root = Path(__file__).parent.parent
-    if str(project_root) not in sys.path:
-        sys.path.insert(0, str(project_root))
-
 import pandas as pd
 
-from src.core.logging import configure_logging, get_logger
-from src.database.duckdb_client import DuckDBClient
+from ayne.core.logging import configure_logging, get_logger
+from ayne.database.duckdb_client import DuckDBClient
 
 configure_logging(level="INFO")
 logger = get_logger(__name__)

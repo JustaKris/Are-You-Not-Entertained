@@ -67,7 +67,7 @@ The TMDB client is designed for batch data collection with the following feature
 ### Basic Initialization
 
 ```python
-from src.data_collection.tmdb import TMDBClient
+from ayne.data_collection.tmdb import TMDBClient
 
 # Initialize with default settings
 client = TMDBClient()
@@ -194,8 +194,8 @@ Normalized fields:
 The TMDB client is typically used via the `DataCollectionOrchestrator`:
 
 ```python
-from src.data_collection.orchestrator import DataCollectionOrchestrator
-from src.database.duckdb_client import DuckDBClient
+from ayne.data_collection.orchestrator import DataCollectionOrchestrator
+from ayne.database.duckdb_client import DuckDBClient
 
 # Create orchestrator (includes TMDB client)
 db = DuckDBClient()

@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from src.data.query_utils import (
+from ayne.utils.query_utils import (
     get_movies_with_financials,
     get_table_info,
     load_full_dataset,

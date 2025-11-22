@@ -35,7 +35,7 @@ data/
 
 **Access Pattern**:
 ```python
-from src.data.query_utils import get_db_client
+from ayne.data.query_utils import get_db_client
 
 db = get_db_client(read_only=True)
 df = db.query("SELECT * FROM movies LIMIT 100")
@@ -88,7 +88,7 @@ df = pd.read_parquet("data/raw/tmdb/02_movie_features.parquet")
 
 **Access Pattern**:
 ```python
-from src.data.query_utils import save_processed_data
+from ayne.data.query_utils import save_processed_data
 import pandas as pd
 
 # Save processed data
@@ -122,7 +122,7 @@ df = pd.read_parquet("data/processed/movies_preprocessed.parquet")
 
 **Access Pattern**:
 ```python
-from src.data.query_utils import save_artifacts
+from ayne.data.query_utils import save_artifacts
 from sklearn.model_selection import train_test_split
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
@@ -177,7 +177,7 @@ import os
 from pyprojroot import here
 os.chdir(here())
 
-from src.data.query_utils import (
+from ayne.data.query_utils import (
     load_full_dataset,
     get_movies_with_financials,
     save_processed_data,
@@ -281,7 +281,7 @@ duckdb_path = data_dir / "db" / "movies.duckdb"
 ### Data Directories
 Auto-created by settings on import:
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 print(settings.data_db_dir)        # data/db
 print(settings.data_raw_dir)       # data/raw
@@ -344,10 +344,10 @@ data/
 
 ### Database Connection Issues
 ```python
-from src.data.query_utils import get_db_client
+from ayne.data.query_utils import get_db_client
 
 # Check database location
-from src.core.config import settings
+from ayne.core.config import settings
 print(f"Database at: {settings.duckdb_path}")
 
 # Test connection
@@ -360,7 +360,7 @@ db.close()
 ### Missing Data Directories
 Directories are auto-created by settings. If missing:
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 # Directories created automatically on import
 print(settings.data_db_dir.exists())       # Should be True

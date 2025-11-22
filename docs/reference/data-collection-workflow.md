@@ -13,7 +13,7 @@ This is orchestrated by the `DataCollectionOrchestrator` with intelligent refres
 
 ## High-Level Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                  DataCollectionOrchestrator                 │
 │                                                             │
@@ -187,8 +187,8 @@ needs_omdb = needs_omdb_refresh(release_date, last_omdb_update)
 ### Scenario: Collect 2024 Movies
 
 ```python
-from src.data_collection.orchestrator import DataCollectionOrchestrator
-from src.database.duckdb_client import DuckDBClient
+from ayne.data_collection.orchestrator import DataCollectionOrchestrator
+from ayne.database.duckdb_client import DuckDBClient
 
 # Initialize
 db = DuckDBClient()

@@ -9,8 +9,8 @@ The project has been modernized to follow Python best practices by consolidating
 ### Before (Old Approach)
 ```python
 # Separate modules for paths and settings
-from src.core.paths import DATA_RAW_DIR, DATA_INTERMEDIATE_DIR, MODELS_DIR
-from src.core.config import settings
+from ayne.core.paths import DATA_RAW_DIR, DATA_INTERMEDIATE_DIR, MODELS_DIR
+from ayne.core.config import settings
 
 # Paths were hard-coded constants
 db_path = DATA_INTERMEDIATE_DIR / "movies.duckdb"
@@ -19,7 +19,7 @@ db_path = DATA_INTERMEDIATE_DIR / "movies.duckdb"
 ### After (Modern Approach)
 ```python
 # Everything in one place
-from src.core.config import settings
+from ayne.core.config import settings
 
 # Paths are now part of settings with auto-initialization
 db_path = settings.duckdb_path
@@ -40,7 +40,7 @@ models = settings.models_dir
 All paths in `settings`:
 
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 # Core directories
 settings.project_root          # Project root directory
@@ -67,7 +67,7 @@ settings.use_json_logging
 
 ✅ **Do this:**
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 # Access paths via settings
 output_path = settings.data_raw_dir / "output.parquet"
@@ -76,7 +76,7 @@ db = DuckDBClient()  # Uses settings.duckdb_path automatically
 
 ❌ **Don't do this:**
 ```python
-from src.core.paths import DATA_RAW_DIR  # Deprecated
+from ayne.core.paths import DATA_RAW_DIR  # Deprecated
 ```
 
 ### For Existing Code
@@ -85,7 +85,7 @@ The old `src.core.paths` module still works for **backward compatibility**, but 
 
 ```python
 # This still works but is deprecated
-from src.core.paths import DATA_RAW_DIR, DATA_INTERMEDIATE_DIR
+from ayne.core.paths import DATA_RAW_DIR, DATA_INTERMEDIATE_DIR
 
 # Behind the scenes, it imports from settings
 # So you get the same paths, just through a deprecated interface
@@ -99,11 +99,11 @@ Previously, you had to call `ensure_directories()`. Now directories are **automa
 
 ```python
 # Old way (no longer needed)
-from src.core.paths import ensure_directories
+from ayne.core.paths import ensure_directories
 ensure_directories()
 
 # New way (automatic)
-from src.core.config import settings
+from ayne.core.config import settings
 # Directories already exist!
 ```
 
@@ -129,8 +129,8 @@ duckdb_path: "./custom_data/movies.duckdb"
 
 ### Database Client
 ```python
-from src.database.duckdb_client import DuckDBClient
-from src.core.config import settings
+from ayne.database.duckdb_client import DuckDBClient
+from ayne.core.config import settings
 
 # Uses settings.duckdb_path by default
 db = DuckDBClient()
@@ -141,9 +141,9 @@ db = DuckDBClient(db_path="/custom/path/db.duckdb")
 
 ### API Clients
 ```python
-from src.data_collection.tmdb_client import TMDBClient
-from src.data_collection.omdb_client import OMDBClient
-from src.core.config import settings
+from ayne.data_collection.tmdb_client import TMDBClient
+from ayne.data_collection.omdb_client import OMDBClient
+from ayne.core.config import settings
 
 # Uses settings.data_raw_dir / "tmdb" by default
 tmdb = TMDBClient()
@@ -154,7 +154,7 @@ tmdb = TMDBClient(output_dir="/custom/output/tmdb")
 
 ### Data Processing
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 import pandas as pd
 
 # Read from intermediate
@@ -190,6 +190,6 @@ A: Either add it to Settings, or compute it: `settings.data_dir / "custom_subdir
 ✅ **Compatible**: Old imports still work  
 
 **Recommended Migration Pattern**:
-1. New code: Use `from src.core.config import settings`
+1. New code: Use `from ayne.core.config import settings`
 2. Old code: Update imports when you touch the file
 3. No rush: Backward compatibility maintained

@@ -66,7 +66,7 @@ OMDB_API_KEY=your_actual_omdb_key
 ### 2. Use the New System
 
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 # Access any setting with autocomplete
 api_key = settings.tmdb_api_key
@@ -159,7 +159,7 @@ debug = load_config("DEBUG")            # Returns string, not bool
 
 ### After (New System)
 ```python
-from src.core.config import settings
+from ayne.core.config import settings
 
 api_key = settings.tmdb_api_key  # ✅ Autocomplete
 db_url = settings.db_url          # ✅ Type-safe
@@ -204,7 +204,7 @@ export BATCH_SIZE=50
 The configuration system has been tested and verified to work:
 
 ```bash
-$ python -c "from src.core.config import settings; print(settings.environment)"
+$ python -c "from ayne.core.config import settings; print(settings.environment)"
 development
 
 ✅ Configuration loaded successfully!

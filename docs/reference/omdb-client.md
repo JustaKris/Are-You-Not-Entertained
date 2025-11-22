@@ -72,7 +72,7 @@ The OMDB API provides rich data that complements TMDB:
 ### Basic Initialization
 
 ```python
-from src.data_collection.omdb import OMDBClient
+from ayne.data_collection.omdb import OMDBClient
 
 # Initialize with default settings
 client = OMDBClient()
@@ -255,7 +255,7 @@ OMDB data is fetched **after** TMDB data:
 ### Orchestrator Integration
 
 ```python
-from src.data_collection.orchestrator import DataCollectionOrchestrator
+from ayne.data_collection.orchestrator import DataCollectionOrchestrator
 
 # Orchestrator manages the workflow
 orchestrator = DataCollectionOrchestrator(db)
