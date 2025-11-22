@@ -11,6 +11,7 @@
 This document provides a complete modernization roadmap for transitioning your movie analytics ML project from a legacy PostgreSQL + CSV-based architecture to a modern, lightweight DuckDB-powered system following Python best practices.
 
 ### Current State
+
 - ❌ PostgreSQL database (overkill for local analytics)
 - ❌ CSV-based data storage scattered across directories
 - ❌ SQLAlchemy ORM models for PostgreSQL
@@ -18,6 +19,7 @@ This document provides a complete modernization roadmap for transitioning your m
 - ❌ Outdated dependencies (dill, etc.)
 
 ### Target State
+
 - ✅ DuckDB as lightweight analytical database
 - ✅ Parquet files for efficient data storage
 - ✅ Unified Pydantic configuration system
@@ -69,6 +71,7 @@ data/
 ### 1.3 Migration Steps
 
 #### Step 1: Update Database Configuration
+
 ```yaml
 # configs/development.yaml
 database:
@@ -80,6 +83,7 @@ database:
 ```
 
 #### Step 2: Initialize DuckDB Schema
+
 ```bash
 # Run this to create all tables
 python -c "from ayne.db.duckdb_client import DuckDBClient; db = DuckDBClient(); db.create_tables_from_sql()"
@@ -175,6 +179,7 @@ if __name__ == "__main__":
 ### 2.1 Issues with Current Clients
 
 **Problems in `tmdb.py` and `omdb.py`:**
+
 1. ❌ Direct PostgreSQL session coupling
 2. ❌ CSV file saving mixed with API logic
 3. ❌ Hardcoded paths and filenames
@@ -185,6 +190,7 @@ if __name__ == "__main__":
 ### 2.2 Modernized Client Architecture
 
 **New pattern:**
+
 ```python
 # API Client (pure data fetching)
 # ├── Fetch data from API
@@ -851,6 +857,7 @@ def test_query_with_params(temp_db):
 ## 🚀 Phase 7: Implementation Roadmap
 
 ### Week 1: Database Migration
+
 - [x] Day 1: Review and finalize DuckDB schema
 - [ ] Day 2: Create `scripts/init_database.py`
 - [ ] Day 3: Test schema creation and basic CRUD
@@ -858,6 +865,7 @@ def test_query_with_params(temp_db):
 - [ ] Day 5: Document database architecture
 
 ### Week 2: API Client Refactoring
+
 - [ ] Day 1: Create modern `tmdb_client.py`
 - [ ] Day 2: Create modern `omdb_client.py`
 - [ ] Day 3: Write unit tests with mocked responses
@@ -865,6 +873,7 @@ def test_query_with_params(temp_db):
 - [ ] Day 5: Test end-to-end data collection
 
 ### Week 3: Legacy Code Removal
+
 - [ ] Day 1: Delete `database/` folder and PostgreSQL code
 - [ ] Day 2: Remove SQLAlchemy dependencies
 - [ ] Day 3: Update imports across project
@@ -872,6 +881,7 @@ def test_query_with_params(temp_db):
 - [ ] Day 5: Clean up unused files
 
 ### Week 4: Configuration & Testing
+
 - [ ] Day 1: Enhance Pydantic settings
 - [ ] Day 2: Update all config files
 - [ ] Day 3: Write integration tests
@@ -879,6 +889,7 @@ def test_query_with_params(temp_db):
 - [ ] Day 5: Update documentation
 
 ### Week 5: Pipeline Development
+
 - [ ] Day 1: Create data ingestion pipeline
 - [ ] Day 2: Create preprocessing pipeline
 - [ ] Day 3: Update model training to use DuckDB
@@ -890,6 +901,7 @@ def test_query_with_params(temp_db):
 ## 📝 Best Practices Checklist
 
 ### Code Quality
+
 - [ ] Use type hints everywhere (`from typing import ...`)
 - [ ] Follow PEP 8 (enforced by Black)
 - [ ] Write docstrings (Google style)
@@ -897,6 +909,7 @@ def test_query_with_params(temp_db):
 - [ ] Avoid mutable default arguments
 
 ### Modern Python Patterns
+
 - [ ] Use `pathlib.Path` instead of string paths
 - [ ] Use f-strings for formatting
 - [ ] Use context managers (`with` statements)
@@ -904,6 +917,7 @@ def test_query_with_params(temp_db):
 - [ ] Use `joblib` instead of `pickle`/`dill`
 
 ### Error Handling
+
 - [ ] Use specific exceptions, not bare `except`
 - [ ] Log errors before re-raising
 - [ ] Use custom exceptions for domain errors
@@ -911,6 +925,7 @@ def test_query_with_params(temp_db):
 - [ ] Provide helpful error messages
 
 ### Configuration
+
 - [ ] Store secrets in `.env` only
 - [ ] Use Pydantic for validation
 - [ ] Support environment overrides
@@ -918,6 +933,7 @@ def test_query_with_params(temp_db):
 - [ ] Provide sensible defaults
 
 ### Database
+
 - [ ] Use parameterized queries (no SQL injection)
 - [ ] Handle NULL values gracefully
 - [ ] Use transactions for multi-step operations
@@ -925,6 +941,7 @@ def test_query_with_params(temp_db):
 - [ ] Regular VACUUM/ANALYZE
 
 ### Testing
+
 - [ ] Unit test all business logic
 - [ ] Integration test data flows
 - [ ] Mock external APIs
@@ -1014,6 +1031,7 @@ performance = [
 ## 📚 Next Steps - Copy/Paste Prompts
 
 ### Prompt 1: Initialize DuckDB Schema
+
 ```
 I need to create a script that initializes the DuckDB database using the schema.sql file. 
 The script should:
@@ -1026,6 +1044,7 @@ The script should:
 ```
 
 ### Prompt 2: Refactor TMDB Client
+
 ```
 I need to refactor src/data_collection/tmdb.py into a modern client following these requirements:
 1. Remove all database coupling (no SQLAlchemy, no session parameters)
@@ -1037,6 +1056,7 @@ I need to refactor src/data_collection/tmdb.py into a modern client following th
 ```
 
 ### Prompt 3: Create Data Collection Orchestrator
+
 ```
 I need a new data collection orchestrator script that:
 1. Uses the modern DuckDBClient
@@ -1048,6 +1068,7 @@ I need a new data collection orchestrator script that:
 ```
 
 ### Prompt 4: Update Configuration
+
 ```
 I need to enhance my Pydantic settings to support:
 1. Nested database configuration (type, path, read_only)
@@ -1057,6 +1078,7 @@ I need to enhance my Pydantic settings to support:
 ```
 
 ### Prompt 5: Write Tests
+
 ```
 I need comprehensive unit tests for DuckDBClient including:
 1. Schema creation
@@ -1068,6 +1090,7 @@ Save as tests/unit/test_duckdb_client.py
 ```
 
 ### Prompt 6: Create Data Export Script
+
 ```
 I need a script to export DuckDB tables to Parquet files:
 1. Accept table name and output path as arguments
@@ -1078,6 +1101,7 @@ I need a script to export DuckDB tables to Parquet files:
 ```
 
 ### Prompt 7: Cleanup Legacy Code
+
 ```
 I need to safely remove legacy PostgreSQL code:
 1. Delete database/ folder (after backing up queries)
@@ -1093,6 +1117,7 @@ I need to safely remove legacy PostgreSQL code:
 ## 🎯 Success Criteria
 
 ### Technical Goals
+
 - ✅ Zero PostgreSQL dependencies
 - ✅ All data in DuckDB + Parquet
 - ✅ < 100ms query response time for analytics
@@ -1101,6 +1126,7 @@ I need to safely remove legacy PostgreSQL code:
 - ✅ All linting passes (ruff, black, mypy)
 
 ### Documentation Goals
+
 - ✅ Clear README with setup instructions
 - ✅ API client docstrings
 - ✅ Database schema documentation
@@ -1108,6 +1134,7 @@ I need to safely remove legacy PostgreSQL code:
 - ✅ Contribution guidelines
 
 ### Performance Goals
+
 - ✅ API collection: < 5 sec per movie
 - ✅ Database upsert: < 1 sec for 100 rows
 - ✅ Query performance: < 100ms for joins
@@ -1118,16 +1145,19 @@ I need to safely remove legacy PostgreSQL code:
 ## 📞 Support & Resources
 
 ### Documentation
+
 - [DuckDB Official Docs](https://duckdb.org/docs/)
 - [Pydantic V2 Docs](https://docs.pydantic.dev/latest/)
 - [HTTPX User Guide](https://www.python-httpx.org/)
 - [Pytest Documentation](https://docs.pytest.org/)
 
 ### Community
+
 - Stack Overflow: Tag questions with `duckdb`, `pydantic`
 - GitHub Discussions: Share patterns and questions
 
 ### Reference Projects
+
 - [DuckDB Examples](https://github.com/duckdb/duckdb/tree/main/examples)
 - [Modern Python Template](https://github.com/cjolowicz/cookiecutter-hypermodern-python)
 

@@ -131,7 +131,6 @@ class OMDBClient:
 
         logger.info(f"Fetching OMDB data for {total} movies")
 
-        movies = []
         completed = 0
 
         # Create tasks for all movies
@@ -151,10 +150,11 @@ class OMDBClient:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Filter out None and exceptions
+        movies: list[dict[str, Any]] = []
         for result in results:
             if isinstance(result, Exception):
                 logger.error(f"Task failed: {result}")
-            elif result is not None:
+            elif isinstance(result, dict):
                 movies.append(result)
 
         logger.info(f"Successfully fetched {len(movies)}/{total} movies")

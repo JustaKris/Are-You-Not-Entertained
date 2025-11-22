@@ -19,47 +19,47 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-      
+
       - name: Install dependencies
         run: |
           echo "Installing dependencies with uv..."
           uv sync --group dev
-      
+
       - name: Run ruff linting
         run: |
           echo "Running ruff linting..."
           uv run ruff check src/ scripts/ tests/
-      
+
       - name: Run ruff format check
         run: |
           echo "Running ruff format check..."
           uv run ruff format --check src/ scripts/ tests/
-      
+
       - name: Check code formatting with Black
         run: |
           echo "Checking code formatting with Black..."
           uv run black --check src/ scripts/ tests/
-      
+
       - name: Summary
         if: success()
         run: |
           echo "✅ Python linting passed on Python ${{ matrix.python-version }}!"
-      
+
       - name: Failure summary
         if: failure()
         run: |

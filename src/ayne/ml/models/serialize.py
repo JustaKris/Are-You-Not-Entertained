@@ -170,7 +170,9 @@ def save_pipeline(
     return save_model(pipeline, name, metadata=metadata)
 
 
-def load_pipeline(filepath: Union[str, Path], load_metadata: bool = False) -> Union[Any, tuple[Any, Dict[str, Any]]]:
+def load_pipeline(
+    filepath: Union[str, Path], load_metadata: bool = False
+) -> Union[Any, tuple[Any, Dict[str, Any]]]:
     """Load a scikit-learn pipeline from disk.
 
     This is a convenience wrapper around load_model specifically for pipelines.

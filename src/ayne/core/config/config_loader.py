@@ -78,7 +78,8 @@ def get_settings(environment: Optional[str] = None) -> Settings:
 
     # Override environment if specified
     if environment:
-        settings.environment = environment
+        # Type ignore needed because we're dynamically setting the environment
+        settings.environment = environment  # type: ignore[assignment]
 
     # Try to load environment-specific YAML config
     try:

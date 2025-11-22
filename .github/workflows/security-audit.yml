@@ -27,38 +27,38 @@ jobs:
     name: Security Audit
     runs-on: ubuntu-latest
     continue-on-error: true
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-      
+
       - name: Install dependencies
         run: |
           echo "Installing dependencies with uv..."
           uv sync --group dev
-      
+
       - name: Run bandit security scan
         run: |
           echo "Running bandit security scan (code vulnerabilities)..."
           uv run bandit -r src/ -f json -o bandit-report.json --skip B104,B108 || true
           uv run bandit -r src/ --skip B104,B108
-      
+
       - name: Check for known vulnerabilities
         run: |
           echo "Checking for known vulnerabilities with pip-audit..."
           uv run pip-audit --desc --skip-editable || true
-      
+
       - name: Upload security reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -66,12 +66,12 @@ jobs:
           name: security-reports
           path: bandit-report.json
           retention-days: 30
-      
+
       - name: Summary
         if: success()
         run: |
           echo "✅ Security audit passed!"
-      
+
       - name: Failure summary
         if: failure()
         run: |

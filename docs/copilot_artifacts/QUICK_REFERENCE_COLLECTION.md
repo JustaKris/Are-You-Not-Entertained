@@ -3,16 +3,19 @@
 ## Common Commands
 
 ### Daily Refresh (Recommended)
+
 ```bash
 uv run python scripts/collect_optimized.py --refresh-only --refresh-limit 100
 ```
 
 ### Discover New Movies
+
 ```bash
 uv run python scripts/collect_optimized.py --start-year 2024 --max-pages 5
 ```
 
 ### Full Workflow
+
 ```bash
 uv run python scripts/collect_optimized.py \
     --start-year 2024 \
@@ -46,7 +49,7 @@ uv run python scripts/collect_optimized.py \
 - **Script**: `scripts/collect_optimized.py`
 - **Orchestrator**: `src/data_collection/orchestrator.py`
 - **Refresh Logic**: `src/data_collection/refresh_strategy.py`
-- **Async Clients**: 
+- **Async Clients**:
   - `src/data_collection/tmdb/async_client.py`
   - `src/data_collection/omdb/async_client.py`
 
@@ -88,6 +91,7 @@ LIMIT 10;
 ## Monitoring
 
 Logs show progress:
+
 ```
 INFO | Starting refresh for 50 movies...
 INFO | Fetching TMDB data for 50 movies...

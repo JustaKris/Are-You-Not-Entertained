@@ -7,6 +7,7 @@ The project has been modernized to follow Python best practices by consolidating
 ## What Changed
 
 ### Before (Old Approach)
+
 ```python
 # Separate modules for paths and settings
 from ayne.core.paths import DATA_RAW_DIR, DATA_INTERMEDIATE_DIR, MODELS_DIR
@@ -17,6 +18,7 @@ db_path = DATA_INTERMEDIATE_DIR / "movies.duckdb"
 ```
 
 ### After (Modern Approach)
+
 ```python
 # Everything in one place
 from ayne.core.config import settings
@@ -66,6 +68,7 @@ settings.use_json_logging
 ### For New Code
 
 ✅ **Do this:**
+
 ```python
 from ayne.core.config import settings
 
@@ -75,6 +78,7 @@ db = DuckDBClient()  # Uses settings.duckdb_path automatically
 ```
 
 ❌ **Don't do this:**
+
 ```python
 from ayne.core.paths import DATA_RAW_DIR  # Deprecated
 ```
@@ -112,6 +116,7 @@ from ayne.core.config import settings
 You can override paths via environment variables or YAML config:
 
 ### Via Environment Variable
+
 ```bash
 # .env file
 DATA_INTERMEDIATE_DIR=/custom/path/to/data
@@ -119,6 +124,7 @@ DUCKDB_PATH=/custom/db/movies.duckdb
 ```
 
 ### Via YAML Config
+
 ```yaml
 # configs/development.yaml
 data_intermediate_dir: "./custom_data/intermediate"
@@ -128,6 +134,7 @@ duckdb_path: "./custom_data/movies.duckdb"
 ## Code Examples
 
 ### Database Client
+
 ```python
 from ayne.database.duckdb_client import DuckDBClient
 from ayne.core.config import settings
@@ -140,6 +147,7 @@ db = DuckDBClient(db_path="/custom/path/db.duckdb")
 ```
 
 ### API Clients
+
 ```python
 from ayne.data_collection.tmdb_client import TMDBClient
 from ayne.data_collection.omdb_client import OMDBClient
@@ -153,6 +161,7 @@ tmdb = TMDBClient(output_dir="/custom/output/tmdb")
 ```
 
 ### Data Processing
+
 ```python
 from ayne.core.config import settings
 import pandas as pd
@@ -190,6 +199,7 @@ A: Either add it to Settings, or compute it: `settings.data_dir / "custom_subdir
 ✅ **Compatible**: Old imports still work  
 
 **Recommended Migration Pattern**:
+
 1. New code: Use `from ayne.core.config import settings`
 2. Old code: Update imports when you touch the file
 3. No rush: Backward compatibility maintained

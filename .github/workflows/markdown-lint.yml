@@ -16,36 +16,36 @@ jobs:
     name: Lint Markdown
     runs-on: ubuntu-latest
     continue-on-error: true  # Documentation issues shouldn't block deployment
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-      
+
       - name: Install dependencies
         run: |
           echo "Installing dependencies with uv..."
           uv sync --group dev
-      
+
       - name: Run markdown linting
         run: |
           echo "Running markdown linting on documentation..."
           uv run pymarkdown --config pyproject.toml scan docs/ README.md
-      
+
       - name: Summary
         if: success()
         run: echo "✅ All markdown files are well-formatted!"
-      
+
       - name: Failure summary
         if: failure()
         run: |

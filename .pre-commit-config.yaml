@@ -1,0 +1,130 @@
+# Pre-commit hooks for Are You Not Entertained (AYNE)
+# Modern Python project best practices
+#
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+# Update hooks: pre-commit autoupdate
+
+repos:
+  # General file checks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+  - id: trailing-whitespace
+    exclude: \.md$      # Allow trailing spaces in markdown (for line breaks)
+  - id: end-of-file-fixer
+  - id: check-yaml
+  - id: check-json
+  - id: check-toml
+  - id: check-added-large-files
+    args: [--maxkb=1000]
+  - id: check-merge-conflict
+  - id: check-case-conflict
+  - id: mixed-line-ending
+    args: [--fix=lf]
+  - id: detect-private-key
+
+  # Python-specific checks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+  - id: check-ast      # Validate Python syntax
+  - id: check-builtin-literals      # Require literal syntax
+  - id: check-docstring-first
+  - id: debug-statements      # Prevent debug statements
+
+  # Ruff - Fast Python linter & formatter (replaces flake8, isort, etc.)
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.8.4
+  hooks:
+      # Linting
+  - id: ruff
+    args: [--fix, --exit-non-zero-on-fix]
+    types_or: [python, pyi]
+      # Formatting
+  - id: ruff-format
+    types_or: [python, pyi]
+
+  # Black - Python code formatter (if you prefer over ruff-format)
+  # Uncomment if you want to use black instead of ruff-format
+  # - repo: https://github.com/psf/black
+  #   rev: 24.10.0
+  #   hooks:
+  #     - id: black
+  #       language_version: python3.11
+
+  # MyPy - Static type checking
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.13.0
+  hooks:
+  - id: mypy
+    args: [--ignore-missing-imports, --show-error-codes]
+    additional_dependencies:
+    - types-PyYAML
+    - types-requests
+    exclude: ^(tests/|notebooks/|scripts/)
+
+  # Bandit - Security vulnerability scanner
+- repo: https://github.com/PyCQA/bandit
+  rev: 1.8.0
+  hooks:
+  - id: bandit
+    args: [-c, pyproject.toml, -f, json, -q]
+    additional_dependencies: ['.[toml]']
+    exclude: ^tests/
+
+  # Markdown linting (disabled - many existing violations)
+  # Uncomment and run: pre-commit run markdownlint --all-files to fix
+  # - repo: https://github.com/igorshubovych/markdownlint-cli
+  #   rev: v0.43.0
+  #   hooks:
+  #     - id: markdownlint
+  #       args: ['--fix']
+  #       exclude: ^(notebooks/|\.github/)
+
+  # YAML formatting
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v2.14.0
+  hooks:
+  - id: pretty-format-yaml
+    args: [--autofix, --indent, '2']
+    exclude: ^\.github/
+
+  # Jupyter notebook cleaning (remove outputs before commit)
+- repo: https://github.com/kynan/nbstripout
+  rev: 0.8.1
+  hooks:
+  - id: nbstripout
+    files: \.ipynb$
+
+  # Secrets detection
+  # - repo: https://github.com/Yelp/detect-secrets
+  #   rev: v1.5.0
+  #   hooks:
+  #     - id: detect-secrets
+  #       args: ['--baseline', '.secrets.baseline']
+  #       exclude: ^(\.env\.example|uv\.lock)$
+
+# Global settings
+default_language_version:
+  python: python3.11
+
+# Files to exclude from all hooks
+exclude: |
+  (?x)^(
+    \.git/|
+    \.venv/|
+    \.pytest_cache/|
+    \.mypy_cache/|
+    \.ruff_cache/|
+    __pycache__/|
+    \.ipynb_checkpoints/|
+    build/|
+    dist/|
+    .*\.egg-info/|
+    uv\.lock|
+    reports/
+  )$
+
+# Run hooks in parallel for speed
+fail_fast: false

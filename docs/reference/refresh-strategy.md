@@ -34,24 +34,28 @@ class MovieAge(Enum):
 ### Rationale
 
 **Recent (0-60 days)**:
+
 - Still in theaters or just released to streaming
 - Box office numbers updating
 - Reviews and ratings accumulating
 - High data volatility
 
 **Established (60-180 days)**:
+
 - Theatrical run mostly complete
 - Initial reviews in
 - Box office stabilizing
 - Moderate data changes
 
 **Mature (180-365 days)**:
+
 - Available on streaming/rental
 - All major reviews published
 - Awards season may impact ratings
 - Fewer data changes
 
 **Archived (365+ days)**:
+
 - Historical film
 - Data mostly stable
 - Occasional rating adjustments
@@ -483,6 +487,7 @@ class RefreshThresholds:
 ### Key Metrics
 
 1. **Update Coverage**:
+
 ```sql
 -- % of movies updated within their interval
 SELECT 
@@ -491,12 +496,14 @@ FROM movies;
 ```
 
 2. **Frozen Movie Count**:
+
 ```sql
 SELECT COUNT(*), COUNT(*) * 100.0 / (SELECT COUNT(*) FROM movies) as pct
 FROM movies WHERE data_frozen = TRUE;
 ```
 
 3. **Age Distribution**:
+
 ```sql
 SELECT 
     CASE 
@@ -514,6 +521,7 @@ GROUP BY category;
 ```
 
 4. **Daily API Calls** (estimate):
+
 ```sql
 -- Movies due for TMDB update today
 SELECT COUNT(*) FROM movies
@@ -593,6 +601,7 @@ WHERE EXTRACT(YEAR FROM release_date) >= 2020;
 ### Problem: Never-Updated Movies
 
 **Check**:
+
 ```sql
 SELECT COUNT(*) FROM movies 
 WHERE last_full_refresh IS NULL;

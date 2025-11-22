@@ -7,6 +7,7 @@ The project has been migrated from the old `config/config_loader.py` system to a
 ## What Changed
 
 ### Old System ❌
+
 ```python
 from config.config_loader import load_config
 
@@ -15,6 +16,7 @@ db_url = load_config("DB_URL")
 ```
 
 ### New System ✅
+
 ```python
 from ayne.core.config import settings
 
@@ -73,6 +75,7 @@ cp .env.example .env
 ```
 
 **Example `.env`:**
+
 ```bash
 ENVIRONMENT=development
 DEBUG=true
@@ -88,6 +91,7 @@ OMDB_API_KEY=your_actual_omdb_api_key
 Replace all instances of `load_config()`:
 
 **Before:**
+
 ```python
 from config.config_loader import load_config
 
@@ -98,6 +102,7 @@ def get_movies():
 ```
 
 **After:**
+
 ```python
 from ayne.core.config import settings
 
@@ -110,6 +115,7 @@ def get_movies():
 ### 4. Update Notebooks
 
 **Before:**
+
 ```python
 from config.config_loader import load_config
 
@@ -117,6 +123,7 @@ session = init_db_session(load_config("DB_URL"))
 ```
 
 **After:**
+
 ```python
 from ayne.core.config import settings
 
@@ -152,6 +159,7 @@ Settings are loaded in this order (highest priority first):
 ## Common Patterns
 
 ### Basic Usage
+
 ```python
 from ayne.core.config import settings
 
@@ -161,6 +169,7 @@ print(f"Debug mode: {settings.debug}")
 ```
 
 ### Environment Checks
+
 ```python
 from ayne.core.config import settings
 
@@ -173,6 +182,7 @@ elif settings.is_development():
 ```
 
 ### Reload Settings (for testing)
+
 ```python
 from ayne.core.config import reload_settings
 
@@ -185,6 +195,7 @@ settings = reload_settings(environment="production")
 ### "Settings not loading from .env"
 
 **Solution:** Make sure:
+
 - `.env` file is in the project root
 - Variable names match exactly (case-insensitive)
 - No quotes around values
@@ -192,6 +203,7 @@ settings = reload_settings(environment="production")
 ### "Import error: cannot import settings"
 
 **Solution:**
+
 ```python
 # Correct import
 from ayne.core.config import settings
@@ -203,6 +215,7 @@ from config.config_loader import load_config  # Old system
 ### "YAML file not found"
 
 **Solution:** Check:
+
 - `ENVIRONMENT` variable is set correctly in `.env`
 - YAML file exists in `configs/` directory
 - YAML filename matches environment (e.g., `development.yaml`)
@@ -225,9 +238,10 @@ All the following files have been updated to use the new system:
 
 ## Adding New Configuration
 
-### For Non-Sensitive Values (use YAML):
+### For Non-Sensitive Values (use YAML)
 
 1. Add to `src/core/config/settings.py`:
+
 ```python
 new_feature_flag: bool = Field(
     default=False,
@@ -236,13 +250,15 @@ new_feature_flag: bool = Field(
 ```
 
 2. Add to `configs/development.yaml`:
+
 ```yaml
 new_feature_flag: true
 ```
 
-### For Sensitive Values (use .env):
+### For Sensitive Values (use .env)
 
 1. Add to `src/core/config/settings.py`:
+
 ```python
 api_secret: Optional[str] = Field(
     default=None,
@@ -251,12 +267,14 @@ api_secret: Optional[str] = Field(
 ```
 
 2. Add to `.env.example`:
+
 ```bash
 # API Secret Key
 API_SECRET=your_secret_here
 ```
 
 3. Add to your local `.env`:
+
 ```bash
 API_SECRET=actual_secret_value
 ```

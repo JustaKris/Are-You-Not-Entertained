@@ -21,6 +21,7 @@ uv add duckdb
 ### Step 2: Fix Import in duckdb_client.py (Done! ✅)
 
 The import issue has been fixed. The file now correctly imports:
+
 ```python
 from ayne.core.paths import DATA_INTERMEDIATE_DIR
 ```
@@ -64,6 +65,7 @@ if __name__ == "__main__":
 ```
 
 Run it:
+
 ```bash
 python scripts/init_database.py
 ```
@@ -118,6 +120,7 @@ if __name__ == "__main__":
 ```
 
 Run it:
+
 ```bash
 python scripts/test_database.py
 ```
@@ -254,6 +257,7 @@ if __name__ == "__main__":
 ```
 
 Run it:
+
 ```bash
 python scripts/collect_data_simple.py
 ```
@@ -275,16 +279,19 @@ After completing these steps, you will have:
 ## 🚦 Next Steps
 
 ### Immediate (Next 1-2 Days)
+
 1. Review the full **MODERNIZATION_PLAN.md** document
 2. Create unit tests for DuckDBClient
 3. Refactor TMDB client to remove database coupling
 
 ### Short-term (Next Week)
+
 1. Create modern TMDB and OMDB clients
 2. Build comprehensive data collection orchestrator
 3. Delete old PostgreSQL code
 
 ### Medium-term (Next 2-4 Weeks)
+
 1. Migrate all data preprocessing to use DuckDB
 2. Update model training pipeline
 3. Create data export scripts for Parquet
@@ -296,6 +303,7 @@ After completing these steps, you will have:
 ### Problem: "ModuleNotFoundError: No module named 'duckdb'"
 
 **Solution**:
+
 ```bash
 uv add duckdb
 # or
@@ -313,6 +321,7 @@ uv sync
 ### Problem: Database file not created
 
 **Solution**:
+
 ```python
 # Check path configuration
 from ayne.core.paths import DATA_INTERMEDIATE_DIR
@@ -325,6 +334,7 @@ DATA_INTERMEDIATE_DIR.mkdir(parents=True, exist_ok=True)
 ### Problem: API calls fail
 
 **Solution**: Verify your API keys in `.env`:
+
 ```bash
 # Check keys are loaded
 python -c "from ayne.core.config import settings; print(f'TMDB: {settings.tmdb_api_key[:10]}...')"
@@ -358,7 +368,7 @@ src/db/
 
 ---
 
-## 🎉 Congratulations!
+## 🎉 Congratulations
 
 You now have a modern DuckDB-based data infrastructure. The next phase is refactoring your API clients to be database-agnostic.
 

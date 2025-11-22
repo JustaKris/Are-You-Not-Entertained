@@ -5,6 +5,7 @@ This directory contains environment-specific configuration files for the **Are Y
 ## Overview
 
 The project uses a modern configuration system built with **Pydantic 2.x** that supports:
+
 - ✅ Environment-specific YAML configs (development, staging, production)
 - ✅ `.env` file for sensitive data (API keys, passwords)
 - ✅ Type-safe configuration with validation
@@ -80,6 +81,7 @@ if settings.is_production():
 ### Sensitive Data (.env)
 
 Store in `.env` file (NOT in YAML):
+
 - `TMDB_API_KEY` - The Movie Database API key
 - `OMDB_API_KEY` - Open Movie Database API key
 - `DB_URL` - Database connection string
@@ -91,6 +93,7 @@ Store in `.env` file (NOT in YAML):
 ### Adding a Non-Sensitive Setting
 
 1. Add field to `src/core/config/settings.py`:
+
 ```python
 new_setting: str = Field(
     default="default_value",
@@ -99,6 +102,7 @@ new_setting: str = Field(
 ```
 
 2. Add to YAML files (e.g., `development.yaml`):
+
 ```yaml
 new_setting: "custom_value"
 ```
@@ -106,6 +110,7 @@ new_setting: "custom_value"
 ### Adding a Sensitive Setting
 
 1. Add field to `src/core/config/settings.py`:
+
 ```python
 secret_key: Optional[str] = Field(
     default=None,
@@ -114,6 +119,7 @@ secret_key: Optional[str] = Field(
 ```
 
 2. Add to `.env.example`:
+
 ```bash
 # Secret Key
 SECRET_KEY=your_secret_key_here
@@ -137,14 +143,16 @@ BATCH_SIZE=50
 
 ## Best Practices
 
-### ✅ DO:
+### ✅ DO
+
 - Keep sensitive data in `.env` (never commit!)
 - Use YAML files for environment-specific non-sensitive config
 - Update `.env.example` when adding new environment variables
 - Use type hints and validation in `settings.py`
 - Document new settings with descriptions
 
-### ❌ DON'T:
+### ❌ DON'T
+
 - Commit `.env` file to version control
 - Put API keys or passwords in YAML files
 - Hardcode configuration values in code
@@ -159,6 +167,7 @@ For Azure deployment:
    - Variables override YAML and `.env`
 
 2. **Key Vault Integration** (Recommended for production)
+
    ```python
    # Future: Add Azure Key Vault integration
    # Secrets loaded from Key Vault override all other sources
@@ -169,6 +178,7 @@ For Azure deployment:
 ### Settings not loading from YAML?
 
 Check:
+
 1. `ENVIRONMENT` variable is set correctly
 2. YAML file exists in `configs/` directory
 3. YAML syntax is valid (no tabs, proper indentation)
@@ -176,6 +186,7 @@ Check:
 ### API keys not working?
 
 Check:
+
 1. `.env` file exists in project root
 2. Variable names match exactly (case-insensitive)
 3. No quotes around values in `.env`
@@ -221,6 +232,7 @@ api_key = settings.tmdb_api_key
 ## Support
 
 For questions or issues with configuration:
+
 1. Check this README
 2. Review `.env.example` for required variables
 3. Inspect `src/core/config/settings.py` for all available settings

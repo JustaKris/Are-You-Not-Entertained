@@ -3,6 +3,7 @@
 ## Quick Start
 
 ### Windows (PowerShell)
+
 ```powershell
 # Option 1: Use the helper batch file (recommended)
 .\run.bat test_database
@@ -21,6 +22,7 @@ python scripts/collect_omdb_data.py --limit 5
 ```
 
 ### Linux/Mac (Bash)
+
 ```bash
 # Option 1: Use the helper script (recommended)
 ./run.sh test_database
@@ -40,6 +42,7 @@ python scripts/collect_omdb_data.py --limit 5
 ## Available Scripts
 
 ### 1. test_database.py
+
 Test that DuckDB setup works correctly.
 
 ```powershell
@@ -47,6 +50,7 @@ Test that DuckDB setup works correctly.
 ```
 
 ### 2. init_database.py
+
 Initialize database schema (creates all tables).
 
 ```powershell
@@ -54,6 +58,7 @@ Initialize database schema (creates all tables).
 ```
 
 ### 3. collect_tmdb_data.py
+
 Collect movie data from TMDB API.
 
 ```powershell
@@ -65,6 +70,7 @@ Collect movie data from TMDB API.
 ```
 
 **Options:**
+
 - `--start-year`: Starting year (default: 2020)
 - `--end-year`: Ending year (default: 2024)
 - `--min-votes`: Minimum vote count (default: 200)
@@ -74,6 +80,7 @@ Collect movie data from TMDB API.
 - `--skip-details`: Skip details collection
 
 ### 4. collect_omdb_data.py
+
 Collect rating data from OMDB API.
 
 ```powershell
@@ -85,9 +92,11 @@ Collect rating data from OMDB API.
 ```
 
 **Options:**
+
 - `--limit`: Maximum movies to process (default: 100)
 
 ### 5. collect_all_data.py
+
 Master script - runs complete collection workflow.
 
 ```powershell
@@ -95,6 +104,7 @@ Master script - runs complete collection workflow.
 ```
 
 This script automatically:
+
 1. Discovers movies from TMDB
 2. Gets detailed TMDB features
 3. Gets OMDB ratings
@@ -102,6 +112,7 @@ This script automatically:
 ## Why Use `uv run`?
 
 The `uv run` command:
+
 - ✅ Automatically uses the correct virtual environment
 - ✅ Ensures all dependencies are installed
 - ✅ Sets up the Python path correctly
@@ -118,6 +129,7 @@ The `uv run` command:
 ### Error: "ModuleNotFoundError: No module named 'duckdb'"
 
 **Solution:** Your dependencies aren't installed. Run:
+
 ```powershell
 uv sync
 ```
@@ -125,6 +137,7 @@ uv sync
 ### Error: "ValueError: TMDB API key is required"
 
 **Solution:** Set up your `.env` file with API keys:
+
 ```bash
 TMDB_API_KEY=your_tmdb_key_here
 OMDB_API_KEY=your_omdb_key_here
@@ -189,6 +202,7 @@ python -m scripts.collect_omdb_data --limit 5
 ## Summary
 
 **Recommended approach:**
+
 ```powershell
 # Windows
 .\run.bat <script_name> [options]

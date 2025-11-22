@@ -1,6 +1,7 @@
 # Data Directory Structure Guide
 
 ## Overview
+
 This guide explains the modern data directory structure for the "Are You Not Entertained" project, following Python best practices for data science projects.
 
 ## Directory Structure
@@ -21,19 +22,23 @@ data/
 ## Directory Purposes
 
 ### `data/db/` - Database Files
+
 **Purpose**: Store database files separate from data files
 
 **Contents**:
+
 - `movies.duckdb` - Main DuckDB database with consolidated movie data
 - **Tables**: `movies`, `tmdb_movies`, `omdb_movies`, `numbers_movies`, `movie_refresh_state`
 
 **Best Practices**:
+
 - ✅ Keep databases separate from CSV/Parquet files
 - ✅ Use DuckDB for structured, queryable data
 - ✅ Never manually edit database files
 - ❌ Don't store large binary files here
 
 **Access Pattern**:
+
 ```python
 from ayne.data.query_utils import get_db_client
 
@@ -43,14 +48,17 @@ db.close()
 ```
 
 ### `data/raw/` - Raw Source Data
+
 **Purpose**: Immutable data as received from external sources
 
 **Contents**:
+
 - `tmdb/` - TMDB API response data
 - `omdb/` - OMDB API response data
 - Parquet files from data collection scripts
 
 **Best Practices**:
+
 - ✅ Never modify files in this directory
 - ✅ Use as source of truth for re-processing
 - ✅ Store in efficient formats (Parquet > CSV)
@@ -58,6 +66,7 @@ db.close()
 - ❌ Don't store temporary files here
 
 **Access Pattern**:
+
 ```python
 # Raw data is typically loaded into DuckDB
 # For direct access:
@@ -66,15 +75,18 @@ df = pd.read_parquet("data/raw/tmdb/02_movie_features.parquet")
 ```
 
 ### `data/processed/` - Processed Data
+
 **Purpose**: Cleaned, transformed data ready for analysis and modeling
 
 **Contents**:
+
 - Feature-engineered datasets
 - Imputed data
 - Analysis-ready tables
 - Intermediate results from notebooks
 
 **Best Practices**:
+
 - ✅ Store reproducible transformations
 - ✅ Document preprocessing steps in notebooks
 - ✅ Use Parquet for large datasets (faster, smaller)
@@ -82,11 +94,13 @@ df = pd.read_parquet("data/raw/tmdb/02_movie_features.parquet")
 - ❌ Don't store raw data here
 
 **Naming Convention**:
+
 - `movies_preprocessed_2024-11-21.parquet`
 - `movies_with_financials.parquet`
 - `movies_imputed_full.parquet`
 
 **Access Pattern**:
+
 ```python
 from ayne.data.query_utils import save_processed_data
 import pandas as pd
@@ -100,15 +114,18 @@ df = pd.read_parquet("data/processed/movies_preprocessed.parquet")
 ```
 
 ### `data/artifacts/` - Model Artifacts
+
 **Purpose**: Outputs from machine learning pipelines
 
 **Contents**:
+
 - Training/test splits (`X_train.parquet`, `y_train.parquet`)
 - Model predictions
 - Feature matrices
 - Evaluation results
 
 **Best Practices**:
+
 - ✅ Store train/test splits for reproducibility
 - ✅ Version artifacts with model versions
 - ✅ Use Parquet for large feature matrices
@@ -116,11 +133,13 @@ df = pd.read_parquet("data/processed/movies_preprocessed.parquet")
 - ❌ Don't store model binaries here (use `models/`)
 
 **Naming Convention**:
+
 - `X_train_v1.parquet`, `X_test_v1.parquet`
 - `y_train_v1.parquet`, `y_test_v1.parquet`
 - `predictions_model_v2.parquet`
 
 **Access Pattern**:
+
 ```python
 from ayne.data.query_utils import save_artifacts
 from sklearn.model_selection import train_test_split
@@ -138,7 +157,9 @@ X_train = pd.read_parquet("data/artifacts/X_train.parquet")
 ## Database Schema
 
 ### `movies` - Main Movies Table
+
 Core movie information with unique identifiers:
+
 - `tmdb_id` - TMDB identifier
 - `imdb_id` - IMDB identifier
 - `title` - Movie title
@@ -150,21 +171,27 @@ Core movie information with unique identifiers:
 - `data_frozen` - Whether data is stable (no more updates)
 
 ### `tmdb_movies` - TMDB Data
+
 Detailed information from The Movie Database:
+
 - Movie details (overview, tagline, runtime, status)
 - Vote statistics (average, count)
 - Popularity metrics
 - Genre, production company, country, languages
 
 ### `omdb_movies` - OMDB Data
+
 Rich information from Open Movie Database:
+
 - Ratings (IMDB, Rotten Tomatoes, Metacritic)
 - Cast and crew (director, writer, actors)
 - Awards and nominations
 - Production details
 
 ### `numbers_movies` - The Numbers Data
+
 Financial data from The Numbers:
+
 - Production budget
 - Domestic gross
 - Worldwide gross
@@ -172,6 +199,7 @@ Financial data from The Numbers:
 ## Working with Data in Notebooks
 
 ### Setup (Cell 1)
+
 ```python
 import os
 from pyprojroot import here
@@ -186,6 +214,7 @@ from ayne.data.query_utils import (
 ```
 
 ### Load Data (Cell 2)
+
 ```python
 # Load complete dataset with all joined tables
 df = load_full_dataset(include_nulls=True)
@@ -194,6 +223,7 @@ df.info()
 ```
 
 ### Query Specific Data (Cell 3)
+
 ```python
 # Get movies with financial data
 df_financial = get_movies_with_financials(min_budget=1_000_000)
@@ -201,6 +231,7 @@ print(f"Found {len(df_financial)} movies with budget >= $1M")
 ```
 
 ### Save Processed Data (Cell 4)
+
 ```python
 # After preprocessing
 df_clean = preprocess_pipeline.transform(df)
@@ -208,6 +239,7 @@ save_processed_data(df_clean, "movies_preprocessed_2024-11-21", format="parquet"
 ```
 
 ### Save Model Artifacts (Cell 5)
+
 ```python
 # After train/test split
 from sklearn.model_selection import train_test_split
@@ -223,48 +255,58 @@ save_artifacts(y_test, "y_test", format="parquet")
 ## File Formats
 
 ### Parquet (Recommended)
+
 **When to use**: Large datasets (> 10MB), production pipelines
 
 **Advantages**:
+
 - ✅ Columnar format (fast queries)
 - ✅ Compressed (smaller files)
 - ✅ Preserves data types
 - ✅ Fast read/write
 
 **Example**:
+
 ```python
 df.to_parquet("data/processed/movies.parquet", index=False)
 df = pd.read_parquet("data/processed/movies.parquet")
 ```
 
 ### CSV
+
 **When to use**: Small datasets, human readability, external sharing
 
 **Advantages**:
+
 - ✅ Human-readable
 - ✅ Universal compatibility
 - ✅ Easy to version control (text)
 
 **Disadvantages**:
+
 - ❌ Larger file size
 - ❌ Slower to read/write
 - ❌ Type inference issues
 
 **Example**:
+
 ```python
 df.to_csv("data/processed/movies.csv", index=False)
 df = pd.read_csv("data/processed/movies.csv")
 ```
 
 ### Feather
+
 **When to use**: Fast Python/R interoperability
 
 **Advantages**:
+
 - ✅ Very fast read/write
 - ✅ Preserves data types
 - ✅ R compatibility
 
 **Example**:
+
 ```python
 df.to_feather("data/processed/movies.feather")
 df = pd.read_feather("data/processed/movies.feather")
@@ -273,13 +315,17 @@ df = pd.read_feather("data/processed/movies.feather")
 ## Configuration
 
 ### Database Path
+
 Configured in `src/core/config/settings.py`:
+
 ```python
 duckdb_path = data_dir / "db" / "movies.duckdb"
 ```
 
 ### Data Directories
+
 Auto-created by settings on import:
+
 ```python
 from ayne.core.config import settings
 
@@ -292,6 +338,7 @@ print(settings.data_artifacts_dir) # data/artifacts
 ## Migration from Old Structure
 
 ### Old Structure (Deprecated)
+
 ```
 data/
 ├── intermediate/
@@ -303,6 +350,7 @@ data/
 ```
 
 ### New Structure (Current)
+
 ```
 data/
 ├── db/                   # NEW: Dedicated database directory
@@ -315,6 +363,7 @@ data/
 ```
 
 ### What Changed
+
 1. ✅ `movies.duckdb` moved from `intermediate/` to `db/`
 2. ✅ Removed `0_base_data.csv` (now in DuckDB)
 3. ✅ Removed old processed CSV files
@@ -324,6 +373,7 @@ data/
 ## Best Practices Summary
 
 ### DO ✅
+
 - Use DuckDB for structured, queryable data
 - Store processed data in Parquet format
 - Use `query_utils.py` functions in notebooks
@@ -333,6 +383,7 @@ data/
 - Separate artifacts from processed data
 
 ### DON'T ❌
+
 - Manually edit database files
 - Store large CSV files (use Parquet)
 - Modify files in `raw/`
@@ -343,6 +394,7 @@ data/
 ## Troubleshooting
 
 ### Database Connection Issues
+
 ```python
 from ayne.data.query_utils import get_db_client
 
@@ -358,7 +410,9 @@ db.close()
 ```
 
 ### Missing Data Directories
+
 Directories are auto-created by settings. If missing:
+
 ```python
 from ayne.core.config import settings
 
@@ -368,6 +422,7 @@ print(settings.data_processed_dir.exists()) # Should be True
 ```
 
 ### Performance Tips
+
 1. Use Parquet for large datasets (> 10MB)
 2. Query only needed columns from DuckDB
 3. Use `read_only=True` when possible

@@ -7,71 +7,71 @@ repo_name: JustaKris/Are-You-Not-Entertained
 theme:
   name: material
   palette:
-    - scheme: default
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - scheme: slate
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
+  - scheme: default
+    primary: indigo
+    accent: indigo
+    toggle:
+      icon: material/brightness-7
+      name: Switch to dark mode
+  - scheme: slate
+    primary: indigo
+    accent: indigo
+    toggle:
+      icon: material/brightness-4
+      name: Switch to light mode
   features:
-    - navigation.tabs
-    - navigation.sections
-    - navigation.expand
-    - navigation.top
-    - search.suggest
-    - search.highlight
-    - content.code.copy
+  - navigation.tabs
+  - navigation.sections
+  - navigation.expand
+  - navigation.top
+  - search.suggest
+  - search.highlight
+  - content.code.copy
 
 plugins:
-  - search
-  - mkdocstrings:
-      handlers:
-        python:
-          options:
-            docstring_style: google
-            show_source: true
+- search
+- mkdocstrings:
+    handlers:
+      python:
+        options:
+          docstring_style: google
+          show_source: true
 
 markdown_extensions:
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
-  - pymdownx.tabbed:
-      alternate_style: true
-  - admonition
-  - pymdownx.details
-  - pymdownx.arithmatex:
-      generic: true
-  - attr_list
-  - md_in_html
-  - tables
+- pymdownx.highlight:
+    anchor_linenums: true
+- pymdownx.inlinehilite
+- pymdownx.snippets
+- pymdownx.superfences
+- pymdownx.tabbed:
+    alternate_style: true
+- admonition
+- pymdownx.details
+- pymdownx.arithmatex:
+    generic: true
+- attr_list
+- md_in_html
+- tables
 
 nav:
-  - Home: index.md
-  - Development:
-      - Code Style: development/code-style.md
-      - Formatting: development/formatting.md
-      - Linting: development/linting.md
-      - Testing: development/testing.md
-      - Security: development/security.md
-      - Logging: development/logging.md
-      - Markdown Linting: development/markdown-linting.md
-  - Reference:
-      - Architecture: reference/architecture.md
-      - TMDB API Client: reference/tmdb-client.md
-      - OMDB API Client: reference/omdb-client.md
-      - Database: reference/database.md
-      - Refresh Strategy: reference/refresh-strategy.md
-      - Data Collection Workflow: reference/data-collection-workflow.md
-      - Rate Limiting: reference/rate-limiting.md
-      - Data Orchestration: reference/orchestration.md
+- Home: index.md
+- Development:
+  - Code Style: development/code-style.md
+  - Formatting: development/formatting.md
+  - Linting: development/linting.md
+  - Testing: development/testing.md
+  - Security: development/security.md
+  - Logging: development/logging.md
+  - Markdown Linting: development/markdown-linting.md
+- Reference:
+  - Architecture: reference/architecture.md
+  - TMDB API Client: reference/tmdb-client.md
+  - OMDB API Client: reference/omdb-client.md
+  - Database: reference/database.md
+  - Refresh Strategy: reference/refresh-strategy.md
+  - Data Collection Workflow: reference/data-collection-workflow.md
+  - Rate Limiting: reference/rate-limiting.md
+  - Data Orchestration: reference/orchestration.md
 
 exclude_docs: |
   copilot_artifacts/

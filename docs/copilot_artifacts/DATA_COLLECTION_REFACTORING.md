@@ -3,6 +3,7 @@
 ## ✅ Changes Completed
 
 ### 1. Removed Legacy Code
+
 - **Deleted**: `src/data_manipulation/` module
   - Only used in one old notebook
   - Duplicated functionality (CSV handling)
@@ -11,6 +12,7 @@
 ### 2. Refactored to Service-Oriented Structure
 
 **Old Structure** (flat):
+
 ```
 src/data_collection/
 ├── tmdb_client.py
@@ -20,6 +22,7 @@ src/data_collection/
 ```
 
 **New Structure** (service-oriented):
+
 ```
 src/data_collection/
 ├── __init__.py           # Re-exports for convenience
@@ -37,6 +40,7 @@ src/data_collection/
 ### 3. Import Updates
 
 **New imports (recommended)**:
+
 ```python
 from ayne.data_collection.tmdb import TMDBClient
 from ayne.data_collection.omdb import OMDBClient
@@ -44,11 +48,13 @@ from ayne.data_collection.the_numbers import scrape_the_numbers
 ```
 
 **Backward compatible imports** (also work):
+
 ```python
 from ayne.data_collection import TMDBClient, OMDBClient, scrape_the_numbers
 ```
 
 **Old imports** (⚠️ no longer work):
+
 ```python
 from ayne.data_collection.tmdb_client import TMDBClient  # ❌ File moved
 from ayne.data_collection.omdb_client import OMDBClient  # ❌ File moved
@@ -57,7 +63,9 @@ from ayne.data_collection.omdb_client import OMDBClient  # ❌ File moved
 ## Benefits of New Structure
 
 ### 1. **Separation of Concerns**
+
 Each service is self-contained with room to grow:
+
 ```
 tmdb/
 ├── client.py         # API client logic
@@ -66,6 +74,7 @@ tmdb/
 ```
 
 ### 2. **Easier Testing**
+
 ```python
 # Test individual components
 from ayne.data_collection.tmdb.client import TMDBClient
@@ -73,11 +82,13 @@ from ayne.data_collection.tmdb.normalizers import normalize_response
 ```
 
 ### 3. **Clearer Organization**
+
 - Each external service has its own directory
 - Easy to find service-specific code
 - Room for growth without clutter
 
 ### 4. **Better for Teams**
+
 - Clear ownership (TMDB team works in tmdb/)
 - Fewer merge conflicts
 - Easier to review changes
@@ -85,6 +96,7 @@ from ayne.data_collection.tmdb.normalizers import normalize_response
 ## Database Module - No Changes Needed
 
 The `src/database/` module structure is perfect as-is:
+
 ```
 src/database/
 ├── __init__.py
@@ -93,12 +105,14 @@ src/database/
 ```
 
 **Why it's good:**
+
 - Simple and focused
 - No ORM complexity needed
 - DuckDB client is comprehensive
 - Schema in SQL is the right approach
 
 **Future considerations** (only if needed):
+
 - `migrations/` - Schema versioning
 - `queries.py` - Complex reusable queries
 - `models.py` - Pydantic models for validation
@@ -108,6 +122,7 @@ src/database/
 ### For Developers
 
 **If you have code importing the old paths:**
+
 ```python
 # Old (no longer works)
 from ayne.data_collection.tmdb_client import TMDBClient
@@ -122,13 +137,17 @@ from ayne.data_collection import TMDBClient, OMDBClient
 ```
 
 ### For Scripts
+
 All scripts have been updated:
+
 - ✅ `scripts/collect_tmdb_data.py`
 - ✅ `scripts/collect_omdb_data.py`
 - ✅ `scripts/collect_all_data.py`
 
 ### For Notebooks
+
 If you have notebooks using `src.data_manipulation`, update to:
+
 ```python
 # Old
 from ayne.data_manipulation.io import save_dataframe, load_dataframe
@@ -147,6 +166,7 @@ df.to_parquet("data/processed/output.parquet")
 ## Testing
 
 All tests pass ✅:
+
 ```powershell
 # Database tests
 uv run python scripts/test_database.py
@@ -164,21 +184,25 @@ uv run python scripts/collect_omdb_data.py --limit 5
 ### When to Add More Files
 
 **Add `models.py`** when:
+
 - You need Pydantic models for validation
 - Type hints become complex
 - Multiple services share data structures
 
 **Add `normalizers.py`** when:
+
 - Normalization logic gets complex (>50 lines)
 - Multiple response formats need handling
 - Logic is reused across methods
 
 **Add `queries.py` to database/** when:
+
 - You have complex reusable SQL queries
 - Multiple scripts use the same queries
 - Query logic becomes hard to maintain inline
 
 **Add `migrations/` to database/** when:
+
 - Schema needs versioning
 - Multiple developers change schema
 - Need to track schema history

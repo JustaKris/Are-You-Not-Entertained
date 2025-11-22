@@ -6,17 +6,17 @@
 # =============================================================================
 
 # Application Settings
-app_name: "Are You Not Entertained - Staging"
-environment: "staging"
+app_name: Are You Not Entertained - Staging
+environment: staging
 debug: true
 
 # Logging
-log_level: "INFO"
+log_level: INFO
 use_json_logging: true
 
 # API Configuration
-tmdb_api_base_url: "https://api.themoviedb.org/3"
-omdb_api_base_url: "http://www.omdbapi.com"
+tmdb_api_base_url: https://api.themoviedb.org/3
+omdb_api_base_url: http://www.omdbapi.com
 api_rate_limit: 40
 api_timeout: 30
 
@@ -25,9 +25,9 @@ batch_size: 100
 random_seed: 42
 
 # FastAPI Server
-host: "0.0.0.0"
+host: 0.0.0.0
 port: 8000
 reload: false
 cors_origins:
-  - "https://staging.yourapp.com"
-  - "https://*.azurewebsites.net"
+- https://staging.yourapp.com
+- https://*.azurewebsites.net

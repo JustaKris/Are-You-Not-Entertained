@@ -24,10 +24,12 @@ OMDB uses a single, simple endpoint for all queries:
 **Method**: GET
 
 **Required Parameters**:
+
 - `apikey`: Your OMDB API key
 - `i`: IMDb ID (e.g., "tt0111161" for The Shawshank Redemption)
 
 **Optional Parameters**:
+
 - `plot`: "short" (default) or "full"
 - `type`: "movie", "series", or "episode"
 
@@ -42,6 +44,7 @@ OMDB uses a single, simple endpoint for all queries:
 The OMDB API provides rich data that complements TMDB:
 
 **Ratings & Scores**:
+
 - `imdbRating`: IMDb user rating (0-10)
 - `imdbVotes`: Number of IMDb votes (e.g., "2,500,000")
 - `Metascore`: Metacritic score (0-100)
@@ -51,10 +54,12 @@ The OMDB API provides rich data that complements TMDB:
   - Metacritic
 
 **Awards & Recognition**:
+
 - `Awards`: Text description (e.g., "Won 2 Oscars. 12 wins & 15 nominations")
 - Useful for analyzing critical acclaim vs. commercial success
 
 **Additional Metadata**:
+
 - `Rated`: MPAA rating (G, PG, PG-13, R, etc.)
 - `Runtime`: Length in minutes
 - `Genre`: Comma-separated genres
@@ -127,6 +132,7 @@ movies = await client.get_batch_movies(
 ### Why Conservative Limits?
 
 OMDB has stricter rate limits than TMDB:
+
 - **Free tier**: 1,000 requests/day
 - **Paid tier**: Higher limits available
 
@@ -141,6 +147,7 @@ client = OMDBClient(
 ```
 
 This translates to:
+
 - ~7,200 requests/hour (theoretical max)
 - ~172,800 requests/day (theoretical max)
 - In practice, much lower due to concurrent limits
@@ -148,6 +155,7 @@ This translates to:
 ### Token Bucket Implementation
 
 Uses shared `AsyncRateLimiter`:
+
 - Tokens replenish at `requests_per_second` rate
 - Semaphore limits concurrent requests
 - Async context manager ensures proper resource handling
@@ -381,6 +389,7 @@ await client.get_batch_movies(imdb_ids)
 ### OMDB Data Not Updating
 
 **Check**:
+
 1. Is the movie in `tmdb_movies` with valid `imdb_id`?
 2. Does the movie pass refresh interval check?
 3. Are OMDB API credentials configured?
@@ -402,6 +411,7 @@ client = OMDBClient(requests_per_second=0.5)  # Slower
 ### Missing Ratings
 
 Some movies may not have all rating sources:
+
 - IMDb rating usually present
 - Rotten Tomatoes may be missing
 - Metacritic may be missing

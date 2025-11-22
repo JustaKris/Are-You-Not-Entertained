@@ -1,11 +1,13 @@
 # Data Structure Modernization Summary
 
 ## Overview
+
 Successfully modernized the data directory structure and notebook integration following Python best practices for data science projects.
 
 ## Changes Made
 
 ### 1. New Directory Structure
+
 ```
 data/
 ├── db/                      # NEW: Database files
@@ -20,6 +22,7 @@ data/
 ```
 
 **Removed**:
+
 - ❌ `data/intermediate/` directory (replaced by `db/`)
 - ❌ `data/raw/0_base_data.csv` (now in DuckDB)
 - ❌ `data/raw/tmdb/archive/` (old files)
@@ -28,6 +31,7 @@ data/
 ### 2. Configuration Updates
 
 **`src/core/config/settings.py`**:
+
 - ✅ Added `data_db_dir` for database files
 - ✅ Added `data_artifacts_dir` for model outputs
 - ✅ Removed `data_intermediate_dir` (deprecated)
@@ -40,20 +44,24 @@ data/
 Modern utilities for working with DuckDB in notebooks:
 
 **Loading Data**:
+
 - `load_full_dataset()` - Load all movies with joined tables
 - `get_movies_with_financials()` - Filter movies with budget/revenue
 - `get_movies_by_year_range()` - Get movies from specific years
 - `execute_custom_query()` - Run custom SQL queries
 
 **Saving Data**:
+
 - `save_processed_data()` - Save to `data/processed/`
 - `save_artifacts()` - Save to `data/artifacts/`
 
 **Database**:
+
 - `get_db_client()` - Get DuckDB connection
 - `get_table_info()` - View table schema
 
 All functions:
+
 - ✅ Return pandas DataFrames
 - ✅ Handle connection management automatically
 - ✅ Use read-only mode by default for safety
@@ -65,6 +73,7 @@ All functions:
 **`notebooks/01_movies_data_full_imputation.ipynb`**:
 
 **Updated Cells**:
+
 1. **New header** - Documents modern architecture
 2. **New info cell** - Lists available query functions
 3. **Import cell** - Now imports `query_utils` functions
@@ -72,6 +81,7 @@ All functions:
 5. **Save operations** - Uses `save_processed_data()` and `save_artifacts()`
 
 **Benefits**:
+
 - ✅ No more manual CSV file management
 - ✅ Automatic joins of all relevant tables
 - ✅ Type-safe data loading
@@ -82,6 +92,7 @@ All functions:
 
 **`DATA_GUIDE.md`** (NEW FILE):
 Comprehensive guide covering:
+
 - Directory structure and purposes
 - Database schema documentation
 - File format recommendations
@@ -94,6 +105,7 @@ Comprehensive guide covering:
 
 **`scripts/test_query_utils.py`** (NEW FILE):
 Comprehensive test script validating:
+
 - ✅ Loading full dataset (606 movies, 43 columns)
 - ✅ Filtering movies with financials (140 movies with budget >= $1M)
 - ✅ Getting table schema information
@@ -105,35 +117,41 @@ Comprehensive test script validating:
 ### Tables Available
 
 **`movies`** - Core movie information:
+
 - `movie_id`, `tmdb_id`, `imdb_id`
 - `title`, `release_date`
 - Refresh timestamps and flags
 
 **`tmdb_movies`** - TMDB data:
+
 - Movie details, overview, runtime, status
 - Budget, revenue (use these, not from movies table)
 - Vote statistics, popularity
 - Genres, production companies, countries, languages
 
 **`omdb_movies`** - OMDB data:
+
 - Cast and crew (director, writer, actors)
 - Ratings (IMDB, Rotten Tomatoes, Metacritic)
 - Awards and nominations
 - Box office data
 
 **`numbers_movies`** - The Numbers financial data:
+
 - Production budget
 - Domestic/international/worldwide gross
 
 ## Best Practices Implemented
 
 ### Data Organization
+
 - ✅ Separate database files from data files (`db/` vs `raw/`)
 - ✅ Clear separation of raw, processed, and artifact data
 - ✅ Immutable raw data (never modify)
 - ✅ Use Parquet for processed data (faster, smaller, preserves types)
 
 ### Code Quality
+
 - ✅ Type hints for all functions
 - ✅ Comprehensive docstrings with examples
 - ✅ Logging for debugging
@@ -141,6 +159,7 @@ Comprehensive test script validating:
 - ✅ Read-only database access by default
 
 ### Notebook Usage
+
 - ✅ Import utilities instead of duplicating code
 - ✅ Use functions for common operations
 - ✅ Document data source and structure
@@ -195,14 +214,17 @@ df = execute_custom_query(query)
 ## Performance Improvements
 
 ### Data Loading
+
 - **Old**: Load CSV → ~5-10 seconds for 600 movies
 - **New**: Query DuckDB → ~0.5-1 seconds
 
 ### File Sizes
+
 - **CSV**: `movies.csv` = ~500KB
 - **Parquet**: `movies.parquet` = ~150KB (70% smaller)
 
 ### Query Speed
+
 - DuckDB columnar storage optimized for analytics
 - Automatic indexing on primary keys
 - Efficient joins across multiple tables
@@ -212,12 +234,14 @@ df = execute_custom_query(query)
 ### What to Update in Existing Notebooks
 
 **Old approach**:
+
 ```python
 # DON'T DO THIS ANYMORE
 data = pd.read_csv("./data/raw/0_base_data.csv")
 ```
 
 **New approach**:
+
 ```python
 # DO THIS INSTEAD
 from ayne.data.query_utils import load_full_dataset
@@ -225,12 +249,14 @@ data = load_full_dataset()
 ```
 
 **Old saving**:
+
 ```python
 # OLD
 df.to_csv("data/processed/movies_clean.csv", index=False)
 ```
 
 **New saving**:
+
 ```python
 # NEW
 from ayne.data.query_utils import save_processed_data
@@ -249,6 +275,7 @@ save_processed_data(df, "movies_clean", format="parquet")
 ## Troubleshooting
 
 ### Database Not Found
+
 ```python
 from ayne.core.config import settings
 print(settings.duckdb_path)
@@ -256,6 +283,7 @@ print(settings.duckdb_path)
 ```
 
 ### Test Connection
+
 ```python
 from ayne.data.query_utils import get_db_client
 
@@ -266,6 +294,7 @@ db.close()
 ```
 
 ### Check Table Schema
+
 ```python
 from ayne.data.query_utils import get_table_info
 
@@ -292,6 +321,7 @@ print(info)
 ## Validation
 
 All changes have been tested and validated:
+
 - ✅ Database connection working
 - ✅ All query functions operational
 - ✅ Data loading successful (606 movies)

@@ -15,20 +15,24 @@ DuckDB-based analytical database for movie data storage and querying.
 ### Tables
 
 #### `movies` (fact table)
+
 - Primary movie information
 - Foreign keys to dimension tables
 - Timestamps for data refresh tracking
 
 #### `tmdb_movies` (dimension)
+
 - TMDB-specific movie data
 - Genres, production companies
 - Budget and revenue
 
 #### `omdb_movies` (dimension)
+
 - OMDB ratings and awards
 - Cast and crew information
 
 #### `the_numbers_movies` (dimension)
+
 - Box office performance data
 - Production budgets
 - Domestic/international revenue

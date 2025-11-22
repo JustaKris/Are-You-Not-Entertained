@@ -47,18 +47,21 @@ Movies are refreshed based on their age and last update timestamp:
 #### 2. Async API Clients with Rate Limiting
 
 **TMDB Client** (`AsyncTMDBClient`):
+
 - Rate: 4 requests/second
 - Max concurrent: 10 requests
 - Exponential backoff retry
 - Semaphore-based concurrency control
 
 **OMDB Client** (`AsyncOMDBClient`):
+
 - Rate: 2 requests/second
 - Max concurrent: 5 requests
 - Retry logic for failed requests
 - Handles authentication errors
 
 **Benefits**:
+
 - 5-10x faster than sync clients
 - Automatic rate limiting prevents API blocks
 - Graceful error handling
@@ -66,6 +69,7 @@ Movies are refreshed based on their age and last update timestamp:
 #### 3. Data Freezing
 
 Movies are automatically frozen when:
+
 - Age > 365 days
 - No data changes for 3 refresh cycles
 
@@ -74,6 +78,7 @@ Frozen movies skip automatic refreshes (manual override available).
 #### 4. Orchestrated Collection
 
 The `DataCollectionOrchestrator` coordinates:
+
 - Movie discovery from TMDB
 - Intelligent refresh decisions
 - Concurrent API calls
@@ -118,12 +123,14 @@ uv run python scripts/collect_optimized.py \
 ### Performance
 
 **Old System (Sync)**:
+
 - 50 movies: ~30-40 seconds
 - Sequential API calls
 - No rate limiting
 - No intelligent refresh
 
 **New System (Async)**:
+
 - 50 movies: ~5-10 seconds
 - Concurrent API calls (up to 10 TMDB + 5 OMDB)
 - Built-in rate limiting
@@ -166,6 +173,7 @@ ORDER BY
 #### Refresh Plan Calculation
 
 For each movie:
+
 1. Calculate age (days since release)
 2. Get last update timestamps
 3. Determine refresh intervals based on age
@@ -193,6 +201,7 @@ print(stats)
 ```
 
 Output includes:
+
 - Total movies
 - Movies with TMDB/OMDB data
 - Fully refreshed movies
@@ -297,6 +306,7 @@ omdb = AsyncOMDBClient(
 **New**: `scripts/collect_optimized.py`
 
 **Changes**:
+
 1. Single script replaces three separate scripts
 2. Async/await replaces sync calls
 3. Intelligent refresh replaces "fetch all"
@@ -304,6 +314,7 @@ omdb = AsyncOMDBClient(
 5. Better error handling and logging
 
 **Backward Compatibility**:
+
 - Old scripts still work
 - Database schema unchanged
 - Can run old and new side-by-side
@@ -315,6 +326,7 @@ omdb = AsyncOMDBClient(
 #### No Movies Being Updated
 
 Check refresh intervals:
+
 ```python
 from ayne.database.duckdb_client import DuckDBClient
 db = DuckDBClient()
@@ -333,6 +345,7 @@ db.close()
 #### Rate Limit Errors
 
 Reduce rate or concurrency:
+
 ```bash
 # Edit client initialization in script or orchestrator
 requests_per_second=2.0
@@ -342,6 +355,7 @@ max_concurrent=5
 #### Movies Not Freezing
 
 Check age and update history:
+
 ```sql
 SELECT title, release_date,
        DATEDIFF('day', release_date, CURRENT_DATE) as age_days,
@@ -404,6 +418,7 @@ uv run python scripts/collect_optimized.py \
 | Full Refresh | 100 | 90s | 18s | 5x |
 
 **API Calls**:
+
 - TMDB: 4 req/s sustained (max: 40 req/s burst)
 - OMDB: 2 req/s sustained (based on tier)
 

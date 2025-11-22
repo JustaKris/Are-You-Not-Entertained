@@ -6,23 +6,23 @@
 # =============================================================================
 
 # Application Settings
-app_name: "Are You Not Entertained"
-environment: "development"
+app_name: Are You Not Entertained
+environment: development
 debug: true
 
 # Logging
-log_level: "INFO"
+log_level: INFO
 use_json_logging: false
 
 # Database Configuration
 database:
-  type: "duckdb"
-  path: "data/db/movies.duckdb"
+  type: duckdb
+  path: data/db/movies.duckdb
   read_only: false
 
 # API Configuration
-tmdb_api_base_url: "https://api.themoviedb.org/3"
-omdb_api_base_url: "http://www.omdbapi.com"
+tmdb_api_base_url: https://api.themoviedb.org/3
+omdb_api_base_url: http://www.omdbapi.com
 api_rate_limit: 40
 api_timeout: 30
 
@@ -31,11 +31,11 @@ batch_size: 100
 random_seed: 42
 
 # FastAPI Server
-host: "127.0.0.1"
+host: 127.0.0.1
 port: 8000
 reload: true
 cors_origins:
-  - "http://localhost:3000"
-  - "http://localhost:8000"
-  - "http://127.0.0.1:3000"
-  - "http://127.0.0.1:8000"
+- http://localhost:3000
+- http://localhost:8000
+- http://127.0.0.1:3000
+- http://127.0.0.1:8000

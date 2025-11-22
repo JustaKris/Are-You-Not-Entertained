@@ -25,6 +25,7 @@
 | ML pipeline fit | 🟢 Perfect | 🟡 Overkill | 🟡 Limited | DuckDB |
 
 **Your Use Case**:
+
 - Analytical queries on movie data (aggregations, trends)
 - Read-heavy workload (train models, generate reports)
 - Local development (no server management)
@@ -34,6 +35,7 @@
 **Conclusion**: DuckDB is purpose-built for your exact use case.
 
 **When to reconsider**:
+
 - You need multi-user concurrent writes → PostgreSQL
 - You need simple key-value storage → SQLite
 - You're deploying a web app with transactions → PostgreSQL
@@ -56,6 +58,7 @@
 | Pandas/Polars support | 🟢 Native | 🟢 Native | 🟢 Native | All |
 
 **Storage Strategy**:
+
 ```
 Raw API responses → JSON (archival, debugging)
 Intermediate data → Parquet (efficient processing)
@@ -64,6 +67,7 @@ Reports/exports → CSV (human-readable)
 ```
 
 **Performance Impact**:
+
 ```
 100,000 rows of movie data:
 - CSV: ~50 MB, 2 sec read
@@ -80,18 +84,21 @@ Reports/exports → CSV (human-readable)
 **Rationale**:
 
 **Pandas Strengths**:
+
 - Industry standard (everyone knows it)
 - Massive ecosystem (scikit-learn, matplotlib, etc.)
 - Excellent documentation
 - Your existing code uses it
 
 **Polars Strengths**:
+
 - 5-10x faster for large datasets
 - Better memory efficiency
 - Modern API (query optimizer)
 - Multi-threaded by default
 
 **Strategy**:
+
 ```python
 # Use Pandas for:
 - Exploratory data analysis (notebooks)
@@ -107,12 +114,14 @@ Reports/exports → CSV (human-readable)
 ```
 
 **Migration Path**:
+
 1. Start with Pandas everywhere (simplicity)
 2. Profile performance bottlenecks
 3. Replace slow operations with Polars
 4. Keep both installed (complementary, not exclusive)
 
 **Example**:
+
 ```python
 import pandas as pd
 import polars as pl
@@ -150,6 +159,7 @@ model.fit(df_pandas[features], df_pandas[target])
 | Drop-in replacement | 🟢 Yes | N/A | HTTPX |
 
 **Why it matters**:
+
 ```python
 # With requests (synchronous, blocking)
 for movie_id in movie_ids:  # 1000 movies
@@ -164,6 +174,7 @@ async with httpx.AsyncClient() as client:
 ```
 
 **When to use sync vs async**:
+
 ```python
 # Sync (simple scripts, notebooks)
 client = httpx.Client()
@@ -211,6 +222,7 @@ with open("pipeline.pkl", "wb") as f:
 ```
 
 **Performance**:
+
 ```
 RandomForest model (100 estimators):
 - pickle: 45 MB, 2.3s save
@@ -227,18 +239,21 @@ RandomForest model (100 estimators):
 **Rationale**:
 
 **Why NOT ORM for this project**:
+
 - ❌ DuckDB doesn't need ORM overhead
 - ❌ Analytical queries don't map well to ORM
 - ❌ No complex relationships to manage
 - ❌ Performance penalty for aggregations
 
 **Why Raw SQL**:
+
 - ✅ Direct, explicit control
 - ✅ Easy to optimize
 - ✅ Better for analytical queries
 - ✅ No impedance mismatch
 
 **Pattern**:
+
 ```python
 # ✅ GOOD: Parameterized raw SQL
 db.query("""
@@ -260,6 +275,7 @@ query = Query.from_(movies).select("*").where(movies.release_date > "2020-01-01"
 ```
 
 **When to reconsider**:
+
 - Moving to PostgreSQL with multi-user writes → SQLAlchemy
 - Building a REST API with CRUD operations → SQLAlchemy
 - Need automatic schema migrations → Alembic + SQLAlchemy
@@ -273,6 +289,7 @@ query = Query.from_(movies).select("*").where(movies.release_date > "2020-01-01"
 **Rationale**:
 
 **Why this stack**:
+
 ```
 ┌─────────────────────────────────────────┐
 │ Environment Variables (highest priority)│
@@ -286,6 +303,7 @@ query = Query.from_(movies).select("*").where(movies.release_date > "2020-01-01"
 ```
 
 **Benefits**:
+
 1. **Type Safety**: Pydantic validates all config at startup
 2. **Environment Separation**: Different YAML for dev/staging/prod
 3. **Secret Management**: Sensitive data in .env only
@@ -293,6 +311,7 @@ query = Query.from_(movies).select("*").where(movies.release_date > "2020-01-01"
 5. **Validation**: Catches config errors early
 
 **Example**:
+
 ```python
 from ayne.core.config import settings
 
@@ -306,6 +325,7 @@ if settings.environment == "production":
 ```
 
 **Alternatives considered**:
+
 - ❌ Configparser: Too basic, no validation
 - ❌ Python files: Security risk, no separation
 - ❌ JSON: No comments, harder to maintain
@@ -320,6 +340,7 @@ if settings.environment == "production":
 **Rationale**:
 
 **Development**:
+
 ```python
 configure_logging(level="DEBUG", use_json=False)
 # Output: Colorized, human-readable console logs
@@ -327,6 +348,7 @@ configure_logging(level="DEBUG", use_json=False)
 ```
 
 **Production**:
+
 ```python
 configure_logging(level="INFO", use_json=True)
 # Output: JSON logs for parsing by log aggregators
@@ -334,12 +356,14 @@ configure_logging(level="INFO", use_json=True)
 ```
 
 **Why JSON in production**:
+
 - ✅ Parseable by CloudWatch, Datadog, Loki
 - ✅ Structured querying ("show all ERROR logs for user X")
 - ✅ Easy to add context fields (request_id, user_id)
 - ✅ No log parsing regex hell
 
 **Pattern**:
+
 ```python
 logger = get_logger(__name__)
 
@@ -371,6 +395,7 @@ logger.info("Movie processed", extra={
 | **uv** | Blazing | Excellent | Yes | 🟢 Best |
 
 **UV advantages**:
+
 - 10-100x faster than pip
 - Better dependency resolution
 - Compatible with pip, poetry, requirements.txt
@@ -378,6 +403,7 @@ logger.info("Movie processed", extra={
 - Single pyproject.toml for everything
 
 **Commands**:
+
 ```bash
 # Install dependencies
 uv sync
@@ -400,6 +426,7 @@ uv venv
 ## 🎓 Modern Python Best Practices Applied
 
 ### Type Hints Everywhere
+
 ```python
 # ❌ BAD
 def process_movies(movies):
@@ -411,6 +438,7 @@ def process_movies(movies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 ```
 
 ### Use Pathlib
+
 ```python
 # ❌ BAD
 import os
@@ -422,6 +450,7 @@ path = Path("data") / "movies.csv"
 ```
 
 ### Context Managers
+
 ```python
 # ❌ BAD
 db = DuckDBClient()
@@ -436,6 +465,7 @@ with DuckDBClient() as db:
 ```
 
 ### F-strings
+
 ```python
 # ❌ BAD
 message = "Processing movie %s (ID: %d)" % (title, movie_id)
@@ -445,6 +475,7 @@ message = f"Processing movie {title} (ID: {movie_id})"
 ```
 
 ### Dataclasses/Pydantic
+
 ```python
 # ❌ BAD
 movie = {
@@ -503,26 +534,31 @@ Sync vs Async (fetching 100 movies):
 ## 🚀 Future Considerations
 
 ### When to Add FastAPI
+
 **Current**: Scripts and notebooks  
 **Add when**: Need REST API for predictions  
 **Trigger**: Building web application
 
 ### When to Add Celery/RQ
+
 **Current**: Synchronous scripts  
 **Add when**: Need background job processing  
 **Trigger**: Long-running API collection tasks
 
 ### When to Add Redis
+
 **Current**: No caching  
 **Add when**: Repeated API calls to same endpoints  
 **Trigger**: API rate limits causing issues
 
 ### When to Add Docker
+
 **Current**: Local development  
 **Add when**: Deploying to production  
 **Trigger**: Moving to cloud (AWS/Azure)
 
 ### When to Add Great Expectations
+
 **Current**: Manual data validation  
 **Add when**: Data quality issues increase  
 **Trigger**: Bad data causing model failures

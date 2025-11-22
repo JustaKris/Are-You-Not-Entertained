@@ -2,6 +2,7 @@
 mlruns/
 logs/
 .ruff_cache/
+.secrets.baseline
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

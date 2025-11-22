@@ -3,11 +3,13 @@
 ## Setup (5 minutes)
 
 ### 1. Create Your `.env` File
+
 ```bash
 cp .env.example .env
 ```
 
 Edit `.env` and add your actual API keys:
+
 ```bash
 ENVIRONMENT=development
 TMDB_API_KEY=your_actual_key_here
@@ -16,6 +18,7 @@ DB_URL=postgresql://localhost:5432/movies
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 pip install pydantic pydantic-settings pyyaml
 # Or just:
@@ -23,6 +26,7 @@ pip install -e .
 ```
 
 ### 3. Use in Your Code
+
 ```python
 from ayne.core.config import settings
 
@@ -57,6 +61,7 @@ src/core/config/
 ## Examples
 
 ### Get API Keys
+
 ```python
 from ayne.core.config import settings
 
@@ -65,12 +70,14 @@ omdb_key = settings.omdb_api_key
 ```
 
 ### Check Environment
+
 ```python
 if settings.is_production():
     print("Running in production")
 ```
 
 ### Get Database URL
+
 ```python
 db_url = settings.db_url
 session = init_db_session(db_url)
@@ -83,7 +90,7 @@ session = init_db_session(db_url)
 - **All settings**: `src/core/config/settings.py`
 - **Example values**: `.env.example`
 
-## Important!
+## Important
 
 ⚠️ **Never commit `.env` to git!** It contains your secrets.  
 ✅ **Do commit `.env.example`** - It's the template for others.

@@ -521,6 +521,7 @@ include_frozen=False  # Default behavior
 ### Problem: No OMDB Data
 
 **Diagnosis**:
+
 ```sql
 -- Check for missing IMDb IDs
 SELECT COUNT(*) FROM movies m
@@ -533,6 +534,7 @@ WHERE t.imdb_id IS NULL;
 ### Problem: Rate Limit Errors
 
 **Solution**: Reduce rate
+
 ```python
 client = TMDBClient(requests_per_second=2.0)  # Slower
 ```
@@ -540,6 +542,7 @@ client = TMDBClient(requests_per_second=2.0)  # Slower
 ### Problem: Stale Data
 
 **Check**:
+
 ```sql
 SELECT COUNT(*) FROM movies
 WHERE last_tmdb_update < CURRENT_DATE - INTERVAL '30 days';

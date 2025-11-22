@@ -103,6 +103,7 @@ All workflows use `astral-sh/setup-uv@v5` with caching enabled for faster runs:
 ### Parallelization
 
 Test workflow includes three jobs that run in parallel:
+
 - Main test suite with coverage
 - Unit tests only (manual trigger on PRs)
 - Integration tests only (manual trigger on PRs)
@@ -161,6 +162,7 @@ uv run pip-audit
 ## Files Modified Summary
 
 ### Created
+
 - `.github/workflows/lint.yml`
 - `.github/workflows/test.yml`
 - `.github/workflows/type-check.yml`
@@ -168,6 +170,7 @@ uv run pip-audit
 - `.github/workflows/markdown-lint.yml`
 
 ### Modified
+
 - `src/data_collection/tmdb/client.py` (added asyncio import)
 - `docs/development/linting.md`
 - `docs/development/testing.md`
@@ -177,22 +180,26 @@ uv run pip-audit
 - `docs/development/logging.md`
 
 ### Removed
+
 - `.gitlab/` (entire directory)
 - `.github/workflows/docs.yml` (no mkdocs.yml exists yet)
 
 ## Troubleshooting
 
-### If workflows don't run:
+### If workflows don't run
+
 - Check that GitHub Actions is enabled in repository settings
 - Verify the workflow files are in `.github/workflows/`
 - Check workflow logs in the Actions tab
 
-### If tests fail:
+### If tests fail
+
 - Ensure all dependencies are in `pyproject.toml`
 - Check that database files are initialized
 - Verify environment variables are set
 
-### If coverage fails:
+### If coverage fails
+
 - Ensure pytest-cov is installed
 - Check that test paths are correct
 - Verify coverage configuration in `pyproject.toml`
