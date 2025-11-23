@@ -58,9 +58,10 @@ def update_omdb(
             query = """
                 SELECT m.title, m.release_date, m.imdb_id
                 FROM movies m
+                LEFT JOIN tmdb_movies t ON m.tmdb_id = t.tmdb_id
                 WHERE m.imdb_id IS NOT NULL
                   AND m.last_omdb_update IS NULL
-                ORDER BY m.tmdb_popularity DESC NULLS LAST
+                ORDER BY t.popularity DESC NULLS LAST
                 LIMIT ?
             """
             candidates = db.query(query, params=(max_movies,))
@@ -94,9 +95,10 @@ def update_omdb(
                 query = """
                     SELECT m.*
                     FROM movies m
+                    LEFT JOIN tmdb_movies t ON m.tmdb_id = t.tmdb_id
                     WHERE m.imdb_id IS NOT NULL
                       AND m.last_omdb_update IS NULL
-                    ORDER BY m.tmdb_popularity DESC NULLS LAST
+                    ORDER BY t.popularity DESC NULLS LAST
                     LIMIT ?
                 """
                 movies_to_enrich = db.query(query, params=(max_movies,))
@@ -121,8 +123,10 @@ def update_omdb(
             if omdb_updated > 0:
                 sample = db.query(
                     """
-                    SELECT title, imdb_rating, metascore, box_office
-                    FROM omdb_movies
+                    SELECT m.title, o.imdb_rating, o.metascore, o.box_office
+                    FROM omdb_movies o
+                    JOIN movies m ON o.imdb_id = m.imdb_id
+                    ORDER BY m.last_omdb_update DESC
                     LIMIT 5
                     """
                 )

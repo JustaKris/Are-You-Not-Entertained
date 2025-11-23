@@ -117,9 +117,10 @@ def update_tmdb(
             if discovered > 0:
                 sample = db.query(
                     """
-                    SELECT title, release_date, tmdb_popularity, tmdb_vote_count
-                    FROM movies
-                    ORDER BY last_tmdb_update DESC
+                    SELECT m.title, m.release_date, t.popularity as tmdb_popularity, t.vote_count as tmdb_vote_count
+                    FROM movies m
+                    LEFT JOIN tmdb_movies t ON m.tmdb_id = t.tmdb_id
+                    ORDER BY m.last_tmdb_update DESC
                     LIMIT 5
                     """
                 )
