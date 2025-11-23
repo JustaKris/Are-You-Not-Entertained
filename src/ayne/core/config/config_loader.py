@@ -46,7 +46,8 @@ def get_config_path(environment: str, configs_dir: Optional[Path] = None) -> Pat
     """
     if configs_dir is None:
         # Default to project root / configs
-        project_root = Path(__file__).resolve().parents[3]
+        # From src/ayne/core/config/config_loader.py, go up 4 levels to reach project root
+        project_root = Path(__file__).resolve().parents[4]
         configs_dir = project_root / "configs"
 
     config_file = configs_dir / f"{environment}.yaml"
@@ -58,9 +59,11 @@ def get_settings(environment: Optional[str] = None) -> Settings:
     """Load and return the application settings.
 
     This function:
-    1. Loads environment variables and .env file
-    2. Loads environment-specific YAML config
-    3. Merges them with priority: ENV vars > .env > YAML
+    1. Loads environment-specific YAML config (lowest priority - as defaults)
+    2. Loads environment variables (medium priority)
+    3. Loads .env file (highest priority)
+
+    Priority: ENV vars > .env > YAML > hardcoded defaults
 
     Args:
         environment: Optional environment override (development, staging, production)
@@ -73,23 +76,29 @@ def get_settings(environment: Optional[str] = None) -> Settings:
         >>> settings = get_settings()
         >>> api_key = settings.tmdb_api_key
     """
-    # First, create base settings from .env and environment variables
+    # First, create settings from .env and env vars (this respects priority)
     settings = Settings()
 
-    # Override environment if specified
-    if environment:
-        # Type ignore needed because we're dynamically setting the environment
-        settings.environment = environment  # type: ignore[assignment]
-
-    # Try to load environment-specific YAML config
+    # Now load YAML config for this environment
     try:
         config_path = get_config_path(settings.environment)
         if config_path.exists():
             yaml_config = load_yaml_config(config_path)
 
-            # Update settings with YAML config (env vars still have priority)
-            # We recreate the settings object with YAML values as defaults
-            settings = Settings(**yaml_config)
+            # For each field in YAML, only set it if it's still at its default value
+            # This way .env and env vars take priority
+            for field_name, yaml_value in yaml_config.items():
+                if hasattr(settings, field_name):
+                    # Get the current value
+                    current_value = getattr(settings, field_name)
+                    # Get the field's default value
+                    field_info = settings.model_fields.get(field_name)
+                    if field_info:
+                        # Check if current value is the default
+                        # If it is, use YAML value; if not, .env/env var has set it
+                        default_value = field_info.default
+                        if current_value == default_value:
+                            setattr(settings, field_name, yaml_value)
     except Exception as e:
         # If YAML loading fails, continue with just .env settings
         import warnings

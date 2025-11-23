@@ -56,28 +56,43 @@ class DataCollectionOrchestrator:
 
     async def discover_and_store_movies(
         self,
-        start_year: int,
-        end_year: Optional[int] = None,
-        min_vote_count: int = 200,
+        max_movies: Optional[int] = None,
+        min_popularity: Optional[float] = None,
+        min_vote_count: Optional[int] = None,
+        min_release_year: Optional[int] = None,
+        allowed_statuses: Optional[list[str]] = None,
         max_pages: Optional[int] = None,
     ) -> int:
         """Discover new movies from TMDB and store in database.
 
         Args:
-            start_year: Starting year
-            end_year: Ending year (defaults to start_year)
-            min_vote_count: Minimum vote count filter
-            max_pages: Maximum pages to fetch per year
+            max_movies: Maximum number of movies to fetch (None = unlimited)
+            min_popularity: Minimum popularity score (defaults to settings)
+            min_vote_count: Minimum vote count filter (defaults to settings)
+            min_release_year: Minimum release year (defaults to settings)
+            allowed_statuses: Allowed release statuses (defaults to settings)
+            max_pages: Maximum pages to fetch (overrides max_movies)
 
         Returns:
             Number of movies discovered
         """
-        logger.info(f"Discovering movies from TMDB ({start_year}-{end_year or start_year})...")
+        from ayne.core.config import settings
+
+        # Use settings defaults if not provided
+        min_popularity = min_popularity or settings.tmdb_min_popularity
+        min_vote_count = min_vote_count or settings.tmdb_min_vote_count
+        min_release_year = min_release_year or settings.tmdb_min_release_year
+        allowed_statuses = allowed_statuses or settings.tmdb_allowed_release_statuses
+        max_movies = max_movies or settings.tmdb_max_movies
+
+        logger.info("Discovering movies from TMDB with filters...")
 
         movies = await self.tmdb_client.discover_movies(
-            start_year=start_year,
-            end_year=end_year,
+            max_movies=max_movies,
+            min_popularity=min_popularity,
             min_vote_count=min_vote_count,
+            min_release_year=min_release_year,
+            allowed_statuses=allowed_statuses,
             max_pages=max_pages,
         )
 
@@ -115,6 +130,8 @@ class DataCollectionOrchestrator:
         fetch_tmdb: bool = True,
         fetch_omdb: bool = True,
         batch_size: int = 50,
+        omdb_max_movies: Optional[int] = None,
+        allowed_statuses: Optional[list[str]] = None,
     ) -> Tuple[int, int, int]:
         """Refresh data for multiple movies based on their refresh needs.
 
@@ -123,10 +140,14 @@ class DataCollectionOrchestrator:
             fetch_tmdb: Whether to fetch TMDB data
             fetch_omdb: Whether to fetch OMDB data
             batch_size: Batch size for database updates
+            omdb_max_movies: Maximum movies to fetch from OMDB (respects API limits)
+            allowed_statuses: Allowed release statuses for TMDB filtering
 
         Returns:
             Tuple of (tmdb_updated, omdb_updated, movies_frozen)
         """
+        from ayne.core.config import settings
+
         if movies_df.empty:
             logger.info("No movies to refresh")
             return 0, 0, 0
@@ -137,6 +158,10 @@ class DataCollectionOrchestrator:
         tmdb_updated = 0
         omdb_updated = 0
         movies_frozen = 0
+
+        # Use settings default if not provided
+        allowed_statuses = allowed_statuses or settings.tmdb_allowed_release_statuses
+        omdb_max_movies = omdb_max_movies or settings.omdb_max_movies
 
         # Calculate refresh plans for all movies
         movies_df["refresh_plan"] = movies_df.apply(
@@ -162,7 +187,9 @@ class DataCollectionOrchestrator:
             tmdb_ids = needs_tmdb["tmdb_id"].dropna().astype(int).tolist()
 
             if tmdb_ids:
-                tmdb_data = await self.tmdb_client.get_batch_movie_details(tmdb_ids)
+                tmdb_data = await self.tmdb_client.get_batch_movie_details(
+                    tmdb_ids, allowed_statuses=allowed_statuses
+                )
 
                 if tmdb_data:
                     df_tmdb = pd.DataFrame(tmdb_data)
@@ -181,6 +208,14 @@ class DataCollectionOrchestrator:
 
         # Fetch OMDB data
         if not needs_omdb.empty:
+            # Limit OMDB requests based on configuration
+            omdb_batch_size = min(len(needs_omdb), omdb_max_movies)
+            if omdb_batch_size < len(needs_omdb):
+                logger.warning(
+                    f"Limiting OMDB fetch to {omdb_batch_size} movies (max: {omdb_max_movies})"
+                )
+                needs_omdb = needs_omdb.head(omdb_batch_size)
+
             logger.info(f"Fetching OMDB data for {len(needs_omdb)} movies...")
 
             # Get IMDb IDs from tmdb_movies table for these movies
@@ -267,20 +302,28 @@ class DataCollectionOrchestrator:
 
     async def run_full_collection(
         self,
-        discover_start_year: Optional[int] = None,
-        discover_end_year: Optional[int] = None,
+        discover_movies: bool = False,
+        max_discover_movies: Optional[int] = None,
         max_discover_pages: Optional[int] = None,
         refresh_limit: Optional[int] = 100,
-        discover_min_vote_count: int = 200,
+        min_popularity: Optional[float] = None,
+        min_vote_count: Optional[int] = None,
+        min_release_year: Optional[int] = None,
+        allowed_statuses: Optional[list[str]] = None,
+        omdb_max_movies: Optional[int] = None,
     ) -> Dict[str, int]:
         """Run complete collection workflow: discover + refresh.
 
         Args:
-            discover_start_year: Year to start discovery (None to skip discovery)
-            discover_end_year: Year to end discovery
-            max_discover_pages: Max pages per year for discovery
+            discover_movies: Whether to run discovery (False to skip)
+            max_discover_movies: Max movies to discover (None = unlimited)
+            max_discover_pages: Max pages for discovery
             refresh_limit: Max movies to refresh
-            discover_min_vote_count: Minimum vote count for discovery
+            min_popularity: Minimum popularity for discovery (defaults to settings)
+            min_vote_count: Minimum vote count for discovery (defaults to settings)
+            min_release_year: Minimum release year for discovery (defaults to settings)
+            allowed_statuses: Allowed release statuses (defaults to settings)
+            omdb_max_movies: Max OMDB movies to fetch (defaults to settings)
 
         Returns:
             Dict with collection statistics
@@ -288,11 +331,13 @@ class DataCollectionOrchestrator:
         stats = {"discovered": 0, "tmdb_updated": 0, "omdb_updated": 0, "frozen": 0}
 
         # Step 1: Discover new movies (if requested)
-        if discover_start_year:
+        if discover_movies:
             stats["discovered"] = await self.discover_and_store_movies(
-                start_year=discover_start_year,
-                end_year=discover_end_year,
-                min_vote_count=discover_min_vote_count,
+                max_movies=max_discover_movies,
+                min_popularity=min_popularity,
+                min_vote_count=min_vote_count,
+                min_release_year=min_release_year,
+                allowed_statuses=allowed_statuses,
                 max_pages=max_discover_pages,
             )
 
@@ -301,7 +346,11 @@ class DataCollectionOrchestrator:
 
         if not movies_to_refresh.empty:
             tmdb_updated, omdb_updated, frozen = await self.refresh_movie_data(
-                movies_to_refresh, fetch_tmdb=True, fetch_omdb=True
+                movies_to_refresh,
+                fetch_tmdb=True,
+                fetch_omdb=True,
+                omdb_max_movies=omdb_max_movies,
+                allowed_statuses=allowed_statuses,
             )
             stats["tmdb_updated"] = tmdb_updated
             stats["omdb_updated"] = omdb_updated

@@ -135,6 +135,40 @@ class Settings(BaseSettings):
     random_seed: int = Field(default=42, description="Random seed for reproducibility")
 
     # ============================================================
+    # Data Collection Settings
+    # ============================================================
+
+    # TMDB Collection Limits
+    tmdb_max_movies: Optional[int] = Field(
+        default=None,
+        description="Maximum number of movies to collect from TMDB per run (None = unlimited)",
+    )
+
+    # OMDB Collection Limits
+    omdb_max_movies: int = Field(
+        default=1000,
+        description="Maximum number of movies to collect from OMDB per run (default: 1000 due to API limits)",
+    )
+
+    # TMDB Filtering Settings
+    tmdb_min_popularity: float = Field(
+        default=10.0, description="Minimum TMDB popularity score for movie collection"
+    )
+
+    tmdb_min_vote_count: int = Field(
+        default=50, description="Minimum number of votes required for movie collection"
+    )
+
+    tmdb_min_release_year: int = Field(
+        default=1950, description="Minimum release year for movie collection"
+    )
+
+    tmdb_allowed_release_statuses: list[str] = Field(
+        default=["Released", "Post Production", "In Production"],
+        description="Allowed release statuses for movie collection",
+    )
+
+    # ============================================================
     # FastAPI Settings (for future deployment)
     # ============================================================
 

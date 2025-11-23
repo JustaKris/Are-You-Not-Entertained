@@ -69,24 +69,46 @@
 4. **Verify installation**
 
    ```bash
-   uv run python scripts/validate_notebook_setup.py
+   ayne --help
+   ayne version
    ```
 
 ## 🚀 Quick Start
 
-### Data Collection
+### Initialize Database
 
-Collect movie data with intelligent refresh strategies:
+Set up the database schema:
 
 ```bash
-# Discover new movies from TMDB (2020-2024)
-uv run python scripts/collect_optimized.py --discover --start-year 2020 --end-year 2024
+# Initialize database
+ayne db init
 
-# Refresh existing movies (updates based on age)
-uv run python scripts/collect_optimized.py --refresh-only --refresh-limit 100
+# Test connectivity
+ayne db test
 
-# Full collection workflow
-uv run python scripts/collect_optimized.py
+# View database statistics
+ayne db stats
+```
+
+### Data Collection
+
+Collect movie data with the CLI:
+
+```bash
+# Discover new movies from TMDB
+ayne tmdb update --max-movies 1000 --min-year 2020
+
+# Full TMDB discovery (unlimited)
+ayne tmdb update --full
+
+# Enrich with OMDB data
+ayne omdb update --max-movies 500
+
+# Run daily refresh workflow
+ayne collect daily --discover --discover-limit 100
+
+# Run full collection workflow
+ayne collect full --max-tmdb 5000 --max-omdb 1000
 ```
 
 **Features**:
@@ -95,6 +117,7 @@ uv run python scripts/collect_optimized.py
 - Concurrent API calls with rate limiting
 - Automatic data freezing for stable movies
 - Smart refresh decisions to minimize API calls
+- Dry-run mode for safe previews (`--dry-run`)
 
 ### Working with the Database
 
@@ -129,7 +152,34 @@ df = execute_custom_query(query)
 - `omdb_movies` - OMDB data (cast, crew, reviews, awards)
 - `numbers_movies` - Financial data from The Numbers
 
-### Jupyter Notebooks
+### Validate Data Quality
+
+Run validation checks on your data:
+
+```bash
+# Validate TMDB data
+ayne validate tmdb --verbose
+
+# Validate OMDB/IMDb data
+ayne validate imdb
+
+# Run all validations
+ayne validate all
+```
+
+### View Configuration
+
+Check current settings:
+
+```bash
+# Show version and environment
+ayne version
+
+# Show all configuration settings
+ayne config
+```
+
+See the [CLI Guide](docs/guides/cli-guide.md) for complete documentation.
 
 Start exploring the data:
 
@@ -137,7 +187,7 @@ Start exploring the data:
 jupyter lab notebooks/
 ```
 
-**Available Notebooks**:
+### Jupyter Notebooks
 
 - `01_movies_data_full_imputation.ipynb` - Data preprocessing and imputation
 - More analysis notebooks coming soon...
@@ -196,7 +246,7 @@ The project uses environment-specific YAML configs and `.env` for sensitive data
 ```text
 configs/
 ├── development.yaml          # Local development
-├── staging.yaml             # Testing environment  
+├── staging.yaml             # Testing environment
 └── production.yaml          # Production settings
 ```
 
@@ -276,17 +326,17 @@ print(settings.tmdb_api_key)      # API keys (from .env)
 
 ## 🧪 Testing
 
-Run tests with pytest:
+Run tests and validation:
 
 ```bash
 # Test database connection
-uv run python scripts/test_database.py
+ayne db test
 
-# Test query utilities
-uv run python scripts/test_query_utils.py
+# Validate data quality
+ayne validate all
 
-# Validate notebook setup
-uv run python scripts/validate_notebook_setup.py
+# Run unit tests (when available)
+uv run pytest tests/
 ```
 
 ## 📈 Performance

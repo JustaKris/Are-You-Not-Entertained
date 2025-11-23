@@ -65,7 +65,13 @@ dependencies = [
     "mlflow>=2.15,<2.20",
     "pyarrow>=16.1,<17.0",
     "duckdb>=1.4.2",
+    # --- CLI ---
+    "typer[all]>=0.12,<1.0",  # Modern CLI with rich support
+    "rich>=13.0,<14.0",  # Beautiful terminal formatting
 ]
+
+[project.scripts]
+ayne = "ayne.cli.main:app"
 
 [dependency-groups]
 dev = [

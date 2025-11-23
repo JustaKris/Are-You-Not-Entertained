@@ -63,6 +63,10 @@ nav:
   - Security: development/security.md
   - Logging: development/logging.md
   - Markdown Linting: development/markdown-linting.md
+- Guides:
+  - CLI Guide: guides/cli-guide.md
+  - Data Collection Quick Reference: guides/data-collection-quick-reference.md
+  - Pre-Commit Guide: guides/pre-commit-guide.md
 - Reference:
   - Architecture: reference/architecture.md
   - TMDB API Client: reference/tmdb-client.md
@@ -70,6 +74,7 @@ nav:
   - Database: reference/database.md
   - Refresh Strategy: reference/refresh-strategy.md
   - Data Collection Workflow: reference/data-collection-workflow.md
+  - Data Collection Filtering: reference/data-collection-filtering.md
   - Rate Limiting: reference/rate-limiting.md
   - Data Orchestration: reference/orchestration.md
 

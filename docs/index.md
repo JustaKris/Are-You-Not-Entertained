@@ -33,9 +33,19 @@
 
 ## Quick Links
 
-- [Architecture Overview](reference/architecture.md)
-- [Development Guides](development/code-style.md)
-- [GitHub Repository](https://github.com/JustaKris/Are-You-Not-Entertained)
+### Getting Started
+
+- **[CLI Guide](guides/cli-guide.md)** - Complete command-line interface reference
+- **[Quick Start Guide](guides/data-collection-quick-reference.md)** - Common data collection commands and workflows
+- **[Pre-Commit Guide](guides/pre-commit-guide.md)** - Set up code quality tools
+
+### Core Documentation
+
+- **[Architecture Overview](reference/architecture.md)** - System design and components
+- **[Data Collection Workflow](reference/data-collection-workflow.md)** - How data collection works
+- **[Data Collection Filtering](reference/data-collection-filtering.md)** - Configure filters and collection limits
+- **[Refresh Strategy](reference/refresh-strategy.md)** - Intelligent data refresh logic
+- **[Development Guides](development/code-style.md)** - Code style and best practices
 
 ## Getting Started
 
@@ -64,12 +74,23 @@ cp .env.example .env
 ### Basic Usage
 
 ```bash
-# Discover movies from 2020-2024
-uv run python scripts/collect_optimized.py --start-year 2020 --end-year 2024
+# Initialize database
+ayne db init
 
-# Refresh existing movies
-uv run python scripts/collect_optimized.py --refresh-only --refresh-limit 100
+# Discover movies from TMDB
+ayne tmdb update --max-movies 1000
+
+# Enrich with OMDB data
+ayne omdb update --max-movies 500
+
+# Run daily refresh workflow
+ayne collect daily
+
+# Validate data quality
+ayne validate all
 ```
+
+See the [CLI Guide](guides/cli-guide.md) for complete documentation.
 
 ## Project Structure
 

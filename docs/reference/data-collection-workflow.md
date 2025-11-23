@@ -40,7 +40,7 @@ This is orchestrated by the `DataCollectionOrchestrator` with intelligent refres
 
 ### What We Do
 
-Find movies released in specific years that meet quality criteria.
+Find movies using TMDB's discover endpoint with configurable filters to ensure only relevant movies are collected.
 
 ### API Endpoint Used
 
@@ -50,17 +50,28 @@ GET https://api.themoviedb.org/3/discover/movie
 
 ### Query Parameters
 
+The system uses configurable filters (see [Data Collection Filtering](data-collection-filtering.md) for details):
+
 ```python
 params = {
-    "primary_release_date.gte": "2024-01-01",  # Start of year
-    "primary_release_date.lte": "2024-12-31",  # End of year
-    "vote_count.gte": 200,                     # Quality filter
-    "sort_by": "primary_release_date.desc",     # Newest first
+    "popularity.gte": min_popularity,           # Minimum popularity score (default: 10.0)
+    "vote_count.gte": min_vote_count,          # Minimum votes (default: 50)
+    "primary_release_date.gte": f"{min_year}-01-01",  # Minimum year (default: 1950)
+    "sort_by": "popularity.desc",               # Most popular first
     "include_adult": "false",                   # Family-friendly
     "include_video": "false",                   # No videos
-    "page": 1                                   # Pagination
+    "page": page                                # Pagination
 }
 ```
+
+**Key Filters:**
+
+- **Popularity**: `tmdb_min_popularity` (default: 10.0) - Filters out low-popularity movies
+- **Vote Count**: `tmdb_min_vote_count` (default: 50) - Ensures data quality
+- **Release Year**: `tmdb_min_release_year` (default: 1950) - Focus on modern cinema
+- **Release Status**: `tmdb_allowed_release_statuses` - Filter by production status (applied during detail fetch)
+
+All filters are configurable via YAML configuration files. See [Filtering Configuration](data-collection-filtering.md).
 
 ### What We Get
 
@@ -86,18 +97,32 @@ ON CONFLICT (tmdb_id) DO UPDATE SET ...
 ### Example Code
 
 ```python
-# Discover movies from 2020-2024
+# Discover movies with configurable filters
 orchestrator = DataCollectionOrchestrator(db)
 
+# Use configuration defaults
 stats = await orchestrator.discover_and_store_movies(
-    start_year=2020,
-    end_year=2024,
-    min_vote_count=200,  # Only popular movies
-    max_pages=5          # Limit to 5 pages per year
+    max_movies=1000,      # Limit to 1000 movies
+    max_pages=50          # Or limit by pages
 )
 
-print(f"Discovered {stats['discovered']} movies")
+# Override filters
+stats = await orchestrator.discover_and_store_movies(
+    max_movies=500,
+    min_popularity=15.0,  # Higher popularity threshold
+    min_vote_count=100,   # More votes required
+    min_release_year=2010 # Only recent movies
+)
+
+print(f"Discovered {stats} movies")
 ```
+
+**Collection Limits:**
+
+- `tmdb_max_movies`: Maximum movies to collect (configurable, default: unlimited)
+- `omdb_max_movies`: Maximum OMDB requests (default: 1000 to respect API limits)
+
+See [Data Collection Filtering](data-collection-filtering.md) for complete configuration options.
 
 ## Phase 2: Enrichment
 

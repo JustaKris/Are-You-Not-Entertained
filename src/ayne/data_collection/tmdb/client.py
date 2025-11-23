@@ -87,24 +87,31 @@ class TMDBClient:
         return await retry_with_backoff(make_request, retry_count=3)
 
     async def discover_movies_page(
-        self, year: int, page: int, min_vote_count: int = 200
+        self,
+        page: int,
+        min_popularity: float = 10.0,
+        min_vote_count: int = 50,
+        min_release_year: int = 1950,
+        allowed_statuses: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
-        """Fetch a single page of discovered movies.
+        """Fetch a single page of discovered movies with advanced filters.
 
         Args:
-            year: Release year
             page: Page number
+            min_popularity: Minimum popularity score
             min_vote_count: Minimum vote count filter
+            min_release_year: Minimum release year
+            allowed_statuses: Allowed release statuses (if None, not filtered)
 
         Returns:
             List of normalized movie dictionaries
         """
         endpoint = "discover/movie"
         params = {
-            "primary_release_date.gte": f"{year}-01-01",
-            "primary_release_date.lte": f"{year}-12-31",
+            "popularity.gte": min_popularity,
             "vote_count.gte": min_vote_count,
-            "sort_by": "primary_release_date.desc",
+            "primary_release_date.gte": f"{min_release_year}-01-01",
+            "sort_by": "popularity.desc",
             "include_adult": "false",
             "include_video": "false",
             "page": page,
@@ -112,79 +119,111 @@ class TMDBClient:
 
         response = await self._request(endpoint, params)
         movies = response.get("results", [])
+
+        # Note: TMDB discover API doesn't support filtering by status directly
+        # Status filtering will be done when fetching full details
         return normalize_discover_results(movies)
 
     async def discover_movies(
         self,
-        start_year: int,
-        end_year: Optional[int] = None,
-        min_vote_count: int = 200,
+        max_movies: Optional[int] = None,
+        min_popularity: float = 10.0,
+        min_vote_count: int = 50,
+        min_release_year: int = 1950,
+        allowed_statuses: Optional[List[str]] = None,
         max_pages: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
-        """Discover movies by year range with concurrent page fetching.
+        """Discover movies with advanced filtering using TMDB discover endpoint.
 
         Args:
-            start_year: Starting year
-            end_year: Ending year (defaults to start_year)
+            max_movies: Maximum number of movies to fetch (None = unlimited)
+            min_popularity: Minimum popularity score
             min_vote_count: Minimum vote count filter
-            max_pages: Maximum pages to fetch per year
+            min_release_year: Minimum release year
+            allowed_statuses: Allowed release statuses (filtering happens at detail fetch)
+            max_pages: Maximum pages to fetch (overrides max_movies if set)
 
         Returns:
             List of normalized movie dictionaries
         """
-        end_year = end_year or start_year
+        logger.info(
+            f"Discovering TMDB movies with filters: "
+            f"popularity>={min_popularity}, votes>={min_vote_count}, "
+            f"year>={min_release_year}, max_movies={max_movies or 'unlimited'}"
+        )
+
         all_movies = []
 
-        for year in range(start_year, end_year + 1):
-            logger.info(f"Discovering TMDB movies for year {year}...")
+        # Get first page to determine total available
+        first_page = await self.discover_movies_page(
+            page=1,
+            min_popularity=min_popularity,
+            min_vote_count=min_vote_count,
+            min_release_year=min_release_year,
+            allowed_statuses=allowed_statuses,
+        )
 
-            # Get first page to determine total pages
-            first_page = await self.discover_movies_page(year, 1, min_vote_count)
+        # Fetch first page metadata to get total
+        endpoint = "discover/movie"
+        params = {
+            "popularity.gte": min_popularity,
+            "vote_count.gte": min_vote_count,
+            "primary_release_date.gte": f"{min_release_year}-01-01",
+            "sort_by": "popularity.desc",
+            "include_adult": "false",
+            "include_video": "false",
+            "page": 1,
+        }
+        response = await self._request(endpoint, params)
+        total_pages = response.get("total_pages", 1)
+        total_results = response.get("total_results", 0)
 
-            # Fetch first page to get total
-            endpoint = "discover/movie"
-            params = {
-                "primary_release_date.gte": f"{year}-01-01",
-                "primary_release_date.lte": f"{year}-12-31",
-                "vote_count.gte": min_vote_count,
-                "sort_by": "primary_release_date.desc",
-                "include_adult": "false",
-                "include_video": "false",
-                "page": 1,
-            }
-            response = await self._request(endpoint, params)
-            total_pages = response.get("total_pages", 1)
+        logger.info(f"Found {total_results} total results across {total_pages} pages")
 
-            if max_pages:
-                total_pages = min(total_pages, max_pages)
+        all_movies.extend(first_page)
 
-            logger.info(f"Fetching {total_pages} pages for year {year}")
+        # Calculate how many pages we need
+        if max_pages:
+            pages_to_fetch = min(total_pages, max_pages)
+        elif max_movies:
+            # TMDB returns 20 results per page typically
+            pages_needed = (max_movies + 19) // 20  # Round up
+            pages_to_fetch = min(total_pages, pages_needed)
+        else:
+            pages_to_fetch = total_pages
 
-            # Fetch remaining pages concurrently
-            if total_pages > 1:
-                tasks = [
-                    self.discover_movies_page(year, page, min_vote_count)
-                    for page in range(2, total_pages + 1)
-                ]
+        logger.info(f"Fetching {pages_to_fetch} pages")
 
-                results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Fetch remaining pages concurrently
+        if pages_to_fetch > 1:
+            tasks = [
+                self.discover_movies_page(
+                    page=page,
+                    min_popularity=min_popularity,
+                    min_vote_count=min_vote_count,
+                    min_release_year=min_release_year,
+                    allowed_statuses=allowed_statuses,
+                )
+                for page in range(2, pages_to_fetch + 1)
+            ]
 
-                # Collect results
-                year_movies = first_page.copy()
-                for result in results:
-                    if isinstance(result, Exception):
-                        logger.error(f"Failed to fetch page: {result}")
-                    elif isinstance(result, list):
-                        year_movies.extend(result)
-                    else:
-                        logger.error(
-                            f"Unexpected result type {type(result)} while fetching pages: {result}"
-                        )
-            else:
-                year_movies = first_page
+            results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            logger.info(f"Discovered {len(year_movies)} movies for year {year}")
-            all_movies.extend(year_movies)
+            # Collect results
+            for result in results:
+                if isinstance(result, Exception):
+                    logger.error(f"Failed to fetch page: {result}")
+                elif isinstance(result, list):
+                    all_movies.extend(result)
+                else:
+                    logger.error(
+                        f"Unexpected result type {type(result)} while fetching pages: {result}"
+                    )
+
+        # Trim to max_movies if specified
+        if max_movies and len(all_movies) > max_movies:
+            all_movies = all_movies[:max_movies]
+            logger.info(f"Trimmed results to {max_movies} movies")
 
         logger.info(f"Total movies discovered: {len(all_movies)}")
         return all_movies
@@ -207,13 +246,17 @@ class TMDBClient:
             return None
 
     async def get_batch_movie_details(
-        self, tmdb_ids: List[int], progress_callback: Optional[Callable[[int, int], None]] = None
+        self,
+        tmdb_ids: List[int],
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+        allowed_statuses: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
-        """Fetch details for multiple movies concurrently.
+        """Fetch details for multiple movies concurrently with optional status filtering.
 
         Args:
             tmdb_ids: List of TMDB movie IDs
             progress_callback: Optional callback(current, total) for progress updates
+            allowed_statuses: Optional list of allowed release statuses to filter by
 
         Returns:
             List of normalized movie details
@@ -239,13 +282,27 @@ class TMDBClient:
         tasks = [fetch_with_progress(tmdb_id) for tmdb_id in tmdb_ids]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Filter out None and exceptions
+        # Filter out None and exceptions, and apply status filtering if specified
         movies: list[dict[str, Any]] = []
+        filtered_count = 0
         for result in results:
             if isinstance(result, Exception):
                 logger.error(f"Task failed: {result}")
             elif isinstance(result, dict):
-                movies.append(result)
+                # Apply status filtering if specified
+                if allowed_statuses:
+                    movie_status = result.get("status", "")
+                    if movie_status in allowed_statuses:
+                        movies.append(result)
+                    else:
+                        filtered_count += 1
+                else:
+                    movies.append(result)
+
+        if filtered_count > 0:
+            logger.info(
+                f"Filtered out {filtered_count} movies due to release status not in {allowed_statuses}"
+            )
 
         logger.info(f"Successfully fetched {len(movies)}/{total} movies")
         return movies

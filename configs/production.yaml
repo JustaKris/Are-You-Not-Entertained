@@ -24,6 +24,22 @@ api_timeout: 30
 batch_size: 200
 random_seed: 42
 
+# Data Collection Settings
+# TMDB Collection Limits
+tmdb_max_movies:       # null = unlimited for production
+
+# OMDB Collection Limits
+omdb_max_movies: 1000  # OMDB has a 1000 request/day limit
+
+# TMDB Filtering Settings
+tmdb_min_popularity: 10.0
+tmdb_min_vote_count: 50
+tmdb_min_release_year: 2000
+tmdb_allowed_release_statuses:
+- Released
+- Post Production
+- In Production
+
 # FastAPI Server
 host: 0.0.0.0
 port: 8000
