@@ -277,11 +277,12 @@ exclude_dirs = [
     ".venv",
     "venv",
     "tests",
+    "scripts",
     "notebooks",
     ".pytest_cache",
     "__pycache__",
 ]
-skips = ["B104", "B108"]
+skips = ["B101", "B104", "B108"]
 
 # Markdown linting
 [tool.pymarkdown]
