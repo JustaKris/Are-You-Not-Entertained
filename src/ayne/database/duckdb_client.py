@@ -154,6 +154,14 @@ class DuckDBClient:
         if isinstance(key_columns, str):
             key_columns = [key_columns]
 
+        # Deduplicate incoming data by key columns (keep last occurrence)
+        original_len = len(df)
+        df = df.drop_duplicates(subset=key_columns, keep="last")
+        if len(df) < original_len:
+            logger.warning(
+                f"Removed {original_len - len(df)} duplicate rows from incoming data based on {key_columns}"
+            )
+
         # Use a deterministic staging name
         staging_view = "__staging_upsert"
 
@@ -284,8 +292,9 @@ class DuckDBClient:
         query = """
         SELECT
             COUNT(DISTINCT m.movie_id) as total_movies,
-            COUNT(DISTINCT CASE WHEN m.last_tmdb_update IS NOT NULL THEN m.movie_id END) as with_tmdb,
-            COUNT(DISTINCT CASE WHEN m.last_omdb_update IS NOT NULL THEN m.movie_id END) as with_omdb,
+            COUNT(DISTINCT CASE WHEN m.tmdb_id IS NOT NULL THEN m.movie_id END) as with_tmdb_basic,
+            COUNT(DISTINCT CASE WHEN t.tmdb_id IS NOT NULL THEN m.movie_id END) as with_tmdb_details,
+            COUNT(DISTINCT CASE WHEN o.imdb_id IS NOT NULL THEN m.movie_id END) as with_omdb,
             COUNT(DISTINCT CASE WHEN m.last_full_refresh IS NOT NULL THEN m.movie_id END) as fully_refreshed,
             COUNT(DISTINCT CASE WHEN m.data_frozen = TRUE THEN m.movie_id END) as frozen,
             COUNT(DISTINCT CASE
@@ -303,6 +312,8 @@ class DuckDBClient:
                 WHEN m.release_date < CURRENT_DATE - INTERVAL '365 days' THEN m.movie_id
             END) as archived_movies
         FROM movies m
+        LEFT JOIN tmdb_movies t ON m.tmdb_id = t.tmdb_id
+        LEFT JOIN omdb_movies o ON m.imdb_id = o.imdb_id
         """
         return self.query(query)
 

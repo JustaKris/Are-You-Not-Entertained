@@ -8,6 +8,10 @@ import certifi
 import requests
 from bs4 import BeautifulSoup
 
+from ayne.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 def slugify(title: str) -> str:
     """Convert a movie title into a slug suitable for a URL.
@@ -57,17 +61,18 @@ def scrape_the_numbers(movie_title: str, release_year: int | None = None) -> tup
     candidate_urls.append(f"https://www.the-numbers.com/movie/{slug}#tab=summary")
 
     for url in candidate_urls:
-        print(f"Trying URL: {url}")
+        logger.debug(f"Trying URL: {url}")
         response = requests.get(url, verify=certifi.where())
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
             data = extract_financial_data(soup)
             if data:
+                logger.info(f"Financial data found at {url}")
                 return data, url
             else:
-                print(f"Page found at {url} but no financial data detected.")
+                logger.debug(f"Page found at {url} but no financial data detected.")
         else:
-            print(f"Failed to retrieve {url} (Status code: {response.status_code})")
+            logger.warning(f"Failed to retrieve {url} (Status code: {response.status_code})")
     return {}, ""
 
 
@@ -82,16 +87,16 @@ def main():
 
     data, url = scrape_the_numbers(movie_title, release_year)
     if data:
-        print("\nFinancial data found:")
-        print(json.dumps(data, indent=4))
+        logger.info("Financial data found:")
+        logger.info(json.dumps(data, indent=4))
 
         # Save the data to a file using the slugified title as filename.
         filename = f"{slugify(movie_title)}_data.json"
         with open(filename, "w") as f:
             json.dump({"source_url": url, "financial_data": data}, f, indent=4)
-        print(f"\nData saved to {filename}")
+        logger.info(f"Data saved to {filename}")
     else:
-        print(f"\nNo data could be scraped for '{movie_title}'.")
+        logger.warning(f"No data could be scraped for '{movie_title}'.")
 
 
 if __name__ == "__main__":

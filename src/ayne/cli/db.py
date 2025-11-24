@@ -209,7 +209,8 @@ def show_stats():
         main_table.add_column("Count", justify="right", style="green")
 
         main_table.add_row("Total Movies", f"{row['total_movies']:,}")
-        main_table.add_row("With TMDB Data", f"{row['with_tmdb']:,}")
+        main_table.add_row("  ├─ With TMDB ID", f"{row['with_tmdb_basic']:,}")
+        main_table.add_row("  └─ With TMDB Details", f"{row['with_tmdb_details']:,}")
         main_table.add_row("With OMDB Data", f"{row['with_omdb']:,}")
         main_table.add_row("Fully Refreshed", f"{row['fully_refreshed']:,}")
         main_table.add_row("Frozen (Stable)", f"{row['frozen']:,}")

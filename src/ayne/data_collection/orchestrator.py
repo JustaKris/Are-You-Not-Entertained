@@ -60,6 +60,7 @@ class DataCollectionOrchestrator:
         min_popularity: Optional[float] = None,
         min_vote_count: Optional[int] = None,
         min_release_year: Optional[int] = None,
+        max_release_year: Optional[int] = None,
         allowed_statuses: Optional[list[str]] = None,
         max_pages: Optional[int] = None,
     ) -> int:
@@ -70,6 +71,7 @@ class DataCollectionOrchestrator:
             min_popularity: Minimum popularity score (defaults to settings)
             min_vote_count: Minimum vote count filter (defaults to settings)
             min_release_year: Minimum release year (defaults to settings)
+            max_release_year: Maximum release year (None = no upper limit)
             allowed_statuses: Allowed release statuses (defaults to settings)
             max_pages: Maximum pages to fetch (overrides max_movies)
 
@@ -92,6 +94,7 @@ class DataCollectionOrchestrator:
             min_popularity=min_popularity,
             min_vote_count=min_vote_count,
             min_release_year=min_release_year,
+            max_release_year=max_release_year,
             allowed_statuses=allowed_statuses,
             max_pages=max_pages,
         )
@@ -104,21 +107,55 @@ class DataCollectionOrchestrator:
         df_movies = pd.DataFrame(movies)
         movies_for_db = df_movies[["tmdb_id", "title", "release_date"]].copy()
 
+        # Set last_tmdb_update to track discovery
+        now = datetime.now(timezone.utc).isoformat()
+        movies_for_db["last_tmdb_update"] = now
+
         self.db.upsert_dataframe("movies", movies_for_db, key_columns=["tmdb_id"])
         logger.info(f"✅ Stored {len(movies)} movies")
 
         return len(movies)
 
-    def get_movies_for_refresh(self, limit: Optional[int] = None) -> pd.DataFrame:
+    def get_movies_for_refresh(
+        self,
+        limit: Optional[int] = None,
+        min_release_year: Optional[int] = None,
+        max_release_year: Optional[int] = None,
+    ) -> pd.DataFrame:
         """Get movies that need data refresh based on age and last update.
 
         Args:
             limit: Maximum number of movies to return
+            min_release_year: Filter movies by minimum release year
+            max_release_year: Filter movies by maximum release year
 
         Returns:
             DataFrame of movies due for refresh
         """
-        query = get_movies_due_for_refresh_query(limit=limit, include_frozen=False)
+        query = get_movies_due_for_refresh_query(limit=None, include_frozen=False)
+
+        # Add year filtering to the base query (before ORDER BY and LIMIT)
+        if min_release_year or max_release_year:
+            # Insert WHERE conditions before ORDER BY
+            order_by_pos = query.upper().find("ORDER BY")
+
+            year_conditions = []
+            if min_release_year:
+                year_conditions.append(f"m.release_date >= '{min_release_year}-01-01'")
+            if max_release_year:
+                year_conditions.append(f"m.release_date <= '{max_release_year}-12-31'")
+
+            year_filter = " AND " + " AND ".join(year_conditions)
+
+            if order_by_pos > 0:
+                query = query[:order_by_pos] + year_filter + " " + query[order_by_pos:]
+            else:
+                query += year_filter
+
+        # Add limit at the end
+        if limit:
+            query += f" LIMIT {limit}"
+
         movies_df = self.db.query(query)
 
         logger.info(f"Found {len(movies_df)} movies due for refresh")
@@ -195,13 +232,22 @@ class DataCollectionOrchestrator:
                     df_tmdb = pd.DataFrame(tmdb_data)
                     self.db.upsert_dataframe("tmdb_movies", df_tmdb, key_columns=["tmdb_id"])
 
-                    # Update timestamps in movies table
+                    # Update timestamps and IMDb IDs in movies table
                     now = datetime.now(timezone.utc).isoformat()
-                    for tmdb_id in df_tmdb["tmdb_id"]:
-                        self.db.execute(
-                            "UPDATE movies SET last_tmdb_update = ? WHERE tmdb_id = ?",
-                            [now, tmdb_id],
-                        )
+                    for _, row in df_tmdb.iterrows():
+                        tmdb_id = row["tmdb_id"]
+                        imdb_id = row.get("imdb_id")
+
+                        if imdb_id:
+                            self.db.execute(
+                                "UPDATE movies SET last_tmdb_update = ?, imdb_id = ? WHERE tmdb_id = ?",
+                                [now, imdb_id, tmdb_id],
+                            )
+                        else:
+                            self.db.execute(
+                                "UPDATE movies SET last_tmdb_update = ? WHERE tmdb_id = ?",
+                                [now, tmdb_id],
+                            )
 
                     tmdb_updated = len(tmdb_data)
                     logger.info(f"✅ Updated TMDB data for {tmdb_updated} movies")
@@ -250,19 +296,36 @@ class DataCollectionOrchestrator:
                         omdb_updated = len(omdb_data)
                         logger.info(f"✅ Updated OMDB data for {omdb_updated} movies")
 
-        # Update last_full_refresh for movies that got both updates
-        if tmdb_updated > 0 and omdb_updated > 0:
+        # Update last_full_refresh for movies that got both TMDB and OMDB updates in this batch
+        if tmdb_updated > 0 or omdb_updated > 0:
             now = datetime.now(timezone.utc).isoformat()
-            self.db.execute(
-                """
-                UPDATE movies
-                SET last_full_refresh = ?
-                WHERE last_tmdb_update IS NOT NULL
-                  AND last_omdb_update IS NOT NULL
-                  AND last_full_refresh IS NULL
-                """,
-                [now],
-            )
+
+            # Get tmdb_ids that were updated in this batch
+            updated_tmdb_ids = set()
+            if tmdb_updated > 0 and not needs_tmdb.empty:
+                updated_tmdb_ids = set(needs_tmdb["tmdb_id"].dropna().astype(int).tolist())
+
+            # Get imdb_ids that were updated and map to tmdb_ids
+            updated_via_omdb_tmdb_ids = set()
+            if omdb_updated > 0 and not needs_omdb.empty:
+                updated_via_omdb_tmdb_ids = set(needs_omdb["tmdb_id"].dropna().astype(int).tolist())
+
+            # Find movies that got both updates in this batch
+            both_updated_ids = updated_tmdb_ids.intersection(updated_via_omdb_tmdb_ids)
+
+            if both_updated_ids:
+                ids_str = ",".join(str(id) for id in both_updated_ids)
+                self.db.execute(
+                    f"""
+                    UPDATE movies
+                    SET last_full_refresh = ?
+                    WHERE tmdb_id IN ({ids_str})
+                      AND last_tmdb_update IS NOT NULL
+                      AND last_omdb_update IS NOT NULL
+                    """,
+                    [now],
+                )
+                logger.info(f"📅 Updated last_full_refresh for {len(both_updated_ids)} movies")
 
         # Check for movies that should be frozen
         for _, movie in movies_df.iterrows():
@@ -357,6 +420,166 @@ class DataCollectionOrchestrator:
             stats["frozen"] = frozen
 
         return stats
+
+    async def enrich_tmdb_details(
+        self,
+        limit: Optional[int] = None,
+        min_release_year: Optional[int] = None,
+        max_release_year: Optional[int] = None,
+        allowed_statuses: Optional[list[str]] = None,
+    ) -> int:
+        """Fetch detailed TMDB data for movies that only have basic discovery info.
+
+        Args:
+            limit: Maximum number of movies to enrich
+            min_release_year: Filter movies by minimum release year
+            max_release_year: Filter movies by maximum release year
+            allowed_statuses: Allowed release statuses (defaults to settings)
+
+        Returns:
+            Number of movies enriched with TMDB details
+        """
+        from ayne.core.config import settings
+
+        allowed_statuses = allowed_statuses or settings.tmdb_allowed_release_statuses
+
+        # Query movies that have tmdb_id but not detailed data yet
+        query = """
+            SELECT m.*
+            FROM movies m
+            LEFT JOIN tmdb_movies t ON m.tmdb_id = t.tmdb_id
+            WHERE m.tmdb_id IS NOT NULL
+              AND t.tmdb_id IS NULL
+        """
+
+        # Add year filtering
+        if min_release_year:
+            query += f" AND m.release_date >= '{min_release_year}-01-01'"
+        if max_release_year:
+            query += f" AND m.release_date <= '{max_release_year}-12-31'"
+
+        query += " ORDER BY m.last_tmdb_update DESC"
+
+        if limit:
+            query += f" LIMIT {limit}"
+
+        movies_to_enrich = self.db.query(query)
+
+        if movies_to_enrich.empty:
+            logger.info("No movies need TMDB enrichment")
+            return 0
+
+        logger.info(f"Enriching {len(movies_to_enrich)} movies with TMDB details...")
+
+        tmdb_ids = movies_to_enrich["tmdb_id"].dropna().astype(int).tolist()
+
+        if not tmdb_ids:
+            return 0
+
+        # Fetch detailed data
+        tmdb_data = await self.tmdb_client.get_batch_movie_details(
+            tmdb_ids, allowed_statuses=allowed_statuses
+        )
+
+        if not tmdb_data:
+            logger.warning("No TMDB data fetched")
+            return 0
+
+        # Store in database
+        df_tmdb = pd.DataFrame(tmdb_data)
+        self.db.upsert_dataframe("tmdb_movies", df_tmdb, key_columns=["tmdb_id"])
+
+        # Update timestamps and IMDb IDs in movies table
+        now = datetime.now(timezone.utc).isoformat()
+        for _, row in df_tmdb.iterrows():
+            tmdb_id = row["tmdb_id"]
+            imdb_id = row.get("imdb_id")
+
+            if imdb_id:
+                self.db.execute(
+                    "UPDATE movies SET last_tmdb_update = ?, imdb_id = ? WHERE tmdb_id = ?",
+                    [now, imdb_id, tmdb_id],
+                )
+            else:
+                self.db.execute(
+                    "UPDATE movies SET last_tmdb_update = ? WHERE tmdb_id = ?",
+                    [now, tmdb_id],
+                )
+
+        logger.info(f"✅ Enriched {len(tmdb_data)} movies with TMDB details")
+        return len(tmdb_data)
+
+    async def enrich_omdb_data(
+        self,
+        limit: Optional[int] = None,
+        min_release_year: Optional[int] = None,
+        max_release_year: Optional[int] = None,
+    ) -> int:
+        """Fetch OMDB data for movies that have IMDb IDs but no OMDB data yet.
+
+        Args:
+            limit: Maximum number of movies to enrich
+            min_release_year: Filter movies by minimum release year
+            max_release_year: Filter movies by maximum release year
+
+        Returns:
+            Number of movies enriched with OMDB data
+        """
+        # Query movies that have imdb_id but no OMDB data yet
+        query = """
+            SELECT m.*
+            FROM movies m
+            LEFT JOIN omdb_movies o ON m.imdb_id = o.imdb_id
+            WHERE m.imdb_id IS NOT NULL
+              AND m.imdb_id != ''
+              AND o.imdb_id IS NULL
+        """
+
+        # Add year filtering
+        if min_release_year:
+            query += f" AND m.release_date >= '{min_release_year}-01-01'"
+        if max_release_year:
+            query += f" AND m.release_date <= '{max_release_year}-12-31'"
+
+        query += " ORDER BY m.release_date DESC"
+
+        if limit:
+            query += f" LIMIT {limit}"
+
+        movies_to_enrich = self.db.query(query)
+
+        if movies_to_enrich.empty:
+            logger.info("No movies need OMDB enrichment")
+            return 0
+
+        logger.info(f"Enriching {len(movies_to_enrich)} movies with OMDB data...")
+
+        imdb_ids = movies_to_enrich["imdb_id"].dropna().tolist()
+
+        if not imdb_ids:
+            return 0
+
+        # Fetch OMDB data
+        omdb_data = await self.omdb_client.get_batch_movies(imdb_ids)
+
+        if not omdb_data:
+            logger.warning("No OMDB data fetched")
+            return 0
+
+        # Store in database
+        df_omdb = pd.DataFrame(omdb_data)
+        self.db.upsert_dataframe("omdb_movies", df_omdb, key_columns=["imdb_id"])
+
+        # Update timestamps in movies table
+        now = datetime.now(timezone.utc).isoformat()
+        for imdb_id in df_omdb["imdb_id"]:
+            self.db.execute(
+                "UPDATE movies SET last_omdb_update = ? WHERE imdb_id = ?",
+                [now, imdb_id],
+            )
+
+        logger.info(f"✅ Enriched {len(omdb_data)} movies with OMDB data")
+        return len(omdb_data)
 
     async def close(self):
         """Cleanup resources."""

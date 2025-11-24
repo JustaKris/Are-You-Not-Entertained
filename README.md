@@ -95,29 +95,52 @@ ayne db stats
 Collect movie data with the CLI:
 
 ```bash
-# Discover new movies from TMDB
-ayne tmdb update --max-movies 1000 --min-year 2020
+# Discover new movies from TMDB (basic info, fast)
+ayne tmdb update --max-movies 1000 --min-year 2020 --max-year 2024
 
-# Full TMDB discovery (unlimited)
-ayne tmdb update --full
+# Work around TMDB's 500-page limit with year ranges
+ayne tmdb update --min-year 2020 --max-year 2024 --max-movies 5000
+ayne tmdb update --min-year 2015 --max-year 2019 --max-movies 5000
 
-# Enrich with OMDB data
-ayne omdb update --max-movies 500
+# Enrich discovered movies with detailed TMDB data (slower, complete data)
+ayne tmdb enrich --limit 500 --min-year 2020
+
+# Enrich with OMDB data (ratings, box office, awards)
+ayne omdb enrich --max-movies 500 --min-year 2020
+
+# Daily updates: refresh recent releases only
+ayne tmdb refresh --min-year 2024 --limit 50
+ayne omdb refresh --min-year 2024 --limit 30
 
 # Run daily refresh workflow
-ayne collect daily --discover --discover-limit 100
+ayne collect daily --tmdb-refresh 50 --omdb-limit 30
 
 # Run full collection workflow
 ayne collect full --max-tmdb 5000 --max-omdb 1000
 ```
 
+**Command Structure:**
+
+- **`tmdb update`** - Discover new movies (basic info: title, date, TMDB ID)
+- **`tmdb enrich`** - Fetch detailed data (budget, revenue, genres, IMDb ID)
+- **`tmdb refresh`** - Update existing movies that need refresh
+- **`omdb enrich`** - Add OMDB data to movies with IMDb IDs
+- **`omdb refresh`** - Update existing OMDB data
+
 **Features**:
 
+- Year filtering (`--min-year`, `--max-year`) to work around API limits
 - Age-based refresh intervals (5-180 days based on movie age)
 - Concurrent API calls with rate limiting
 - Automatic data freezing for stable movies
 - Smart refresh decisions to minimize API calls
 - Dry-run mode for safe previews (`--dry-run`)
+
+**Typical Workflow:**
+
+1. **Initial Population**: Discover movies in year ranges → Enrich with details → Add OMDB data
+2. **Daily Updates**: Refresh recent releases only (`--min-year 2024 --limit 50`)
+3. **Weekly/Monthly**: Broader refresh (`--limit 500` or `--min-year 2023`)
 
 ### Working with the Database
 

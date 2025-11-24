@@ -101,19 +101,35 @@ ayne db stats
 
 ## TMDB Commands
 
+The TMDB commands are organized into three distinct operations:
+
+1. **`update`** - Discover new movies (basic info only, fast)
+2. **`enrich`** - Fetch detailed data for discovered movies (complete info, slower)
+3. **`refresh`** - Update existing movies that need data refresh (age-based)
+
+**⚠️ Important: TMDB API Limits**
+
+- **500-page maximum**: TMDB's discover endpoint has a hard limit of 500 pages (~10,000 movies max per query)
+- **Workaround**: Use `--min-year` and `--max-year` to query different time ranges
+- **Two-stage process**:
+  1. **Discovery** (`tmdb update`): Fast bulk collection (20 movies/request, basic info)
+  2. **Enrichment** (`tmdb enrich`): Individual detail fetches (1 movie/request, complete data)
+
 ### Discover Movies
 
-Discover and store new movies from TMDB:
+Discover and store new movies from TMDB (basic info only):
 
 ```bash
-# Full discovery (unlimited)
+# Full discovery (limited to ~10,000 movies by TMDB API)
 ayne tmdb update --full
 
-# Limited discovery
-ayne tmdb update --max-movies 1000
+# Strategy: Use year ranges to work around 500-page limit
+ayne tmdb update --min-year 2020 --max-year 2024 --max-movies 5000
+ayne tmdb update --min-year 2015 --max-year 2019 --max-movies 5000
+ayne tmdb update --min-year 2010 --max-year 2014 --max-movies 5000
 
-# With filters
-ayne tmdb update --min-popularity 20 --min-votes 100 --min-year 2020
+# Limited discovery with filters
+ayne tmdb update --max-movies 1000 --min-popularity 20 --min-votes 100
 
 # Preview without changes
 ayne tmdb update --max-movies 1000 --dry-run
@@ -121,55 +137,257 @@ ayne tmdb update --max-movies 1000 --dry-run
 
 **Options:**
 
-- `--full` - Unlimited discovery (overrides `--max-movies`)
+- `--full` - Unlimited discovery up to TMDB's 500-page limit (~10,000 movies)
 - `--max-movies N` - Limit to N movies
 - `--min-popularity N` - Minimum popularity score (default: 10.0)
 - `--min-votes N` - Minimum vote count (default: 50)
 - `--min-year YYYY` - Minimum release year (default: 1950)
-- `--max-pages N` - Maximum API pages to fetch
+- `--max-year YYYY` - Maximum release year (no upper limit by default)
+- `--max-pages N` - Maximum API pages to fetch (max: 500)
 - `--dry-run` - Preview without making changes
+
+### Enrich Movies with Details
+
+Fetch detailed TMDB data for movies that only have basic info:
+
+```bash
+# Enrich all discovered movies (up to limit)
+ayne tmdb enrich --limit 500
+
+# Enrich recent movies only
+ayne tmdb enrich --min-year 2023 --limit 100
+
+# Enrich specific year range
+ayne tmdb enrich --min-year 2020 --max-year 2024 --limit 1000
+
+# Preview what would be enriched
+ayne tmdb enrich --limit 500 --dry-run
+```
+
+**Options:**
+
+- `--limit N` - Maximum number of movies to enrich (default: 100)
+- `--min-year YYYY` - Only enrich movies from this year onwards
+- `--max-year YYYY` - Only enrich movies up to this year
+- `--dry-run` - Preview without making changes
+
+**What it does:**
+
+Fetches complete movie information including:
+
+- Budget and revenue
+- Genres and production companies
+- Cast and crew (via TMDB)
+- IMDb ID (required for OMDB enrichment)
+- Ratings and vote counts
+- Production countries and languages
 
 ### Refresh TMDB Data
 
-Refresh existing TMDB data using age-based strategy:
+Update existing movies that are due for refresh based on age-based intervals:
+
+**What it does**: Updates movies that already have TMDB details and are due for a refresh. This command only touches movies that need updating based on refresh intervals.
 
 ```bash
-# Refresh 100 movies (default)
-ayne tmdb refresh
+# Refresh recent releases (recommended for daily updates)
+ayne tmdb refresh --min-year 2024 --limit 50
 
-# Custom limit
-ayne tmdb refresh --limit 500
+# Refresh any movies needing update
+ayne tmdb refresh --limit 100
+
+# Refresh specific year range
+ayne tmdb refresh --min-year 2020 --max-year 2024 --limit 500
 
 # Preview refresh candidates
 ayne tmdb refresh --limit 100 --dry-run
 ```
 
+**Options:**
+
+- `--limit N` - Maximum number of movies to refresh (default: 100)
+- `--min-year YYYY` - Only refresh movies from this year onwards
+- `--max-year YYYY` - Only refresh movies up to this year
+- `--dry-run` - Preview without making changes
+
+**When to use:**
+
+- **Daily updates**: `--min-year 2024 --limit 50` to keep recent releases current
+- **Weekly updates**: `--min-year 2023 --limit 200` for last 1-2 years
+- **Monthly updates**: `--limit 1000` for broader updates
+
+**Refresh intervals** (automatic, based on movie age):
+
+- Recent (0-60 days): Every 5 days
+- Established (60-180 days): Every 15 days
+- Mature (180-365 days): Every 30 days
+- Archived (>365 days): Every 90-180 days
+
 ## OMDB Commands
 
-### Enrich Movies
+The OMDB commands mirror TMDB structure:
 
-Add OMDB data (IMDb ratings, box office, etc.):
+1. **`enrich`** - Add OMDB data to movies that don't have it yet
+2. **`refresh`** - Update existing OMDB data
+
+### Enrich Movies with OMDB Data
+
+Add OMDB data (IMDb ratings, box office, awards, etc.) to movies:
 
 ```bash
 # Standard enrichment
-ayne omdb update --max-movies 1000
+ayne omdb enrich --max-movies 1000
+
+# Enrich recent releases only
+ayne omdb enrich --min-year 2023 --max-movies 500
+
+# Enrich specific year range
+ayne omdb enrich --min-year 2020 --max-year 2024 --max-movies 1000
 
 # Preview what would be enriched
-ayne omdb update --max-movies 500 --dry-run
+ayne omdb enrich --max-movies 500 --dry-run
 ```
+
+**Options:**
+
+- `--max-movies N` - Maximum number of movies to enrich (uses config default)
+- `--min-year YYYY` - Only enrich movies from this year onwards
+- `--max-year YYYY` - Only enrich movies up to this year
+- `--dry-run` - Preview without making changes
+
+**Requirements:**
+
+- Movies must have IMDb IDs (obtained from TMDB enrichment)
+- Run `ayne tmdb enrich` first if movies don't have IMDb IDs
 
 **Note:** OMDB has daily API limits. Use `--max-movies` to control quota usage.
 
 ### Refresh OMDB Data
 
-Refresh existing OMDB data:
+Update existing OMDB data for movies:
 
 ```bash
-# Refresh 100 movies
+# Refresh recent movies
+ayne omdb refresh --min-year 2024 --limit 50
+
+# Refresh any movies with OMDB data
 ayne omdb refresh --limit 100
 
+# Refresh specific year range
+ayne omdb refresh --min-year 2020 --max-year 2024 --limit 200
+
 # Preview refresh candidates
-ayne omdb refresh --limit 200 --dry-run
+ayne omdb refresh --limit 100 --dry-run
+```
+
+**Options:**
+
+- `--limit N` - Maximum number of movies to refresh (default: 100)
+- `--min-year YYYY` - Only refresh movies from this year onwards
+- `--max-year YYYY` - Only refresh movies up to this year
+- `--dry-run` - Preview without making changes
+
+## Recommended Workflows
+
+### Initial Data Population
+
+Build your movie database from scratch:
+
+```bash
+# Step 1: Discover movies in chunks (works around 500-page limit)
+ayne tmdb update --min-year 2020 --max-year 2024 --max-movies 5000
+ayne tmdb update --min-year 2015 --max-year 2019 --max-movies 5000
+ayne tmdb update --min-year 2010 --max-year 2014 --max-movies 5000
+
+# Step 2: Enrich all discovered movies with details
+ayne tmdb enrich --limit 5000
+
+# Step 3: Add OMDB data (mind the API limits)
+ayne omdb enrich --max-movies 1000
+
+# Check progress
+ayne db stats
+```
+
+### Daily Updates (Recommended)
+
+Keep recent movie data current with daily automation:
+
+```bash
+# Option 1: Manual daily run
+ayne tmdb refresh --min-year 2024 --limit 50
+ayne omdb refresh --min-year 2024 --limit 30
+
+# Option 2: Using collect command
+ayne collect daily --tmdb-refresh 50 --omdb-limit 30
+
+# Schedule via cron (Linux/Mac) - runs at 2 AM daily
+0 2 * * * cd /path/to/project && uv run ayne tmdb refresh --min-year 2024 --limit 50
+
+# Schedule via Task Scheduler (Windows) - runs at 2 AM daily
+# Program: pwsh.exe
+# Arguments: -Command "cd D:\path\to\project; uv run ayne tmdb refresh --min-year 2024 --limit 50"
+```
+
+### Weekly Updates
+
+Broader update scope for weekly maintenance:
+
+```bash
+# Update last 1-2 years of movies
+ayne tmdb refresh --min-year 2023 --limit 200
+ayne omdb refresh --min-year 2023 --limit 150
+
+# Or specific ranges
+ayne tmdb refresh --min-year 2020 --max-year 2024 --limit 500
+```
+
+### Monthly Updates
+
+Comprehensive refresh for monthly maintenance:
+
+```bash
+# Update all movies needing refresh (no year filter)
+ayne tmdb refresh --limit 1000
+ayne omdb refresh --limit 500
+
+# Or with collect command
+ayne collect full --refresh-limit 1000 --max-omdb 500
+```
+
+### Working Around TMDB 500-Page Limit
+
+Strategy to collect large datasets:
+
+```bash
+# Collect by decade
+ayne tmdb update --min-year 2020 --max-year 2029 --full
+ayne tmdb update --min-year 2010 --max-year 2019 --full
+ayne tmdb update --min-year 2000 --max-year 2009 --full
+
+# Or by 5-year periods
+ayne tmdb update --min-year 2020 --max-year 2024 --max-movies 5000
+ayne tmdb update --min-year 2015 --max-year 2019 --max-movies 5000
+
+# Then enrich all discoveries
+ayne tmdb enrich --limit 10000
+```
+
+### Targeted Updates
+
+Update specific subsets:
+
+```bash
+# Recent popular movies only
+ayne tmdb update --min-year 2023 --min-popularity 50 --max-movies 1000
+ayne tmdb enrich --min-year 2023 --limit 1000
+
+# High-quality movies (high vote counts)
+ayne tmdb update --min-year 2020 --min-votes 1000 --max-movies 2000
+
+# Specific year analysis
+ayne tmdb update --min-year 2023 --max-year 2023 --max-movies 1000
+ayne tmdb enrich --min-year 2023 --max-year 2023 --limit 1000
+ayne omdb enrich --min-year 2023 --max-year 2023 --max-movies 1000
 ```
 
 ## Collection Workflows

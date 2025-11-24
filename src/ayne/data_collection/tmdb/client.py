@@ -92,6 +92,7 @@ class TMDBClient:
         min_popularity: float = 10.0,
         min_vote_count: int = 50,
         min_release_year: int = 1950,
+        max_release_year: Optional[int] = None,
         allowed_statuses: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """Fetch a single page of discovered movies with advanced filters.
@@ -101,6 +102,7 @@ class TMDBClient:
             min_popularity: Minimum popularity score
             min_vote_count: Minimum vote count filter
             min_release_year: Minimum release year
+            max_release_year: Maximum release year (None = no upper limit)
             allowed_statuses: Allowed release statuses (if None, not filtered)
 
         Returns:
@@ -117,6 +119,9 @@ class TMDBClient:
             "page": page,
         }
 
+        if max_release_year:
+            params["primary_release_date.lte"] = f"{max_release_year}-12-31"
+
         response = await self._request(endpoint, params)
         movies = response.get("results", [])
 
@@ -130,6 +135,7 @@ class TMDBClient:
         min_popularity: float = 10.0,
         min_vote_count: int = 50,
         min_release_year: int = 1950,
+        max_release_year: Optional[int] = None,
         allowed_statuses: Optional[List[str]] = None,
         max_pages: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
@@ -140,16 +146,21 @@ class TMDBClient:
             min_popularity: Minimum popularity score
             min_vote_count: Minimum vote count filter
             min_release_year: Minimum release year
+            max_release_year: Maximum release year (None = no upper limit)
             allowed_statuses: Allowed release statuses (filtering happens at detail fetch)
             max_pages: Maximum pages to fetch (overrides max_movies if set)
 
         Returns:
             List of normalized movie dictionaries
         """
+        year_filter = f"year>={min_release_year}"
+        if max_release_year:
+            year_filter += f"-{max_release_year}"
+
         logger.info(
             f"Discovering TMDB movies with filters: "
             f"popularity>={min_popularity}, votes>={min_vote_count}, "
-            f"year>={min_release_year}, max_movies={max_movies or 'unlimited'}"
+            f"{year_filter}, max_movies={max_movies or 'unlimited'}"
         )
 
         all_movies = []
@@ -160,6 +171,7 @@ class TMDBClient:
             min_popularity=min_popularity,
             min_vote_count=min_vote_count,
             min_release_year=min_release_year,
+            max_release_year=max_release_year,
             allowed_statuses=allowed_statuses,
         )
 
@@ -174,6 +186,9 @@ class TMDBClient:
             "include_video": "false",
             "page": 1,
         }
+
+        if max_release_year:
+            params["primary_release_date.lte"] = f"{max_release_year}-12-31"
         response = await self._request(endpoint, params)
         total_pages = response.get("total_pages", 1)
         total_results = response.get("total_results", 0)
@@ -182,15 +197,28 @@ class TMDBClient:
 
         all_movies.extend(first_page)
 
+        # TMDB has a hard limit of 500 pages for discover endpoint
+        TMDB_MAX_PAGES = 500
+
         # Calculate how many pages we need
         if max_pages:
-            pages_to_fetch = min(total_pages, max_pages)
+            pages_to_fetch = min(total_pages, max_pages, TMDB_MAX_PAGES)
         elif max_movies:
             # TMDB returns 20 results per page typically
             pages_needed = (max_movies + 19) // 20  # Round up
-            pages_to_fetch = min(total_pages, pages_needed)
+            pages_to_fetch = min(total_pages, pages_needed, TMDB_MAX_PAGES)
         else:
-            pages_to_fetch = total_pages
+            pages_to_fetch = min(total_pages, TMDB_MAX_PAGES)
+
+        # Warn user if we're hitting the limit
+        if pages_to_fetch == TMDB_MAX_PAGES and total_pages > TMDB_MAX_PAGES:
+            max_retrievable = TMDB_MAX_PAGES * 20
+            logger.warning(
+                f"TMDB API limit: Can only fetch first {TMDB_MAX_PAGES} pages "
+                f"({max_retrievable:,} movies max). Total available: {total_results:,}. "
+                f"Use more restrictive filters (--min-popularity, --min-votes, --min-year) "
+                f"to get different results."
+            )
 
         logger.info(f"Fetching {pages_to_fetch} pages")
 
@@ -202,6 +230,7 @@ class TMDBClient:
                     min_popularity=min_popularity,
                     min_vote_count=min_vote_count,
                     min_release_year=min_release_year,
+                    max_release_year=max_release_year,
                     allowed_statuses=allowed_statuses,
                 )
                 for page in range(2, pages_to_fetch + 1)

@@ -125,6 +125,42 @@ git commit --no-verify -m "Your message"
 
 **Warning**: Skipping hooks means issues will be caught in CI/CD instead.
 
+### Disable/Enable Hooks
+
+If you need to temporarily or permanently disable pre-commit hooks:
+
+**Disable hooks** (removes git hook):
+
+```powershell
+uv run pre-commit uninstall
+```
+
+After uninstalling, commits will proceed without running any hooks.
+
+**Re-enable hooks** (reinstalls git hook):
+
+```powershell
+uv run pre-commit install
+```
+
+**Use cases for disabling:**
+
+- Working on a large refactoring where you want to commit in stages
+- Running formatters/linters manually before committing
+- Troubleshooting hook issues
+- Temporarily bypassing slow hooks during rapid iteration
+
+**Note**: Even with hooks disabled, it's best practice to run formatters and linters manually before committing:
+
+```powershell
+# Run all formatters and linters manually
+uv run ruff format src tests
+uv run ruff check --fix src tests
+uv run mypy src
+uv run bandit -r src -c pyproject.toml
+uv run pymarkdownlnt scan docs
+```
+
 ## Common Issues
 
 ### Hook Fails on Commit

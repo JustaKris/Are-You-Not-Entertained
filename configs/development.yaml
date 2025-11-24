@@ -32,15 +32,15 @@ random_seed: 42
 
 # Data Collection Settings
 # TMDB Collection Limits
-tmdb_max_movies:       # null = unlimited
+tmdb_max_movies:           # null = unlimited (up to 500-page API limit ~10,000 movies)
 
 # OMDB Collection Limits
-omdb_max_movies: 100  # OMDB has a 1000 request/day limit
+omdb_max_movies: 1000  # OMDB has a 1000 request/day limit
 
 # TMDB Filtering Settings
 tmdb_min_popularity: 10.0
 tmdb_min_vote_count: 50
-tmdb_min_release_year: 2024
+tmdb_min_release_year: 1950  # Changed from 2024 to allow broader collection
 tmdb_allowed_release_statuses:
 - Released
 - Post Production
