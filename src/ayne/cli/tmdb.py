@@ -202,8 +202,8 @@ def enrich_tmdb(
         ayne tmdb enrich --min-year 2023 --max-movies 100
         ayne tmdb enrich --dry-run
     """
-    # Resolve max_movies (prefer max_movies, fallback to limit, then default)
-    enrich_limit = max_movies or limit or 100
+    # Resolve max_movies (prefer max_movies, fallback to limit, then config setting)
+    enrich_limit = max_movies or limit or getattr(settings, "tmdb_max_movies", None)
 
     # Use settings defaults for year filters if not provided
     min_year = min_year or getattr(settings, "tmdb_min_release_year", None)
@@ -215,7 +215,10 @@ def enrich_tmdb(
         console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]\n")
 
     console.print("[bold]Configuration:[/bold]")
-    console.print(f"  Enrich Limit: {enrich_limit:,} movies")
+    if enrich_limit is not None:
+        console.print(f"  Enrich Limit: {enrich_limit:,} movies")
+    else:
+        console.print("  Enrich Limit: No limit (all matching movies)")
     console.print(f"  Min Year: {min_year or 'No limit'}")
     console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print()
@@ -241,7 +244,10 @@ def enrich_tmdb(
             if max_year:
                 query += f" AND m.release_date <= '{max_year}-12-31'"
 
-            query += f" ORDER BY m.last_tmdb_update DESC LIMIT {enrich_limit}"
+            if enrich_limit is not None:
+                query += f" ORDER BY m.last_tmdb_update DESC LIMIT {enrich_limit}"
+            else:
+                query += " ORDER BY m.last_tmdb_update DESC"
 
             candidates = db.query(query)
 
@@ -270,7 +276,12 @@ def enrich_tmdb(
                 TextColumn("[progress.description]{task.description}"),
                 console=console,
             ) as progress:
-                task = progress.add_task(f"Enriching up to {enrich_limit:,} movies...", total=None)
+                if enrich_limit is not None:
+                    task = progress.add_task(
+                        f"Enriching up to {enrich_limit:,} movies...", total=None
+                    )
+                else:
+                    task = progress.add_task("Enriching movies (no limit)...", total=None)
 
                 enriched = await orchestrator.enrich_tmdb_details(
                     limit=enrich_limit,

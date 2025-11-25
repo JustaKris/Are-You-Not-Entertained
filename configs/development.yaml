@@ -5,57 +5,72 @@
 # Sensitive data (API keys, passwords) should be in .env file.
 # =============================================================================
 
+# =============================================================================
 # Application Settings
+# =============================================================================
 app_name: Are You Not Entertained
 environment: development
 debug: true
+random_seed: 42
 
-# Logging
+# =============================================================================
+# Logging Configuration
+# =============================================================================
 log_level: INFO
 use_json_logging: false
 
+# =============================================================================
 # Database Configuration
+# =============================================================================
 database:
   type: duckdb
   path: data/db/movies.duckdb
   read_only: false
 
-# API Configuration
+# =============================================================================
+# TMDB (The Movie Database) Configuration
+# =============================================================================
 tmdb_api_base_url: https://api.themoviedb.org/3
-omdb_api_base_url: http://www.omdbapi.com
-api_rate_limit: 40
-api_timeout: 30
 
-# Data Processing
-random_seed: 42
+# Collection Settings
+tmdb_max_movies: null  # null = unlimited, number = max movies to collect per run
 
-# Data Collection Settings
-# TMDB Collection Limits
-tmdb_max_movies: null  # null = unlimited (up to 500-page API limit ~10,000 movies)
-
-# OMDB Collection Limits
-omdb_max_movies: 1000  # OMDB has a 1000 request/day limit on free tier
-
-# TMDB Filtering Settings
-tmdb_min_popularity: 10.0
-tmdb_min_vote_count: 50
-tmdb_min_release_year: 1950
-tmdb_max_release_year: null  # null = current year (automatic year-range splitting handles 500-page limit)
+# Filtering Settings
+tmdb_min_popularity: 10.0       # Minimum popularity score (0-100+)
+tmdb_min_vote_count: 50         # Minimum number of votes required
+tmdb_min_release_year: 1950     # Earliest year to collect
+tmdb_max_release_year: null     # Latest year (null = current year)
 tmdb_allowed_release_statuses:
-- Released
-- Post Production
-- In Production
+  - Released
+  - Post Production
+  - In Production
 
-# OMDB Filtering Settings
-omdb_min_release_year: 1950  # null = no limit
-omdb_max_release_year: 2025  # null = no limit
+# =============================================================================
+# OMDB (Open Movie Database) Configuration
+# =============================================================================
+omdb_api_base_url: http://www.omdbapi.com
 
-# FastAPI Server
+# Collection Settings
+omdb_max_movies: 1000  # OMDB free tier has 1000 request/day limit
+
+# Filtering Settings
+omdb_min_release_year: 1950  # Earliest year (null = no limit)
+omdb_max_release_year: 2025  # Latest year (null = no limit)
+
+# =============================================================================
+# API Rate Limiting
+# =============================================================================
+api_rate_limit: 40  # Requests per second across all APIs
+api_timeout: 30     # Request timeout in seconds
+
+# =============================================================================
+# FastAPI Server Configuration
+# =============================================================================
 host: 127.0.0.1
 port: 8000
 reload: true
 cors_origins:
-- http://localhost:3000
-- http://localhost:8000
-- http://127.0.0.1:3000
-- http://127.0.0.1:8000
+  - http://localhost:3000
+  - http://localhost:8000
+  - http://127.0.0.1:3000
+  - http://127.0.0.1:8000
