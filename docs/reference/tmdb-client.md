@@ -90,14 +90,32 @@ client = TMDBClient(
 # Discover movies for single year
 movies = await client.discover_movies(start_year=2024)
 
-# Discover movies for year range
+# Discover movies for year range (automatic splitting if >500 pages)
 movies = await client.discover_movies(
     start_year=2020,
     end_year=2024,
     min_vote_count=500,  # Higher threshold
-    max_pages=10         # Limit pages per year
+    max_pages=10         # Limit pages per year range
+)
+
+# Wide year range - automatic splitting handles TMDB's 500-page limit
+movies = await client.discover_movies(
+    start_year=1950,
+    end_year=2024,  # Automatically splits if needed
+    min_vote_count=50
 )
 ```
+
+### Automatic Year-Range Splitting
+
+The TMDB discover endpoint has a 500-page limit (max 10,000 movies per request). The client now **automatically handles this** by recursively splitting year ranges when needed:
+
+- **No manual intervention required** - Just specify your desired year range
+- **Transparent operation** - Logging shows when/how ranges are split
+- **Complete data coverage** - All movies retrieved, not just first 10,000
+- **Smart deduplication** - Removes any boundary overlaps
+
+Example: Requesting 1950-2024 with low filters might return 50,000+ movies. The client automatically splits this into smaller ranges (e.g., 1950-1987, 1988-2024), recursively splitting further if needed.
 
 ### Fetch Movie Details
 

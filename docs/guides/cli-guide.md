@@ -137,14 +137,16 @@ ayne tmdb update --max-movies 1000 --dry-run
 
 **Options:**
 
-- `--full` - Unlimited discovery up to TMDB's 500-page limit (~10,000 movies)
+- `--full` - Unlimited discovery (automatic year-range splitting handles 500-page limit)
 - `--max-movies N` - Limit to N movies
 - `--min-popularity N` - Minimum popularity score (default: 10.0)
 - `--min-votes N` - Minimum vote count (default: 50)
 - `--min-year YYYY` - Minimum release year (default: 1950)
-- `--max-year YYYY` - Maximum release year (no upper limit by default)
-- `--max-pages N` - Maximum API pages to fetch (max: 500)
+- `--max-year YYYY` - Maximum release year (default: current year)
+- `--max-pages N` - Maximum API pages per year range
 - `--dry-run` - Preview without making changes
+
+**Note:** The system now automatically handles TMDB's 500-page limit by recursively splitting year ranges. You can safely specify wide ranges without manual adjustment.
 
 ### Enrich Movies with Details
 

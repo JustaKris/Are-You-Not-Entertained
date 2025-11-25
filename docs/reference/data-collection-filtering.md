@@ -78,17 +78,26 @@ tmdb_min_vote_count: 50  # Only movies with 50+ votes
 
 ### 3. Release Year Filter
 
-**Setting:** `tmdb_min_release_year`
-**Type:** Integer
-**Default:** `1950`
+**Settings:**
 
-Minimum release year for movie collection. Filters out older movies that may have incomplete data or be less relevant.
+- `tmdb_min_release_year` (integer)
+- `tmdb_max_release_year` (integer or null)
+
+**Defaults:**
+
+- Min: `1950`
+- Max: `null` (current year)
+
+Minimum and maximum release years for movie collection. Filters out movies outside the specified range.
 
 **Example:**
 
 ```yaml
-tmdb_min_release_year: 1950  # Only movies from 1950 onwards
+tmdb_min_release_year: 1950
+tmdb_max_release_year:       # null = current year (recommended)
 ```
+
+**Note:** The system now includes **automatic year-range splitting** that handles TMDB's 500-page limit. You can safely request wide year ranges (e.g., 1950-2024) without manual adjustment - the client will automatically split the request as needed.
 
 ### 4. Release Status Filter
 
@@ -149,6 +158,24 @@ Maximum number of movies to collect from OMDB per run. OMDB has a daily limit of
 omdb_max_movies: 1000  # Respect OMDB's daily limit
 ```
 
+### 6. OMDB Year Filtering
+
+**Settings:**
+
+- `omdb_min_release_year` (integer or null)
+- `omdb_max_release_year` (integer or null)
+
+**Defaults:** `null` (no limit)
+
+Optional year range filters for OMDB enrichment. Useful for focusing OMDB quota on specific time periods.
+
+**Example:**
+
+```yaml
+omdb_min_release_year: 2020  # Only enrich recent movies
+omdb_max_release_year:       # null = no upper limit
+```
+
 ## Configuration Files
 
 ### Development Configuration
@@ -167,10 +194,15 @@ omdb_max_movies: 1000  # OMDB has a 1000 request/day limit
 tmdb_min_popularity: 10.0
 tmdb_min_vote_count: 50
 tmdb_min_release_year: 1950
+tmdb_max_release_year:       # null = current year (auto-split handles 500-page limit)
 tmdb_allowed_release_statuses:
   - Released
   - Post Production
   - In Production
+
+# OMDB Filtering Settings
+omdb_min_release_year:       # null = no limit
+omdb_max_release_year:       # null = no limit
 ```
 
 ### Staging Configuration
@@ -249,7 +281,7 @@ python scripts/collect_optimized.py \
 |----------|------|-------------|
 | `--discover` | flag | Enable movie discovery (off by default) |
 | `--max-movies` | int | Maximum movies to discover |
-| `--max-pages` | int | Maximum pages to fetch during discovery |
+| `--max-pages` | int | Maximum pages per year range during discovery |
 | `--min-popularity` | float | Minimum TMDB popularity score |
 | `--min-votes` | int | Minimum vote count |
 | `--min-year` | int | Minimum release year |

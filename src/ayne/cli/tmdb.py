@@ -93,8 +93,10 @@ def update_tmdb(
     console.print(f"  Min Popularity: {min_popularity or settings.tmdb_min_popularity}")
     console.print(f"  Min Votes: {min_votes or settings.tmdb_min_vote_count}")
     console.print(f"  Min Year: {min_year or settings.tmdb_min_release_year}")
-    console.print(f"  Max Year: {max_year or 'No limit'}")
-    console.print(f"  Max Pages: {max_pages or 'Unlimited (capped at 500)'}")
+    console.print(
+        f"  Max Year: {max_year or getattr(settings, 'tmdb_max_release_year', None) or 'Current year'}"
+    )
+    console.print(f"  Max Pages: {max_pages or 'Unlimited (auto-splits if >500)'}")
     console.print()
 
     logger.info(
@@ -125,7 +127,7 @@ def update_tmdb(
                     min_popularity=min_popularity,
                     min_vote_count=min_votes,
                     min_release_year=min_year,
-                    max_release_year=max_year,
+                    max_release_year=max_year or getattr(settings, "tmdb_max_release_year", None),
                     max_pages=max_pages,
                 )
 
@@ -202,6 +204,11 @@ def enrich_tmdb(
     """
     # Resolve max_movies (prefer max_movies, fallback to limit, then default)
     enrich_limit = max_movies or limit or 100
+
+    # Use settings defaults for year filters if not provided
+    min_year = min_year or getattr(settings, "tmdb_min_release_year", None)
+    max_year = max_year or getattr(settings, "tmdb_max_release_year", None)
+
     console.print("[bold cyan]TMDB Enrichment[/bold cyan]\n")
 
     if dry_run:
@@ -209,10 +216,8 @@ def enrich_tmdb(
 
     console.print("[bold]Configuration:[/bold]")
     console.print(f"  Enrich Limit: {enrich_limit:,} movies")
-    if min_year:
-        console.print(f"  Min Year: {min_year}")
-    if max_year:
-        console.print(f"  Max Year: {max_year}")
+    console.print(f"  Min Year: {min_year or 'No limit'}")
+    console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print()
 
     logger.info(
@@ -343,12 +348,14 @@ def refresh_tmdb(
     if dry_run:
         console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]\n")
 
+    # Use settings defaults for year filters if not provided
+    min_year = min_year or getattr(settings, "tmdb_min_release_year", None)
+    max_year = max_year or getattr(settings, "tmdb_max_release_year", None)
+
     console.print("[bold]Configuration:[/bold]")
     console.print(f"  Refresh Limit: {limit:,} movies")
-    if min_year:
-        console.print(f"  Min Year: {min_year}")
-    if max_year:
-        console.print(f"  Max Year: {max_year}")
+    console.print(f"  Min Year: {min_year or 'No limit'}")
+    console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print()
 
     logger.info(

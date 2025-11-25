@@ -27,24 +27,28 @@ api_rate_limit: 40
 api_timeout: 30
 
 # Data Processing
-batch_size: 100
 random_seed: 42
 
 # Data Collection Settings
 # TMDB Collection Limits
-tmdb_max_movies:           # null = unlimited (up to 500-page API limit ~10,000 movies)
+tmdb_max_movies: null  # null = unlimited (up to 500-page API limit ~10,000 movies)
 
 # OMDB Collection Limits
-omdb_max_movies: 1000  # OMDB has a 1000 request/day limit
+omdb_max_movies: 1000  # OMDB has a 1000 request/day limit on free tier
 
 # TMDB Filtering Settings
 tmdb_min_popularity: 10.0
 tmdb_min_vote_count: 50
-tmdb_min_release_year: 1950  # Changed from 2024 to allow broader collection
+tmdb_min_release_year: 1950
+tmdb_max_release_year: null  # null = current year (automatic year-range splitting handles 500-page limit)
 tmdb_allowed_release_statuses:
 - Released
 - Post Production
 - In Production
+
+# OMDB Filtering Settings
+omdb_min_release_year: 1950  # null = no limit
+omdb_max_release_year: 2025  # null = no limit
 
 # FastAPI Server
 host: 127.0.0.1

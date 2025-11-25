@@ -129,6 +129,162 @@ class TMDBClient:
         # Status filtering will be done when fetching full details
         return normalize_discover_results(movies)
 
+    async def _discover_movies_for_year_range(
+        self,
+        min_release_year: int,
+        max_release_year: Optional[int],
+        min_popularity: float,
+        min_vote_count: int,
+        allowed_statuses: Optional[List[str]],
+        max_pages: Optional[int],
+    ) -> List[Dict[str, Any]]:
+        """Discover movies for a specific year range, with automatic splitting if needed.
+
+        This method recursively splits year ranges when the TMDB 500-page limit is hit,
+        ensuring complete data coverage without manual intervention.
+
+        Args:
+            min_release_year: Minimum release year
+            max_release_year: Maximum release year (None = current year)
+            min_popularity: Minimum popularity score
+            min_vote_count: Minimum vote count filter
+            allowed_statuses: Allowed release statuses
+            max_pages: Maximum pages to fetch (user-specified limit)
+
+        Returns:
+            List of normalized movie dictionaries
+        """
+        from datetime import datetime
+
+        TMDB_MAX_PAGES = 500
+
+        # Default max_release_year to current year if not specified
+        if max_release_year is None:
+            max_release_year = datetime.now().year
+
+        # Check if this is a single year (can't split further)
+        if min_release_year >= max_release_year:
+            # Single year - fetch what we can
+            year_str = f"{min_release_year}"
+            logger.info(f"Fetching movies for year: {year_str}")
+
+            endpoint = "discover/movie"
+            params = {
+                "popularity.gte": min_popularity,
+                "vote_count.gte": min_vote_count,
+                "primary_release_date.gte": f"{min_release_year}-01-01",
+                "primary_release_date.lte": f"{max_release_year}-12-31",
+                "sort_by": "popularity.desc",
+                "include_adult": "false",
+                "include_video": "false",
+                "page": 1,
+            }
+
+            response = await self._request(endpoint, params)
+            total_pages = response.get("total_pages", 1)
+
+            if total_pages > TMDB_MAX_PAGES:
+                logger.warning(
+                    f"Year {year_str} has {total_pages} pages (>{TMDB_MAX_PAGES}). "
+                    f"Only first {TMDB_MAX_PAGES} pages will be fetched. "
+                    f"Consider using stricter filters (--min-popularity, --min-votes)."
+                )
+
+            pages_to_fetch = min(total_pages, max_pages or TMDB_MAX_PAGES, TMDB_MAX_PAGES)
+        else:
+            # Multi-year range - check if we need to split
+            endpoint = "discover/movie"
+            params = {
+                "popularity.gte": min_popularity,
+                "vote_count.gte": min_vote_count,
+                "primary_release_date.gte": f"{min_release_year}-01-01",
+                "primary_release_date.lte": f"{max_release_year}-12-31",
+                "sort_by": "popularity.desc",
+                "include_adult": "false",
+                "include_video": "false",
+                "page": 1,
+            }
+
+            response = await self._request(endpoint, params)
+            total_pages = response.get("total_pages", 1)
+
+            # If we exceed the limit and can split, do so recursively
+            if total_pages > TMDB_MAX_PAGES and min_release_year < max_release_year:
+                mid_year = (min_release_year + max_release_year) // 2
+
+                logger.info(
+                    f"Year range {min_release_year}-{max_release_year} has {total_pages} pages "
+                    f"(>{TMDB_MAX_PAGES}). Splitting into two ranges: "
+                    f"{min_release_year}-{mid_year} and {mid_year + 1}-{max_release_year}"
+                )
+
+                # Recursively fetch both halves
+                first_half = await self._discover_movies_for_year_range(
+                    min_release_year=min_release_year,
+                    max_release_year=mid_year,
+                    min_popularity=min_popularity,
+                    min_vote_count=min_vote_count,
+                    allowed_statuses=allowed_statuses,
+                    max_pages=max_pages,
+                )
+
+                second_half = await self._discover_movies_for_year_range(
+                    min_release_year=mid_year + 1,
+                    max_release_year=max_release_year,
+                    min_popularity=min_popularity,
+                    min_vote_count=min_vote_count,
+                    allowed_statuses=allowed_statuses,
+                    max_pages=max_pages,
+                )
+
+                # Combine results
+                all_movies = first_half + second_half
+
+                # Deduplicate by tmdb_id (in case of boundary overlaps)
+                seen_ids = set()
+                unique_movies = []
+                for movie in all_movies:
+                    tmdb_id = movie.get("tmdb_id")
+                    if tmdb_id not in seen_ids:
+                        seen_ids.add(tmdb_id)
+                        unique_movies.append(movie)
+
+                if len(all_movies) != len(unique_movies):
+                    logger.debug(
+                        f"Removed {len(all_movies) - len(unique_movies)} duplicate movies "
+                        f"from year range split"
+                    )
+
+                return unique_movies
+
+            # No split needed
+            pages_to_fetch = min(total_pages, max_pages or TMDB_MAX_PAGES, TMDB_MAX_PAGES)
+
+        # Fetch all pages for this range
+        all_movies = []
+
+        tasks = [
+            self.discover_movies_page(
+                page=page,
+                min_popularity=min_popularity,
+                min_vote_count=min_vote_count,
+                min_release_year=min_release_year,
+                max_release_year=max_release_year,
+                allowed_statuses=allowed_statuses,
+            )
+            for page in range(1, pages_to_fetch + 1)
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Failed to fetch page: {result}")
+            elif isinstance(result, list):
+                all_movies.extend(result)
+
+        return all_movies
+
     async def discover_movies(
         self,
         max_movies: Optional[int] = None,
@@ -141,14 +297,17 @@ class TMDBClient:
     ) -> List[Dict[str, Any]]:
         """Discover movies with advanced filtering using TMDB discover endpoint.
 
+        This method automatically handles the TMDB 500-page limit by recursively
+        splitting year ranges when needed, ensuring complete data coverage.
+
         Args:
             max_movies: Maximum number of movies to fetch (None = unlimited)
             min_popularity: Minimum popularity score
             min_vote_count: Minimum vote count filter
             min_release_year: Minimum release year
-            max_release_year: Maximum release year (None = no upper limit)
+            max_release_year: Maximum release year (None = current year)
             allowed_statuses: Allowed release statuses (filtering happens at detail fetch)
-            max_pages: Maximum pages to fetch (overrides max_movies if set)
+            max_pages: Maximum pages to fetch per year range (overrides max_movies if set)
 
         Returns:
             List of normalized movie dictionaries
@@ -156,6 +315,8 @@ class TMDBClient:
         year_filter = f"year>={min_release_year}"
         if max_release_year:
             year_filter += f"-{max_release_year}"
+        else:
+            year_filter += "-present"
 
         logger.info(
             f"Discovering TMDB movies with filters: "
@@ -163,91 +324,15 @@ class TMDBClient:
             f"{year_filter}, max_movies={max_movies or 'unlimited'}"
         )
 
-        all_movies = []
-
-        # Get first page to determine total available
-        first_page = await self.discover_movies_page(
-            page=1,
-            min_popularity=min_popularity,
-            min_vote_count=min_vote_count,
+        # Use the new recursive method to handle year range splitting
+        all_movies = await self._discover_movies_for_year_range(
             min_release_year=min_release_year,
             max_release_year=max_release_year,
+            min_popularity=min_popularity,
+            min_vote_count=min_vote_count,
             allowed_statuses=allowed_statuses,
+            max_pages=max_pages,
         )
-
-        # Fetch first page metadata to get total
-        endpoint = "discover/movie"
-        params = {
-            "popularity.gte": min_popularity,
-            "vote_count.gte": min_vote_count,
-            "primary_release_date.gte": f"{min_release_year}-01-01",
-            "sort_by": "popularity.desc",
-            "include_adult": "false",
-            "include_video": "false",
-            "page": 1,
-        }
-
-        if max_release_year:
-            params["primary_release_date.lte"] = f"{max_release_year}-12-31"
-        response = await self._request(endpoint, params)
-        total_pages = response.get("total_pages", 1)
-        total_results = response.get("total_results", 0)
-
-        logger.info(f"Found {total_results} total results across {total_pages} pages")
-
-        all_movies.extend(first_page)
-
-        # TMDB has a hard limit of 500 pages for discover endpoint
-        TMDB_MAX_PAGES = 500
-
-        # Calculate how many pages we need
-        if max_pages:
-            pages_to_fetch = min(total_pages, max_pages, TMDB_MAX_PAGES)
-        elif max_movies:
-            # TMDB returns 20 results per page typically
-            pages_needed = (max_movies + 19) // 20  # Round up
-            pages_to_fetch = min(total_pages, pages_needed, TMDB_MAX_PAGES)
-        else:
-            pages_to_fetch = min(total_pages, TMDB_MAX_PAGES)
-
-        # Warn user if we're hitting the limit
-        if pages_to_fetch == TMDB_MAX_PAGES and total_pages > TMDB_MAX_PAGES:
-            max_retrievable = TMDB_MAX_PAGES * 20
-            logger.warning(
-                f"TMDB API limit: Can only fetch first {TMDB_MAX_PAGES} pages "
-                f"({max_retrievable:,} movies max). Total available: {total_results:,}. "
-                f"Use more restrictive filters (--min-popularity, --min-votes, --min-year) "
-                f"to get different results."
-            )
-
-        logger.info(f"Fetching {pages_to_fetch} pages")
-
-        # Fetch remaining pages concurrently
-        if pages_to_fetch > 1:
-            tasks = [
-                self.discover_movies_page(
-                    page=page,
-                    min_popularity=min_popularity,
-                    min_vote_count=min_vote_count,
-                    min_release_year=min_release_year,
-                    max_release_year=max_release_year,
-                    allowed_statuses=allowed_statuses,
-                )
-                for page in range(2, pages_to_fetch + 1)
-            ]
-
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-
-            # Collect results
-            for result in results:
-                if isinstance(result, Exception):
-                    logger.error(f"Failed to fetch page: {result}")
-                elif isinstance(result, list):
-                    all_movies.extend(result)
-                else:
-                    logger.error(
-                        f"Unexpected result type {type(result)} while fetching pages: {result}"
-                    )
 
         # Trim to max_movies if specified
         if max_movies and len(all_movies) > max_movies:

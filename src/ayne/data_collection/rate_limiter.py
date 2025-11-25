@@ -99,6 +99,7 @@ async def retry_with_backoff(
 
     Raises:
         Last exception if all retries fail
+        httpx.HTTPStatusError: Immediately if 401 (quota exceeded, not retryable)
     """
     last_exception = None
 
@@ -106,9 +107,22 @@ async def retry_with_backoff(
         try:
             return await func()
         except exceptions as e:
+            # Check if it's our internal quota check (not a real API error)
+            if isinstance(e, httpx.HTTPStatusError) and "[Quota Check]" in str(e):
+                # Don't log warnings for our internal quota checks
+                raise
+
+            # Check if it's a 401 Unauthorized (API quota exceeded)
+            # Don't retry these - they won't succeed until quota resets
+            if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 401:
+                logger.warning(
+                    "API quota exceeded (401 Unauthorized) - daily limit reached, not retrying"
+                )
+                raise  # Propagate immediately, don't retry
+
             last_exception = e
 
-            # Check if it's a rate limit error
+            # Check if it's a rate limit error (429)
             if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 429:
                 wait_time = min(base_delay * (2**attempt), max_delay)
                 logger.warning(

@@ -5,6 +5,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ayne.core.config import settings
+from ayne.core.exceptions import DatabaseLockedError
 from ayne.core.logging import configure_logging, get_logger
 from ayne.database.duckdb_client import DuckDBClient
 
@@ -80,6 +81,11 @@ def init_database(
         db.close()
         console.print("\n[green]✓[/green] Database initialized successfully!")
 
+    except DatabaseLockedError as e:
+        console.print("[red]✗ Database Locked Error[/red]\n")
+        console.print(f"[yellow]{e}[/yellow]")
+        logger.error(f"Database locked: {e}")
+        raise typer.Exit(code=1)
     except Exception as e:
         console.print(f"[red]✗ Error:[/red] {e}")
         logger.error(f"Database initialization failed: {e}", exc_info=True)
@@ -182,6 +188,11 @@ def test_database(
         db.close()
         console.print("\n[green]✓ All tests passed![/green]")
 
+    except DatabaseLockedError as e:
+        console.print("\n[red]✗ Database Locked Error[/red]\n")
+        console.print(f"[yellow]{e}[/yellow]")
+        logger.error(f"Database locked: {e}")
+        raise typer.Exit(code=1)
     except Exception as e:
         console.print(f"\n[red]✗ Test failed:[/red] {e}")
         logger.error(f"Database test failed: {e}", exc_info=True)
@@ -231,6 +242,11 @@ def show_stats():
 
         db.close()
 
+    except DatabaseLockedError as e:
+        console.print("[red]✗ Database Locked Error[/red]\n")
+        console.print(f"[yellow]{e}[/yellow]")
+        logger.error(f"Database locked: {e}")
+        raise typer.Exit(code=1)
     except Exception as e:
         console.print(f"[red]✗ Error:[/red] {e}")
         logger.error(f"Failed to get stats: {e}", exc_info=True)

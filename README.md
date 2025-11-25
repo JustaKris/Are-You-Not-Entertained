@@ -98,15 +98,14 @@ Collect movie data with the CLI:
 # Discover new movies from TMDB (basic info, fast)
 ayne tmdb update --max-movies 1000 --min-year 2020 --max-year 2024
 
-# Work around TMDB's 500-page limit with year ranges
-ayne tmdb update --min-year 2020 --max-year 2024 --max-movies 5000
-ayne tmdb update --min-year 2015 --max-year 2019 --max-movies 5000
+# Wide year ranges work automatically (auto-splits if >500 pages)
+ayne tmdb update --min-year 1950 --max-year 2024  # Handles 500-page limit automatically
 
 # Enrich discovered movies with detailed TMDB data (slower, complete data)
 ayne tmdb enrich --limit 500 --min-year 2020
 
 # Enrich with OMDB data (ratings, box office, awards)
-ayne omdb enrich --max-movies 500 --min-year 2020
+ayne omdb enrich --max-movies 250 --min-year 2020
 
 # Daily updates: refresh recent releases only
 ayne tmdb refresh --min-year 2024 --limit 50
@@ -129,7 +128,8 @@ ayne collect full --max-tmdb 5000 --max-omdb 1000
 
 **Features**:
 
-- Year filtering (`--min-year`, `--max-year`) to work around API limits
+- **Automatic year-range splitting** - Handles TMDB's 500-page limit transparently
+- Year filtering (`--min-year`, `--max-year`) for targeted collection
 - Age-based refresh intervals (5-180 days based on movie age)
 - Concurrent API calls with rate limiting
 - Automatic data freezing for stable movies

@@ -231,7 +231,7 @@ Schedule with Task Scheduler to run daily.
 |----------|------|---------|-------------|
 | `--discover` | flag | Off | Enable movie discovery |
 | `--max-movies` | int | Config | Maximum movies to discover |
-| `--max-pages` | int | None | Maximum pages to fetch |
+| `--max-pages` | int | None | Maximum pages per year range (auto-splits if needed) |
 | `--min-popularity` | float | Config | Minimum popularity score |
 | `--min-votes` | int | Config | Minimum vote count |
 | `--min-year` | int | Config | Minimum release year |

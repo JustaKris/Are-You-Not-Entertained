@@ -130,8 +130,6 @@ class Settings(BaseSettings):
     # Data Processing Settings
     # ============================================================
 
-    batch_size: int = Field(default=100, description="Batch size for data processing")
-
     random_seed: int = Field(default=42, description="Random seed for reproducibility")
 
     # ============================================================
@@ -163,9 +161,22 @@ class Settings(BaseSettings):
         default=1950, description="Minimum release year for movie collection"
     )
 
+    tmdb_max_release_year: Optional[int] = Field(
+        default=None, description="Maximum release year for movie collection (None = current year)"
+    )
+
     tmdb_allowed_release_statuses: list[str] = Field(
         default=["Released", "Post Production", "In Production"],
         description="Allowed release statuses for movie collection",
+    )
+
+    # OMDB Filtering Settings
+    omdb_min_release_year: Optional[int] = Field(
+        default=None, description="Minimum release year for OMDB enrichment (None = no limit)"
+    )
+
+    omdb_max_release_year: Optional[int] = Field(
+        default=None, description="Maximum release year for OMDB enrichment (None = no limit)"
     )
 
     # ============================================================

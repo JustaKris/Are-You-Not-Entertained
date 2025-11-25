@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ayne.core.config import settings
+from ayne.core.exceptions import APIRateLimitExceeded
 from ayne.core.logging import configure_logging, get_logger
 from ayne.data_collection.orchestrator import DataCollectionOrchestrator
 from ayne.database.duckdb_client import DuckDBClient
@@ -61,12 +62,14 @@ def enrich_omdb(
 
     max_movies = max_movies or settings.omdb_max_movies
 
+    # Use settings defaults for year filters if not provided
+    min_year = min_year or getattr(settings, "omdb_min_release_year", None)
+    max_year = max_year or getattr(settings, "omdb_max_release_year", None)
+
     console.print("[bold]Configuration:[/bold]")
     console.print(f"  Max Movies: {max_movies:,}")
-    if min_year:
-        console.print(f"  Min Year: {min_year}")
-    if max_year:
-        console.print(f"  Max Year: {max_year}")
+    console.print(f"  Min Year: {min_year or 'No limit'}")
+    console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print()
 
     logger.info(
@@ -146,6 +149,40 @@ def enrich_omdb(
                 console.print("\n[bold]Recently enriched:[/bold]")
                 console.print(sample.to_string(index=False))
 
+        except APIRateLimitExceeded as e:
+            # OMDB daily quota hit - this is expected, not an error
+            progress.update(task, completed=True)
+
+            console.print("\n[yellow]⚠ OMDB Daily Limit Reached[/yellow]\n")
+            console.print(
+                f"[cyan]Progress:[/cyan] {e.items_processed:,}/{e.total_requested:,} movies successfully enriched"
+            )
+            console.print("\n[bold]What happened:[/bold]")
+            console.print("  OMDB free tier has a 1,000 request/day limit")
+            console.print("  Your data has been saved successfully\n")
+            console.print("[bold]Next steps:[/bold]")
+            console.print("  • Wait 24 hours for quota to reset")
+            console.print("  • Run the same command tomorrow to continue")
+            console.print("  • Or upgrade to OMDB paid plan for higher limits\n")
+
+            # Show what was enriched
+            if e.items_processed > 0:
+                sample = db.query(
+                    """
+                    SELECT m.title, o.imdb_rating, o.metascore, o.box_office
+                    FROM omdb_movies o
+                    JOIN movies m ON o.imdb_id = m.imdb_id
+                    ORDER BY m.last_omdb_update DESC
+                    LIMIT 5
+                    """
+                )
+                if not sample.empty:
+                    console.print("[bold]Recently enriched (sample):[/bold]")
+                    console.print(sample.to_string(index=False))
+
+            logger.info(f"OMDB quota exceeded after {e.items_processed} successful requests")
+            # Exit with 0 since this is expected behavior, not an error
+
         except Exception as e:
             console.print(f"[red]✗ Error:[/red] {e}")
             logger.error(f"OMDB enrichment failed: {e}", exc_info=True)
@@ -196,12 +233,14 @@ def refresh_omdb(
     if dry_run:
         console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]\n")
 
+    # Use settings defaults for year filters if not provided
+    min_year = min_year or getattr(settings, "omdb_min_release_year", None)
+    max_year = max_year or getattr(settings, "omdb_max_release_year", None)
+
     console.print("[bold]Configuration:[/bold]")
     console.print(f"  Refresh Limit: {limit:,} movies")
-    if min_year:
-        console.print(f"  Min Year: {min_year}")
-    if max_year:
-        console.print(f"  Max Year: {max_year}")
+    console.print(f"  Min Year: {min_year or 'No limit'}")
+    console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print()
 
     logger.info(

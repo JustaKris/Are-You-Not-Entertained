@@ -13,6 +13,7 @@ Place this file in: src/data/duckdb_client.py
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -20,6 +21,7 @@ import duckdb
 import pandas as pd
 
 from ayne.core.config import settings
+from ayne.core.exceptions import DatabaseConnectionError, DatabaseLockedError
 from ayne.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -42,14 +44,41 @@ class DuckDBClient:
         Args:
             db_path: Path to DuckDB database file (defaults to settings.duckdb_path)
             read_only: Whether to open database in read-only mode
+
+        Raises:
+            DatabaseLockedError: If database file is locked by another process
+            DatabaseConnectionError: If connection fails for other reasons
         """
         self.db_path = Path(db_path) if db_path else settings.duckdb_path  # type: ignore
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.read_only = read_only
 
-        # DuckDB connection. Use read_only flag if needed in the future.
-        self._conn = duckdb.connect(database=str(self.db_path), read_only=self.read_only)
-        logger.info("DuckDB connected at %s (read_only=%s)", self.db_path, self.read_only)
+        try:
+            # DuckDB connection. Use read_only flag if needed.
+            self._conn = duckdb.connect(database=str(self.db_path), read_only=self.read_only)
+            logger.info("DuckDB connected at %s (read_only=%s)", self.db_path, self.read_only)
+        except duckdb.IOException as e:
+            error_msg = str(e)
+
+            # Check if it's a file locking error
+            if "cannot access the file because it is being used by another process" in error_msg:
+                # Extract process info if available
+                process_match = re.search(
+                    r"File is already open in[\s\S]*?\(PID (\d+)\)", error_msg
+                )
+                process_info = process_match.group(0) if process_match else None
+
+                raise DatabaseLockedError(str(self.db_path), process_info) from e
+
+            # Other IO errors
+            raise DatabaseConnectionError(
+                f"Failed to connect to database at {self.db_path}: {error_msg}"
+            ) from e
+        except Exception as e:
+            # Unexpected errors
+            raise DatabaseConnectionError(
+                f"Unexpected error connecting to database at {self.db_path}: {e}"
+            ) from e
 
     # ----------------------
     # Basic exec/query

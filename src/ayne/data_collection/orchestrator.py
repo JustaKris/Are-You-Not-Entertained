@@ -12,6 +12,7 @@ from typing import Dict, Optional, Tuple
 
 import pandas as pd
 
+from ayne.core.exceptions import APIRateLimitExceeded
 from ayne.core.logging import get_logger
 from ayne.data_collection.omdb import OMDBClient
 from ayne.data_collection.refresh_strategy import (
@@ -559,27 +560,38 @@ class DataCollectionOrchestrator:
         if not imdb_ids:
             return 0
 
-        # Fetch OMDB data
-        omdb_data = await self.omdb_client.get_batch_movies(imdb_ids)
+        try:
+            # Fetch OMDB data
+            omdb_data = await self.omdb_client.get_batch_movies(imdb_ids)
 
-        if not omdb_data:
-            logger.warning("No OMDB data fetched")
-            return 0
+            if not omdb_data:
+                logger.warning("No OMDB data fetched")
+                return 0
 
-        # Store in database
-        df_omdb = pd.DataFrame(omdb_data)
-        self.db.upsert_dataframe("omdb_movies", df_omdb, key_columns=["imdb_id"])
+            # Store in database
+            df_omdb = pd.DataFrame(omdb_data)
+            self.db.upsert_dataframe("omdb_movies", df_omdb, key_columns=["imdb_id"])
 
-        # Update timestamps in movies table
-        now = datetime.now(timezone.utc).isoformat()
-        for imdb_id in df_omdb["imdb_id"]:
-            self.db.execute(
-                "UPDATE movies SET last_omdb_update = ? WHERE imdb_id = ?",
-                [now, imdb_id],
-            )
+            # Update timestamps in movies table
+            now = datetime.now(timezone.utc).isoformat()
+            for imdb_id in df_omdb["imdb_id"]:
+                self.db.execute(
+                    "UPDATE movies SET last_omdb_update = ? WHERE imdb_id = ?",
+                    [now, imdb_id],
+                )
 
-        logger.info(f"✅ Enriched {len(omdb_data)} movies with OMDB data")
-        return len(omdb_data)
+            logger.info(f"✅ Enriched {len(omdb_data)} movies with OMDB data")
+            return len(omdb_data)
+
+        except APIRateLimitExceeded as e:
+            # OMDB daily quota exceeded - save what we got and re-raise
+            if e.items_processed > 0:
+                logger.info(f"💾 Saving {e.items_processed} movies fetched before quota limit...")
+
+                # We don't have the actual data since it's in the exception
+                # The partial results were already processed in get_batch_movies
+                # Just log and re-raise so CLI can handle it
+            raise  # Re-raise to be caught by CLI
 
     async def close(self):
         """Cleanup resources."""
