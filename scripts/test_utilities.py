@@ -57,9 +57,8 @@ def test_model_serialization():
 
     # Test load without metadata
     loaded_model = load_model(path)
-    assert isinstance(
-        loaded_model, RandomForestRegressor
-    ), f"Expected RandomForestRegressor, got {type(loaded_model)}"
+    msg = f"Expected RandomForestRegressor, got {type(loaded_model)}"
+    assert isinstance(loaded_model, RandomForestRegressor), msg
     print(f"✅ Loaded model type: {type(loaded_model).__name__}")
 
     # Test load with metadata
