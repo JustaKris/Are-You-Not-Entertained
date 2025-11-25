@@ -282,7 +282,12 @@ exclude_dirs = [
     ".pytest_cache",
     "__pycache__",
 ]
-skips = ["B101", "B104", "B108"]
+# B101: assert_used - Asserts are acceptable in test/dev code
+# B104: hardcoded_bind_all_interfaces - Dev server binds are intentional
+# B108: hardcoded_tmp_directory - Temp paths are controlled
+# B110: try_except_pass - Intentional silent failures in data parsing/cleanup
+# B608: hardcoded_sql_expressions - DuckDB queries with parameterized values (not user input)
+skips = ["B101", "B104", "B108", "B110", "B608"]
 
 # Markdown linting
 [tool.pymarkdown]

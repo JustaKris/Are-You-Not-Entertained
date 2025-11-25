@@ -62,7 +62,7 @@ def scrape_the_numbers(movie_title: str, release_year: int | None = None) -> tup
 
     for url in candidate_urls:
         logger.debug(f"Trying URL: {url}")
-        response = requests.get(url, verify=certifi.where())
+        response = requests.get(url, verify=certifi.where(), timeout=30)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
             data = extract_financial_data(soup)
