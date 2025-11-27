@@ -86,13 +86,15 @@ def update_tmdb(
     console.print("[bold]Configuration:[/bold]")
     if max_movies is not None:
         console.print(f"  Max Movies: {max_movies}")
-    elif settings.tmdb_max_movies is not None:
-        console.print(f"  Max Movies: {settings.tmdb_max_movies}")
+    elif getattr(settings, "tmdb_max_movies", None) is not None:
+        console.print(f"  Max Movies: {getattr(settings, 'tmdb_max_movies', None)}")
     else:
         console.print("  Max Movies: Unlimited")
-    console.print(f"  Min Popularity: {min_popularity or settings.tmdb_min_popularity}")
-    console.print(f"  Min Votes: {min_votes or settings.tmdb_min_vote_count}")
-    console.print(f"  Min Year: {min_year or settings.tmdb_min_release_year}")
+    console.print(
+        f"  Min Popularity: {min_popularity or getattr(settings, 'tmdb_min_popularity', None)}"
+    )
+    console.print(f"  Min Votes: {min_votes or getattr(settings, 'tmdb_min_vote_count', None)}")
+    console.print(f"  Min Year: {min_year or getattr(settings, 'tmdb_min_release_year', None)}")
     console.print(
         f"  Max Year: {max_year or getattr(settings, 'tmdb_max_release_year', None) or 'Current year'}"
     )
@@ -100,8 +102,8 @@ def update_tmdb(
     console.print()
 
     logger.info(
-        f"TMDB update: max_movies={max_movies}, min_year={min_year or settings.tmdb_min_release_year}, "
-        f"max_year={max_year or 'None'}, min_popularity={min_popularity or settings.tmdb_min_popularity}, "
+        f"TMDB update: max_movies={max_movies}, min_year={min_year or getattr(settings, 'tmdb_min_release_year', None)}, "
+        f"max_year={max_year or 'None'}, min_popularity={min_popularity or getattr(settings, 'tmdb_min_popularity', None)}, "
         f"dry_run={dry_run}"
     )
 

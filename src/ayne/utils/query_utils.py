@@ -468,7 +468,7 @@ def get_recent_update_activity(days: int = 7) -> pd.DataFrame:
     """
     query = f"""
         WITH date_range AS (
-            SELECT CURRENT_DATE - INTERVAL '{{i}} days' AS activity_date
+            SELECT CURRENT_DATE - CAST(i AS INTEGER) AS activity_date
             FROM generate_series(0, {days - 1}) AS t(i)
         )
         SELECT
@@ -505,31 +505,33 @@ def get_data_quality_metrics() -> pd.DataFrame:
         SELECT
             'Movies Table' as source_table,
             COUNT(*) as total_records,
-            ROUND(100.0 * SUM(CASE WHEN title IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as title_completeness,
-            ROUND(100.0 * SUM(CASE WHEN release_date IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as release_date_completeness,
-            ROUND(100.0 * SUM(CASE WHEN tmdb_id IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as tmdb_id_completeness,
-            ROUND(100.0 * SUM(CASE WHEN imdb_id IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as imdb_id_completeness
-        FROM movies
+            ROUND(100.0 * SUM(CASE WHEN m.title IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as title_completeness,
+            ROUND(100.0 * SUM(CASE WHEN m.release_date IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as release_date_completeness,
+            ROUND(100.0 * SUM(CASE WHEN m.tmdb_id IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as tmdb_id_completeness,
+            ROUND(100.0 * SUM(CASE WHEN m.imdb_id IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as imdb_id_completeness
+        FROM movies m
 
         UNION ALL
 
         SELECT
             'TMDB Movies' as source_table,
             COUNT(*) as total_records,
-            ROUND(100.0 * SUM(CASE WHEN title IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as title_completeness,
-            ROUND(100.0 * SUM(CASE WHEN overview IS NOT NULL AND overview != '' THEN 1 ELSE 0 END) / COUNT(*), 2) as overview_completeness,
-            ROUND(100.0 * SUM(CASE WHEN budget > 0 THEN 1 ELSE 0 END) / COUNT(*), 2) as budget_completeness,
-            ROUND(100.0 * SUM(CASE WHEN revenue > 0 THEN 1 ELSE 0 END) / COUNT(*), 2) as revenue_completeness
+            ROUND(100.0 * SUM(CASE WHEN t.title IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as title_completeness,
+            ROUND(100.0 * SUM(CASE WHEN t.overview IS NOT NULL AND t.overview != '' THEN 1 ELSE 0 END) / COUNT(*), 2) as overview_completeness,
+            ROUND(100.0 * SUM(CASE WHEN t.budget > 0 THEN 1 ELSE 0 END) / COUNT(*), 2) as budget_completeness,
+            ROUND(100.0 * SUM(CASE WHEN t.revenue > 0 THEN 1 ELSE 0 END) / COUNT(*), 2) as revenue_completeness
+        FROM tmdb_movies t
 
         UNION ALL
 
         SELECT
             'OMDB Movies' as source_table,
             COUNT(*) as total_records,
-            ROUND(100.0 * SUM(CASE WHEN title IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as title_completeness,
-            ROUND(100.0 * SUM(CASE WHEN imdb_rating IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as rating_completeness,
-            ROUND(100.0 * SUM(CASE WHEN director IS NOT NULL AND director != 'N/A' THEN 1 ELSE 0 END) / COUNT(*), 2) as director_completeness,
-            ROUND(100.0 * SUM(CASE WHEN actors IS NOT NULL AND actors != 'N/A' THEN 1 ELSE 0 END) / COUNT(*), 2) as actors_completeness
+            ROUND(100.0 * SUM(CASE WHEN o.title IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as title_completeness,
+            ROUND(100.0 * SUM(CASE WHEN o.imdb_rating IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as rating_completeness,
+            ROUND(100.0 * SUM(CASE WHEN o.director IS NOT NULL AND o.director != 'N/A' THEN 1 ELSE 0 END) / COUNT(*), 2) as director_completeness,
+            ROUND(100.0 * SUM(CASE WHEN o.actors IS NOT NULL AND o.actors != 'N/A' THEN 1 ELSE 0 END) / COUNT(*), 2) as actors_completeness
+        FROM omdb_movies o
     """
 
     db = get_db_client(read_only=True)
