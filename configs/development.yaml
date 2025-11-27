@@ -34,6 +34,7 @@ tmdb_api_base_url: https://api.themoviedb.org/3
 
 # Collection Settings
 tmdb_max_movies: null  # null = unlimited, number = max movies to collect per run
+tmdb_refresh_limit: null  # null = unlimited, number = max movies to refresh per run
 
 # Filtering Settings
 tmdb_min_popularity: 10.0       # Minimum popularity score (0-100+)
@@ -52,6 +53,7 @@ omdb_api_base_url: http://www.omdbapi.com
 
 # Collection Settings
 omdb_max_movies: 1000  # OMDB free tier has 1000 request/day limit
+omdb_refresh_limit: null  # null = unlimited, number = max movies to refresh per run
 
 # Filtering Settings
 omdb_min_release_year: 1950  # Earliest year (null = no limit)

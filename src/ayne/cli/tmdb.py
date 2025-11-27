@@ -320,11 +320,11 @@ def enrich_tmdb(
 
 @app.command("refresh")
 def refresh_tmdb(
-    limit: int = typer.Option(
-        100,
+    limit: Optional[int] = typer.Option(
+        None,
         "--limit",
         "-n",
-        help="Maximum number of movies to refresh",
+        help="Maximum number of movies to refresh (uses config default if not specified)",
     ),
     min_year: Optional[int] = typer.Option(
         None,
@@ -359,12 +359,13 @@ def refresh_tmdb(
     if dry_run:
         console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]\n")
 
-    # Use settings defaults for year filters if not provided
+    # Use settings defaults for filters if not provided
+    limit = limit if limit is not None else getattr(settings, "tmdb_refresh_limit", None)
     min_year = min_year or getattr(settings, "tmdb_min_release_year", None)
     max_year = max_year or getattr(settings, "tmdb_max_release_year", None)
 
     console.print("[bold]Configuration:[/bold]")
-    console.print(f"  Refresh Limit: {limit:,} movies")
+    console.print(f"  Refresh Limit: {f'{limit:,} movies' if limit else 'Unlimited'}")
     console.print(f"  Min Year: {min_year or 'No limit'}")
     console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print()
