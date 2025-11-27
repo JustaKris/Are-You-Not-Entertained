@@ -234,7 +234,7 @@ def refresh_omdb(
         console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]\n")
 
     # Use settings defaults for filters if not provided
-    limit = limit if limit is not None else getattr(settings, "omdb_refresh_limit", None)
+    limit = limit if limit is not None else getattr(settings, "omdb_max_movies", None)
     min_year = min_year or getattr(settings, "omdb_min_release_year", None)
     max_year = max_year or getattr(settings, "omdb_max_release_year", None)
 

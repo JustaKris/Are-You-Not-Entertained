@@ -139,23 +139,13 @@ class Settings(BaseSettings):
     # TMDB Collection Limits
     tmdb_max_movies: Optional[int] = Field(
         default=None,
-        description="Maximum number of movies to collect from TMDB per run (None = unlimited)",
-    )
-
-    tmdb_refresh_limit: Optional[int] = Field(
-        default=None,
-        description="Maximum number of movies to refresh from TMDB per run (None = unlimited)",
+        description="Maximum number of movies to process per TMDB operation (collect/enrich/refresh). None = unlimited",
     )
 
     # OMDB Collection Limits
     omdb_max_movies: int = Field(
         default=1000,
-        description="Maximum number of movies to collect from OMDB per run (default: 1000 due to API limits)",
-    )
-
-    omdb_refresh_limit: Optional[int] = Field(
-        default=None,
-        description="Maximum number of movies to refresh from OMDB per run (None = unlimited)",
+        description="Maximum number of movies to process per OMDB operation (collect/enrich/refresh). Default: 1000 due to API limits",
     )
 
     # TMDB Filtering Settings

@@ -33,8 +33,7 @@ database:
 tmdb_api_base_url: https://api.themoviedb.org/3
 
 # Collection Settings
-tmdb_max_movies: 5000  # Limit for staging environment testing
-tmdb_refresh_limit: 500  # Moderate limit for staging refresh runs
+tmdb_max_movies: 5000  # Max movies per operation for staging environment
 
 # Filtering Settings
 tmdb_min_popularity: 10.0       # Minimum popularity score (0-100+)
@@ -52,8 +51,7 @@ tmdb_allowed_release_statuses:
 omdb_api_base_url: http://www.omdbapi.com
 
 # Collection Settings
-omdb_max_movies: 1000  # OMDB free tier has 1000 request/day limit
-omdb_refresh_limit: 200  # Conservative limit for staging
+omdb_max_movies: 1000  # Max movies per operation. OMDB free tier: 1000 req/day
 
 # Filtering Settings
 omdb_min_release_year: null  # Earliest year (null = no limit)
