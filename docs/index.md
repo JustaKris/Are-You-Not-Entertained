@@ -45,6 +45,7 @@
 - **[Data Collection Workflow](reference/data-collection-workflow.md)** - How data collection works
 - **[Data Collection Filtering](reference/data-collection-filtering.md)** - Configure filters and collection limits
 - **[Refresh Strategy](reference/refresh-strategy.md)** - Intelligent data refresh logic
+- **[Database Monitoring](guides/database-monitoring.md)** - Monitor health and audit data quality
 - **[Development Guides](development/code-style.md)** - Code style and best practices
 
 ## Getting Started

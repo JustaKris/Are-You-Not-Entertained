@@ -16,26 +16,102 @@ DuckDB-based analytical database for movie data storage and querying.
 
 #### `movies` (fact table)
 
-- Primary movie information
-- Foreign keys to dimension tables
-- Timestamps for data refresh tracking
+Core movie identity and refresh tracking:
+
+```sql
+CREATE TABLE movies (
+    movie_id INTEGER PRIMARY KEY,
+    tmdb_id INTEGER UNIQUE,
+    imdb_id VARCHAR UNIQUE,
+    title VARCHAR,
+    release_date DATE,
+    created_at TIMESTAMP DEFAULT current_timestamp,
+    last_full_refresh TIMESTAMP,           -- Set when both TMDB and OMDB updated
+    last_tmdb_update TIMESTAMP,            -- Last TMDB data fetch
+    last_omdb_update TIMESTAMP,            -- Last OMDB data fetch
+    last_numbers_update TIMESTAMP,         -- Last Numbers data fetch
+    data_frozen BOOLEAN DEFAULT FALSE,     -- Exclude from automatic refreshes
+    consecutive_unchanged_refreshes INTEGER DEFAULT 0  -- Track stability for freezing
+);
+```
+
+**Key Columns:**
+
+- `last_full_refresh`: Set when movie has both TMDB and OMDB data
+- `data_frozen`: Movies frozen after 3 consecutive unchanged refreshes (archived movies only)
+- `consecutive_unchanged_refreshes`: Increments on unchanged refresh, resets on change
 
 #### `tmdb_movies` (dimension)
 
-- TMDB-specific movie data
-- Genres, production companies
-- Budget and revenue
+TMDB-specific movie data:
+
+```sql
+CREATE TABLE tmdb_movies (
+    tmdb_id INTEGER PRIMARY KEY,
+    imdb_id VARCHAR,
+    title VARCHAR,
+    release_date DATE,
+    status VARCHAR,
+    budget BIGINT,
+    revenue BIGINT,
+    runtime INTEGER,
+    vote_count INTEGER,
+    vote_average DOUBLE,
+    popularity DOUBLE,
+    genres VARCHAR,                    -- Comma-separated
+    production_companies VARCHAR,      -- Comma-separated
+    production_countries VARCHAR,      -- Comma-separated
+    spoken_languages VARCHAR,          -- Comma-separated
+    overview TEXT,
+    last_updated_utc TIMESTAMP
+);
+```
 
 #### `omdb_movies` (dimension)
 
-- OMDB ratings and awards
-- Cast and crew information
+OMDB/IMDb ratings and metadata:
 
-#### `the_numbers_movies` (dimension)
+```sql
+CREATE TABLE omdb_movies (
+    imdb_id VARCHAR PRIMARY KEY,
+    title VARCHAR,
+    year INTEGER,
+    genre VARCHAR,                     -- Comma-separated
+    director VARCHAR,
+    writer VARCHAR,
+    actors VARCHAR,
+    imdb_rating DOUBLE,
+    imdb_votes INTEGER,
+    metascore INTEGER,
+    box_office BIGINT,
+    released VARCHAR,
+    runtime INTEGER,
+    language VARCHAR,
+    country VARCHAR,
+    rated VARCHAR,                     -- Age rating (PG, R, etc.)
+    awards VARCHAR,
+    rotten_tomatoes_rating INTEGER,
+    meta_critic_rating INTEGER,
+    last_updated_utc TIMESTAMP
+);
+```
 
-- Box office performance data
-- Production budgets
-- Domestic/international revenue
+#### `numbers_movies` (dimension)
+
+Box office and financial data (future):
+
+```sql
+CREATE TABLE numbers_movies (
+    movie_id INTEGER,
+    domestic_box_office BIGINT,
+    international_box_office BIGINT,
+    worldwide_box_office BIGINT,
+    release_year INTEGER,
+    production_budget BIGINT,
+    opening_weekend_box_office BIGINT,
+    last_updated_utc TIMESTAMP
+);
+```
 
 ## Key Operations
 

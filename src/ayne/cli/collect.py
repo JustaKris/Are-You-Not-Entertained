@@ -42,6 +42,11 @@ def daily_refresh(
         "--discover-limit",
         help="Limit for new movie discovery",
     ),
+    include_frozen: bool = typer.Option(
+        False,
+        "--include-frozen",
+        help="Include frozen movies in refresh (force refresh)",
+    ),
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
@@ -94,6 +99,7 @@ def daily_refresh(
                 max_discover_movies=discover_limit,
                 refresh_limit=tmdb_refresh,
                 omdb_max_movies=omdb_limit,
+                include_frozen=include_frozen,
             )
 
             # Display summary
@@ -147,6 +153,11 @@ def full_collection(
         100,
         "--refresh-limit",
         help="Maximum movies to refresh",
+    ),
+    include_frozen: bool = typer.Option(
+        False,
+        "--include-frozen",
+        help="Include frozen movies in refresh (force refresh)",
     ),
     dry_run: bool = typer.Option(
         False,
@@ -213,6 +224,7 @@ def full_collection(
                     min_popularity=min_popularity,
                     min_release_year=min_year,
                     omdb_max_movies=max_omdb,
+                    include_frozen=include_frozen,
                 )
 
                 progress.update(task, completed=True)

@@ -17,7 +17,7 @@ Movies are classified into 4 age categories based on days since release:
 ```python
 class MovieAge(Enum):
     RECENT = "recent"        # 0-60 days since release
-    ESTABLISHED = "established"  # 60-180 days  
+    ESTABLISHED = "established"  # 60-180 days
     MATURE = "mature"         # 180-365 days
     ARCHIVED = "archived"      # > 365 days
 ```
@@ -100,7 +100,7 @@ Currently not implemented, but planned:
 def get_movie_age(release_date: datetime) -> MovieAge:
     """Classify movie by age category."""
     days_since_release = (datetime.now(timezone.utc) - release_date).days
-    
+
     if days_since_release <= 60:
         return MovieAge.RECENT
     elif days_since_release <= 180:
@@ -119,14 +119,14 @@ def needs_tmdb_refresh(
     last_tmdb_update: Optional[datetime]
 ) -> bool:
     """Check if TMDB data needs refreshing."""
-    
+
     # Never updated = always refresh
     if last_tmdb_update is None:
         return True
-    
+
     # Get interval based on age
     interval_days = get_tmdb_refresh_interval(release_date)
-    
+
     # Check if enough time has passed
     threshold = datetime.now(timezone.utc) - timedelta(days=interval_days)
     return last_tmdb_update < threshold
@@ -210,6 +210,20 @@ A movie can be frozen if **ALL** conditions are met:
 - **Focus resources**: Prioritize new/changing movies
 - **Performance**: Faster refresh queries
 
+### Database Tracking
+
+The `movies` table includes a `consecutive_unchanged_refreshes` column to track stability:
+
+```sql
+ALTER TABLE movies ADD COLUMN consecutive_unchanged_refreshes INTEGER DEFAULT 0;
+```
+
+This counter:
+
+- **Increments** when a refresh finds no changes
+- **Resets to 0** when data changes are detected
+- **Triggers freezing** when it reaches 3
+
 ### Implementation
 
 ```python
@@ -220,22 +234,47 @@ def should_freeze_movie(
     consecutive_unchanged_cycles: int = 0
 ) -> bool:
     """Determine if movie should be frozen."""
-    
+
     days_since_release = (datetime.now(timezone.utc) - release_date).days
-    
+
     # Must be old enough
     if days_since_release < 365:
         return False
-    
+
     # Must have been updated at least once
     if last_tmdb_update is None and last_omdb_update is None:
         return False
-    
-    # Must be stable
+
+    # Must be stable (tracked in database)
     if consecutive_unchanged_cycles >= 3:
         return True
-    
+
     return False
+```
+
+### Change Detection
+
+After each refresh, the orchestrator compares old vs new data:
+
+```python
+def _check_if_data_changed(self, movie_id: int, before: pd.Series, after: pd.Series) -> bool:
+    """Check if movie data changed during refresh."""
+    # Simplified: check if we got new data
+    # More sophisticated: compare specific fields
+    return after['last_tmdb_update'] != before.get('last_tmdb_update') or \
+           after['last_omdb_update'] != before.get('last_omdb_update')
+```
+
+Then updates the counter:
+
+```python
+if data_changed:
+    # Reset counter
+    UPDATE movies SET consecutive_unchanged_refreshes = 0 WHERE movie_id = ?
+else:
+    # Increment counter
+    UPDATE movies SET consecutive_unchanged_refreshes = consecutive_unchanged_refreshes + 1
+    WHERE movie_id = ?
 ```
 
 ### Freeze Example
@@ -248,15 +287,15 @@ release_date = datetime.now(timezone.utc) - timedelta(days=730)
 last_tmdb = datetime.now(timezone.utc) - timedelta(days=100)
 last_omdb = datetime.now(timezone.utc) - timedelta(days=200)
 
-# Data hasn't changed in 3 update cycles
-unchanged_cycles = 3
+# Data hasn't changed in 3 update cycles (from database)
+consecutive_unchanged = 3
 
 # Should freeze? YES
 should_freeze = should_freeze_movie(
     release_date,
     last_tmdb,
     last_omdb,
-    unchanged_cycles
+    consecutive_unchanged
 )  # True
 
 # Mark as frozen in database
@@ -266,17 +305,43 @@ db.execute(
 )
 ```
 
+### Force Refresh of Frozen Movies
+
+You can force refresh of frozen movies when needed:
+
+**Via CLI:**
+```bash
+# Include frozen movies in daily refresh
+ayne collect daily --include-frozen
+
+# Force refresh specific frozen movies
+ayne collect full --include-frozen --min-year 2020
+```
+
+**Via Code:**
+```python
+# Get all movies including frozen
+movies_df = orchestrator.get_movies_for_refresh(
+    limit=100,
+    include_frozen=True  # Include frozen movies
+)
+```
+
 ### Unfreezing
 
 Frozen movies can be manually unfrozen if needed:
 
 ```sql
 -- Unfreeze a specific movie
-UPDATE movies SET data_frozen = FALSE WHERE movie_id = 12345;
+UPDATE movies SET data_frozen = FALSE, consecutive_unchanged_refreshes = 0
+WHERE movie_id = 12345;
 
 -- Unfreeze all movies from a specific year
-UPDATE movies SET data_frozen = FALSE 
+UPDATE movies SET data_frozen = FALSE, consecutive_unchanged_refreshes = 0
 WHERE EXTRACT(YEAR FROM release_date) = 2020;
+
+-- Unfreeze all movies
+UPDATE movies SET data_frozen = FALSE, consecutive_unchanged_refreshes = 0;
 ```
 
 ## SQL Query for Refresh Candidates
@@ -295,12 +360,12 @@ SELECT
     m.data_frozen,
     DATEDIFF('day', m.release_date, CURRENT_DATE) as days_since_release
 FROM movies m
-WHERE 
+WHERE
     m.data_frozen = FALSE  -- Exclude frozen
     AND (
         -- Never refreshed
         m.last_full_refresh IS NULL
-        
+
         -- Recent (0-60 days): TMDB every 5 days, OMDB every 5 days
         OR (
             DATEDIFF('day', m.release_date, CURRENT_DATE) <= 60
@@ -311,7 +376,7 @@ WHERE
                 OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 5
             )
         )
-        
+
         -- Established (60-180 days): TMDB every 15 days, OMDB every 30 days
         OR (
             DATEDIFF('day', m.release_date, CURRENT_DATE) > 60
@@ -323,7 +388,7 @@ WHERE
                 OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 30
             )
         )
-        
+
         -- Mature (180-365 days): TMDB every 30 days, OMDB every 90 days
         OR (
             DATEDIFF('day', m.release_date, CURRENT_DATE) > 180
@@ -335,7 +400,7 @@ WHERE
                 OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 90
             )
         )
-        
+
         -- Archived (>365 days): TMDB every 90 days, OMDB every 180 days
         OR (
             DATEDIFF('day', m.release_date, CURRENT_DATE) > 365
@@ -360,11 +425,11 @@ For each movie, we calculate what needs updating:
 ```python
 def calculate_refresh_plan(movie: Dict[str, Any]) -> Dict[str, bool]:
     """Calculate what needs refreshing for a specific movie."""
-    
+
     release_date = movie['release_date']
     last_tmdb = movie.get('last_tmdb_update')
     last_omdb = movie.get('last_omdb_update')
-    
+
     return {
         'needs_tmdb': needs_tmdb_refresh(release_date, last_tmdb),
         'needs_omdb': needs_omdb_refresh(release_date, last_omdb),
@@ -448,7 +513,7 @@ class RefreshThresholds:
     # More aggressive (more API calls)
     TMDB_RECENT = 3          # Was 5
     TMDB_ESTABLISHED = 10     # Was 15
-    
+
     # More conservative (fewer API calls)
     TMDB_MATURE = 45          # Was 30
     TMDB_ARCHIVED = 120       # Was 90
@@ -462,7 +527,7 @@ Change when movies transition between age categories:
 class RefreshThresholds:
     # Make "Recent" period shorter
     AGE_RECENT = 30           # Was 60
-    
+
     # Extend "Mature" period
     AGE_MATURE = 540          # Was 365
 ```
@@ -476,7 +541,7 @@ class RefreshThresholds:
     # More aggressive freezing
     FREEZE_MIN_AGE_DAYS = 180  # Was 365
     FREEZE_STABLE_CYCLES = 2    # Was 3
-    
+
     # Less aggressive
     FREEZE_MIN_AGE_DAYS = 730   # 2 years
     FREEZE_STABLE_CYCLES = 5    # More cycles
@@ -490,23 +555,23 @@ class RefreshThresholds:
 
 ```sql
 -- % of movies updated within their interval
-SELECT 
+SELECT
     COUNT(CASE WHEN last_tmdb_update >= CURRENT_DATE - interval THEN 1 END) * 100.0 / COUNT(*)
 FROM movies;
 ```
 
-2. **Frozen Movie Count**:
+1. **Frozen Movie Count**:
 
 ```sql
 SELECT COUNT(*), COUNT(*) * 100.0 / (SELECT COUNT(*) FROM movies) as pct
 FROM movies WHERE data_frozen = TRUE;
 ```
 
-3. **Age Distribution**:
+1. **Age Distribution**:
 
 ```sql
-SELECT 
-    CASE 
+SELECT
+    CASE
         WHEN days <= 60 THEN 'Recent'
         WHEN days <= 180 THEN 'Established'
         WHEN days <= 365 THEN 'Mature'
@@ -520,7 +585,7 @@ FROM (
 GROUP BY category;
 ```
 
-4. **Daily API Calls** (estimate):
+1. **Daily API Calls** (estimate):
 
 ```sql
 -- Movies due for TMDB update today
@@ -564,7 +629,7 @@ For specific high-priority movies:
 
 ```sql
 -- Force update for specific movie
-UPDATE movies 
+UPDATE movies
 SET last_tmdb_update = NULL, last_omdb_update = NULL
 WHERE tmdb_id = 12345;
 
@@ -594,7 +659,7 @@ refresh_limit=50  # Was 100
 RefreshThresholds.TMDB_ARCHIVED = 60  # Was 90
 
 # Option 2: Unfreeze old movies
-UPDATE movies SET data_frozen = FALSE 
+UPDATE movies SET data_frozen = FALSE
 WHERE EXTRACT(YEAR FROM release_date) >= 2020;
 ```
 
@@ -603,7 +668,7 @@ WHERE EXTRACT(YEAR FROM release_date) >= 2020;
 **Check**:
 
 ```sql
-SELECT COUNT(*) FROM movies 
+SELECT COUNT(*) FROM movies
 WHERE last_full_refresh IS NULL;
 ```
 

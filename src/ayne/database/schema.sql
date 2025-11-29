@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS movies (
     last_tmdb_update TIMESTAMP,
     last_omdb_update TIMESTAMP,
     last_numbers_update TIMESTAMP,
-    data_frozen BOOLEAN DEFAULT FALSE
+    data_frozen BOOLEAN DEFAULT FALSE,
+    consecutive_unchanged_refreshes INTEGER DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_movies_tmdb_id ON movies (tmdb_id);

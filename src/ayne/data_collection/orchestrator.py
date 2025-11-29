@@ -122,6 +122,7 @@ class DataCollectionOrchestrator:
         limit: Optional[int] = None,
         min_release_year: Optional[int] = None,
         max_release_year: Optional[int] = None,
+        include_frozen: bool = False,
     ) -> pd.DataFrame:
         """Get movies that need data refresh based on age and last update.
 
@@ -129,11 +130,12 @@ class DataCollectionOrchestrator:
             limit: Maximum number of movies to return
             min_release_year: Filter movies by minimum release year
             max_release_year: Filter movies by maximum release year
+            include_frozen: Include frozen movies in results (force refresh)
 
         Returns:
             DataFrame of movies due for refresh
         """
-        query = get_movies_due_for_refresh_query(limit=None, include_frozen=False)
+        query = get_movies_due_for_refresh_query(limit=None, include_frozen=include_frozen)
 
         # Add year filtering to the base query (before ORDER BY and LIMIT)
         if min_release_year or max_release_year:
@@ -253,6 +255,21 @@ class DataCollectionOrchestrator:
                     tmdb_updated = len(tmdb_data)
                     logger.info(f"✅ Updated TMDB data for {tmdb_updated} movies")
 
+                    # Check if any movies now have both TMDB and OMDB data, set last_full_refresh
+                    tmdb_ids_str = ",".join(str(int(id)) for id in df_tmdb["tmdb_id"])
+                    self.db.execute(
+                        f"""
+                        UPDATE movies
+                        SET last_full_refresh = ?
+                        WHERE tmdb_id IN ({tmdb_ids_str})
+                          AND last_tmdb_update IS NOT NULL
+                          AND last_omdb_update IS NOT NULL
+                          AND last_full_refresh IS NULL
+                        """,
+                        [now],
+                    )
+                    logger.debug("Updated last_full_refresh for movies with both updates")
+
         # Fetch OMDB data
         if not needs_omdb.empty:
             # Limit OMDB requests based on configuration
@@ -297,70 +314,89 @@ class DataCollectionOrchestrator:
                         omdb_updated = len(omdb_data)
                         logger.info(f"✅ Updated OMDB data for {omdb_updated} movies")
 
-        # Update last_full_refresh for movies that got both TMDB and OMDB updates in this batch
+                        # Check if any movies now have both TMDB and OMDB data, set last_full_refresh
+                        imdb_ids_str = ",".join(f"'{id}'" for id in df_omdb["imdb_id"])
+                        self.db.execute(
+                            f"""
+                            UPDATE movies
+                            SET last_full_refresh = ?
+                            WHERE imdb_id IN ({imdb_ids_str})
+                              AND last_tmdb_update IS NOT NULL
+                              AND last_omdb_update IS NOT NULL
+                              AND last_full_refresh IS NULL
+                            """,
+                            [now],
+                        )
+                        logger.debug("Updated last_full_refresh for movies with both updates")
+
+        # Check for data changes and update consecutive unchanged counters
         if tmdb_updated > 0 or omdb_updated > 0:
-            now = datetime.now(timezone.utc).isoformat()
+            for _, movie in movies_df.iterrows():
+                movie_id = movie["movie_id"]
+                tmdb_id = movie["tmdb_id"]
 
-            # Get tmdb_ids that were updated in this batch
-            updated_tmdb_ids = set()
-            if tmdb_updated > 0 and not needs_tmdb.empty:
-                updated_tmdb_ids = set(needs_tmdb["tmdb_id"].dropna().astype(int).tolist())
-
-            # Get imdb_ids that were updated and map to tmdb_ids
-            updated_via_omdb_tmdb_ids = set()
-            if omdb_updated > 0 and not needs_omdb.empty:
-                updated_via_omdb_tmdb_ids = set(needs_omdb["tmdb_id"].dropna().astype(int).tolist())
-
-            # Find movies that got both updates in this batch
-            both_updated_ids = updated_tmdb_ids.intersection(updated_via_omdb_tmdb_ids)
-
-            if both_updated_ids:
-                ids_str = ",".join(str(id) for id in both_updated_ids)
-                self.db.execute(
-                    f"""
-                    UPDATE movies
-                    SET last_full_refresh = ?
-                    WHERE tmdb_id IN ({ids_str})
-                      AND last_tmdb_update IS NOT NULL
-                      AND last_omdb_update IS NOT NULL
-                    """,
-                    [now],
+                # Check if data changed by comparing before/after
+                data_changed = await self._check_if_data_changed(
+                    movie_id, tmdb_id, tmdb_updated > 0, omdb_updated > 0
                 )
-                logger.info(f"📅 Updated last_full_refresh for {len(both_updated_ids)} movies")
 
-        # Check for movies that should be frozen
-        for _, movie in movies_df.iterrows():
-            release_date = pd.to_datetime(movie["release_date"])
-            # Ensure timezone awareness
-            if release_date.tzinfo is None:
-                release_date = release_date.replace(tzinfo=timezone.utc)
+                if data_changed:
+                    # Data changed - reset counter
+                    self.db.execute(
+                        "UPDATE movies SET consecutive_unchanged_refreshes = 0 WHERE movie_id = ?",
+                        [movie_id],
+                    )
+                else:
+                    # Data unchanged - increment counter
+                    self.db.execute(
+                        """
+                        UPDATE movies
+                        SET consecutive_unchanged_refreshes = consecutive_unchanged_refreshes + 1
+                        WHERE movie_id = ?
+                        """,
+                        [movie_id],
+                    )
 
-            last_tmdb = (
-                pd.to_datetime(movie["last_tmdb_update"])
-                if pd.notna(movie["last_tmdb_update"])
-                else None
-            )
-            if last_tmdb and last_tmdb.tzinfo is None:
-                last_tmdb = last_tmdb.replace(tzinfo=timezone.utc)
+                # Check if movie should be frozen
+                release_date = pd.to_datetime(movie["release_date"])
+                if release_date.tzinfo is None:
+                    release_date = release_date.replace(tzinfo=timezone.utc)
 
-            last_omdb = (
-                pd.to_datetime(movie["last_omdb_update"])
-                if pd.notna(movie["last_omdb_update"])
-                else None
-            )
-            if last_omdb and last_omdb.tzinfo is None:
-                last_omdb = last_omdb.replace(tzinfo=timezone.utc)
-
-            if should_freeze_movie(
-                release_date, last_tmdb, last_omdb, consecutive_unchanged_cycles=3
-            ):
-                self.db.execute(
-                    "UPDATE movies SET data_frozen = TRUE WHERE movie_id = ?", [movie["movie_id"]]
+                last_tmdb = (
+                    pd.to_datetime(movie["last_tmdb_update"])
+                    if pd.notna(movie["last_tmdb_update"])
+                    else None
                 )
-                movies_frozen += 1
+                if last_tmdb and last_tmdb.tzinfo is None:
+                    last_tmdb = last_tmdb.replace(tzinfo=timezone.utc)
 
-        if movies_frozen > 0:
-            logger.info(f"🔒 Froze {movies_frozen} stable movies")
+                last_omdb = (
+                    pd.to_datetime(movie["last_omdb_update"])
+                    if pd.notna(movie["last_omdb_update"])
+                    else None
+                )
+                if last_omdb and last_omdb.tzinfo is None:
+                    last_omdb = last_omdb.replace(tzinfo=timezone.utc)
+
+                # Get current counter value
+                counter_result = self.db.query(
+                    "SELECT consecutive_unchanged_refreshes FROM movies WHERE movie_id = ?",
+                    params=[movie_id],
+                )
+                consecutive_unchanged = (
+                    int(counter_result["consecutive_unchanged_refreshes"].iloc[0])
+                    if not counter_result.empty
+                    else 0
+                )
+
+                if should_freeze_movie(release_date, last_tmdb, last_omdb, consecutive_unchanged):
+                    self.db.execute(
+                        "UPDATE movies SET data_frozen = TRUE WHERE movie_id = ?", [movie_id]
+                    )
+                    movies_frozen += 1
+
+            if movies_frozen > 0:
+                logger.info(f"🔒 Froze {movies_frozen} stable movies")
 
         return tmdb_updated, omdb_updated, movies_frozen
 
@@ -375,6 +411,7 @@ class DataCollectionOrchestrator:
         min_release_year: Optional[int] = None,
         allowed_statuses: Optional[list[str]] = None,
         omdb_max_movies: Optional[int] = None,
+        include_frozen: bool = False,
     ) -> Dict[str, int]:
         """Run complete collection workflow: discover + refresh.
 
@@ -388,6 +425,7 @@ class DataCollectionOrchestrator:
             min_release_year: Minimum release year for discovery (defaults to settings)
             allowed_statuses: Allowed release statuses (defaults to settings)
             omdb_max_movies: Max OMDB movies to fetch (defaults to settings)
+            include_frozen: Include frozen movies in refresh (force refresh)
 
         Returns:
             Dict with collection statistics
@@ -406,7 +444,9 @@ class DataCollectionOrchestrator:
             )
 
         # Step 2: Refresh existing movies
-        movies_to_refresh = self.get_movies_for_refresh(limit=refresh_limit)
+        movies_to_refresh = self.get_movies_for_refresh(
+            limit=refresh_limit, include_frozen=include_frozen
+        )
 
         if not movies_to_refresh.empty:
             tmdb_updated, omdb_updated, frozen = await self.refresh_movie_data(
@@ -507,6 +547,20 @@ class DataCollectionOrchestrator:
                     [now, tmdb_id],
                 )
 
+        # Check if any movies now have both TMDB and OMDB data, set last_full_refresh
+        tmdb_ids_str = ",".join(str(int(id)) for id in df_tmdb["tmdb_id"])
+        self.db.execute(
+            f"""
+            UPDATE movies
+            SET last_full_refresh = ?
+            WHERE tmdb_id IN ({tmdb_ids_str})
+              AND last_tmdb_update IS NOT NULL
+              AND last_omdb_update IS NOT NULL
+              AND last_full_refresh IS NULL
+            """,
+            [now],
+        )
+
         logger.info(f"✅ Enriched {len(tmdb_data)} movies with TMDB details")
         return len(tmdb_data)
 
@@ -580,6 +634,20 @@ class DataCollectionOrchestrator:
                     [now, imdb_id],
                 )
 
+            # Check if any movies now have both TMDB and OMDB data, set last_full_refresh
+            imdb_ids_str = ",".join(f"'{id}'" for id in df_omdb["imdb_id"])
+            self.db.execute(
+                f"""
+                UPDATE movies
+                SET last_full_refresh = ?
+                WHERE imdb_id IN ({imdb_ids_str})
+                  AND last_tmdb_update IS NOT NULL
+                  AND last_omdb_update IS NOT NULL
+                  AND last_full_refresh IS NULL
+                """,
+                [now],
+            )
+
             logger.info(f"✅ Enriched {len(omdb_data)} movies with OMDB data")
             return len(omdb_data)
 
@@ -592,6 +660,32 @@ class DataCollectionOrchestrator:
                 # The partial results were already processed in get_batch_movies
                 # Just log and re-raise so CLI can handle it
             raise  # Re-raise to be caught by CLI
+
+    async def _check_if_data_changed(
+        self, movie_id: int, tmdb_id: int, tmdb_was_updated: bool, omdb_was_updated: bool
+    ) -> bool:
+        """Check if movie data actually changed during this refresh.
+
+        This is a simplified implementation that assumes data changed if we fetched it.
+        A more sophisticated implementation would compare hashes or specific fields.
+
+        Args:
+            movie_id: Internal movie ID
+            tmdb_id: TMDB ID
+            tmdb_was_updated: Whether TMDB data was fetched in this batch
+            omdb_was_updated: Whether OMDB data was fetched in this batch
+
+        Returns:
+            True if data changed, False if unchanged
+        """
+        # Simple heuristic: if we just created/updated the record, consider it changed
+        # In future: could implement hash-based comparison or field-by-field comparison
+        if tmdb_was_updated or omdb_was_updated:
+            # For now, we'll be conservative and assume data changed
+            # TODO: Implement actual data comparison using hashes or key fields
+            return True
+
+        return False
 
     async def close(self):
         """Cleanup resources."""

@@ -408,6 +408,9 @@ ayne collect daily --discover --discover-limit 500
 # Custom limits
 ayne collect daily --tmdb-refresh 200 --omdb-limit 500
 
+# Include frozen movies (force refresh)
+ayne collect daily --include-frozen
+
 # Preview workflow
 ayne collect daily --dry-run
 ```
@@ -418,6 +421,7 @@ ayne collect daily --dry-run
 - `--omdb-limit N` - Maximum OMDB enrichments (uses config default)
 - `--discover` - Also discover new movies
 - `--discover-limit N` - Limit for discovery
+- `--include-frozen` - Include frozen movies in refresh (force refresh)
 - `--dry-run` - Preview without changes
 
 **Use Case:** Schedule this command to run daily via cron or Task Scheduler:
@@ -447,6 +451,9 @@ ayne collect full --min-year 2020 --min-popularity 20
 # Unlimited TMDB discovery
 ayne collect full --max-omdb 1000
 
+# Include frozen movies in refresh
+ayne collect full --include-frozen --refresh-limit 500
+
 # Preview workflow
 ayne collect full --dry-run
 ```
@@ -458,6 +465,7 @@ ayne collect full --dry-run
 - `--min-popularity N` - Minimum popularity filter
 - `--min-year YYYY` - Minimum release year
 - `--refresh-limit N` - Maximum movies to refresh (default: 100)
+- `--include-frozen` - Include frozen movies in refresh (force refresh)
 - `--dry-run` - Preview without changes
 
 ## Validation Commands
