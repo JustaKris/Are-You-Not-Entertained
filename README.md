@@ -108,8 +108,8 @@ ayne tmdb enrich --limit 500 --min-year 2020
 ayne omdb enrich --max-movies 250 --min-year 2020
 
 # Daily updates: refresh recent releases only
-ayne tmdb refresh --min-year 2024 --limit 50
-ayne omdb refresh --min-year 2024 --limit 30
+ayne tmdb refresh --min-year 2024 --limit 1000
+ayne omdb refresh --min-year 2024 --limit 300
 
 # Run daily refresh workflow
 ayne collect daily --tmdb-refresh 50 --omdb-limit 30
