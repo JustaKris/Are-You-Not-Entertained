@@ -244,13 +244,14 @@ def should_freeze_movie(
 
 
 def get_movies_due_for_refresh_query(
-    limit: Optional[int] = None, include_frozen: bool = False
+    limit: Optional[int] = None, include_frozen: bool = False, data_source: Optional[str] = None
 ) -> str:
     """Generate SQL query to fetch movies due for refresh.
 
     Args:
         limit: Maximum number of movies to return
         include_frozen: Include frozen movies (default: False)
+        data_source: Filter by specific data source ('tmdb', 'omdb', or None for both)
 
     Returns:
         SQL query string
@@ -258,23 +259,98 @@ def get_movies_due_for_refresh_query(
     frozen_filter = "" if include_frozen else "AND m.data_frozen = FALSE"
     limit_clause = f"LIMIT {limit}" if limit else ""
 
-    query = f"""
-    SELECT
-        m.movie_id,
-        m.tmdb_id,
-        m.imdb_id,
-        m.title,
-        m.release_date,
-        m.last_full_refresh,
-        m.last_tmdb_update,
-        m.last_omdb_update,
-        m.last_numbers_update,
-        m.data_frozen,
-        DATEDIFF('day', m.release_date, CURRENT_DATE) as days_since_release
-    FROM movies m
-    WHERE 1=1
-        {frozen_filter}
-        AND (
+    # Build conditions based on data source
+    if data_source == "tmdb":
+        # Only TMDB refresh conditions
+        refresh_conditions = """
+            -- Never refreshed TMDB
+            m.last_tmdb_update IS NULL
+
+            -- Recent movies (0-60 days): refresh TMDB every 5 days
+            OR (
+                DATEDIFF('day', m.release_date, CURRENT_DATE) <= 60
+                AND (
+                    m.last_tmdb_update IS NULL
+                    OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 5
+                )
+            )
+
+            -- Established movies (60-180 days): refresh TMDB every 15 days
+            OR (
+                DATEDIFF('day', m.release_date, CURRENT_DATE) > 60
+                AND DATEDIFF('day', m.release_date, CURRENT_DATE) <= 180
+                AND (
+                    m.last_tmdb_update IS NULL
+                    OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 15
+                )
+            )
+
+            -- Mature movies (180-365 days): refresh TMDB every 30 days
+            OR (
+                DATEDIFF('day', m.release_date, CURRENT_DATE) > 180
+                AND DATEDIFF('day', m.release_date, CURRENT_DATE) <= 365
+                AND (
+                    m.last_tmdb_update IS NULL
+                    OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 30
+                )
+            )
+
+            -- Archived movies (>365 days): refresh TMDB every 90 days
+            OR (
+                DATEDIFF('day', m.release_date, CURRENT_DATE) > 365
+                AND (
+                    m.last_tmdb_update IS NULL
+                    OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 90
+                )
+            )
+        """
+    elif data_source == "omdb":
+        # Only OMDB refresh conditions
+        refresh_conditions = """
+            -- Never refreshed OMDB
+            m.last_omdb_update IS NULL
+
+            -- Recent movies (0-60 days): refresh OMDB every 5 days
+            OR (
+                DATEDIFF('day', m.release_date, CURRENT_DATE) <= 60
+                AND (
+                    m.last_omdb_update IS NULL
+                    OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 5
+                )
+            )
+
+            -- Established movies (60-180 days): refresh OMDB every 30 days
+            OR (
+                DATEDIFF('day', m.release_date, CURRENT_DATE) > 60
+                AND DATEDIFF('day', m.release_date, CURRENT_DATE) <= 180
+                AND (
+                    m.last_omdb_update IS NULL
+                    OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 30
+                )
+            )
+
+            -- Mature movies (180-365 days): refresh OMDB every 90 days
+            OR (
+                DATEDIFF('day', m.release_date, CURRENT_DATE) > 180
+                AND DATEDIFF('day', m.release_date, CURRENT_DATE) <= 365
+                AND (
+                    m.last_omdb_update IS NULL
+                    OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 90
+                )
+            )
+
+            -- Archived movies (>365 days): refresh OMDB every 180 days
+            OR (
+                DATEDIFF('day', m.release_date, CURRENT_DATE) > 365
+                AND (
+                    m.last_omdb_update IS NULL
+                    OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 180
+                )
+            )
+        """
+    else:
+        # Both TMDB and OMDB (original logic)
+        refresh_conditions = """
             -- Never refreshed
             m.last_full_refresh IS NULL
 
@@ -323,6 +399,26 @@ def get_movies_due_for_refresh_query(
                     OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 180
                 )
             )
+        """
+
+    query = f"""
+    SELECT
+        m.movie_id,
+        m.tmdb_id,
+        m.imdb_id,
+        m.title,
+        m.release_date,
+        m.last_full_refresh,
+        m.last_tmdb_update,
+        m.last_omdb_update,
+        m.last_numbers_update,
+        m.data_frozen,
+        DATEDIFF('day', m.release_date, CURRENT_DATE) as days_since_release
+    FROM movies m
+    WHERE 1=1
+        {frozen_filter}
+        AND (
+            {refresh_conditions}
         )
     ORDER BY
         -- Prioritize never-refreshed movies

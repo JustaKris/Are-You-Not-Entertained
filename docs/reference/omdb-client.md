@@ -191,6 +191,31 @@ movies = await client.get_batch_movies(imdb_ids)
 2. **Network timeout**: Retries up to 3 times
 3. **Rate limit exceeded**: Backs off automatically
 4. **Movie not found**: Returns `None`, not an error
+5. **Daily quota exceeded**: Saves partial data and raises `APIRateLimitExceeded`
+
+### Quota Exceeded Handling
+
+When the OMDB daily quota is exceeded (401 Unauthorized):
+
+```python
+try:
+    movies = await client.get_batch_movies(imdb_ids)
+except APIRateLimitExceeded as e:
+    # Exception includes partial data that was successfully fetched
+    print(f"Fetched {e.items_processed}/{e.total_requested} movies")
+    print(f"Partial data available: {len(e.partial_data)} movies")
+
+    # Orchestrator automatically saves partial_data before re-raising
+    # No data is lost when quota is hit
+```
+
+**Key Features**:
+
+- Successfully fetched movies are included in the exception
+- Orchestrator saves all partial data to database before re-raising
+- CLI reports accurate progress (e.g., "990/1,100 movies successfully enriched")
+- Timestamps are updated for saved movies
+- No data loss when quota limit is reached
 
 ## Data Normalization
 
@@ -240,7 +265,7 @@ Located in `src/data_collection/omdb/normalizers.py`:
 ```python
 def normalize_movie_response(data: Dict) -> Optional[Dict[str, Any]]:
     """Convert OMDB API response to normalized format.
-    
+
     Handles:
     - Type conversions (strings to numbers)
     - Cleaning (remove commas, currency symbols)

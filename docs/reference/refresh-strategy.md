@@ -346,9 +346,43 @@ UPDATE movies SET data_frozen = FALSE, consecutive_unchanged_refreshes = 0;
 
 ## SQL Query for Refresh Candidates
 
+The system generates a SQL query to find movies needing refresh. Queries can be filtered by data source (TMDB, OMDB, or both):
+
+### Data Source Filtering
+
+```python
+# Get movies needing TMDB refresh only
+query = get_movies_due_for_refresh_query(
+    limit=100,
+    data_source='tmdb'  # Only TMDB refresh conditions
+)
+
+# Get movies needing OMDB refresh only
+query = get_movies_due_for_refresh_query(
+    limit=100,
+    data_source='omdb'  # Only OMDB refresh conditions
+)
+
+# Get movies needing any refresh (TMDB or OMDB)
+query = get_movies_due_for_refresh_query(
+    limit=100,
+    data_source=None  # Both sources
+)
+```
+
+**Why This Matters**:
+
+- `ayne tmdb refresh` only updates TMDB data, so it should only query for movies needing TMDB refresh
+- `ayne omdb refresh` only updates OMDB data, so it should only query for movies needing OMDB refresh
+- Without filtering, the query would return movies needing *any* refresh, but then filter them out during processing
+- This optimization prevents unnecessary database queries and improves performance
+
+### SQL Query Generation
+
 The system generates a SQL query to find movies needing refresh:
 
 ```sql
+-- Example: Query for TMDB-only refresh (data_source='tmdb')
 SELECT
     m.movie_id,
     m.tmdb_id,
@@ -363,17 +397,15 @@ FROM movies m
 WHERE
     m.data_frozen = FALSE  -- Exclude frozen
     AND (
-        -- Never refreshed
-        m.last_full_refresh IS NULL
+        -- Never refreshed TMDB
+        m.last_tmdb_update IS NULL
 
-        -- Recent (0-60 days): TMDB every 5 days, OMDB every 5 days
+        -- Recent (0-60 days): TMDB every 5 days
         OR (
             DATEDIFF('day', m.release_date, CURRENT_DATE) <= 60
             AND (
                 m.last_tmdb_update IS NULL
                 OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 5
-                OR m.last_omdb_update IS NULL
-                OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 5
             )
         )
 
@@ -437,10 +469,35 @@ def calculate_refresh_plan(movie: Dict[str, Any]) -> Dict[str, bool]:
     }
 ```
 
+### CLI Commands with Data Source Filtering
+
+```bash
+# TMDB refresh - only queries movies needing TMDB updates
+ayne tmdb refresh --limit 100 --min-year 2024
+
+# OMDB refresh - only queries movies needing OMDB updates
+ayne omdb refresh --limit 100 --min-year 2024
+
+# The commands automatically filter by data source
+# No need to specify it manually
+```
+
 ### Usage in Orchestrator
 
 ```python
-# Get movies needing refresh
+# Get movies needing TMDB refresh specifically
+movies_df = orchestrator.get_movies_for_refresh(
+    limit=100,
+    data_source='tmdb'
+)
+
+# Get movies needing OMDB refresh specifically
+movies_df = orchestrator.get_movies_for_refresh(
+    limit=100,
+    data_source='omdb'
+)
+
+# Get movies needing any refresh
 movies_df = orchestrator.get_movies_for_refresh(limit=100)
 
 # Calculate plans for each

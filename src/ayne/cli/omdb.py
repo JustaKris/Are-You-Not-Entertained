@@ -255,27 +255,22 @@ def refresh_omdb(
     if dry_run:
         db = DuckDBClient()
         try:
-            query = """
-                SELECT m.title, m.release_date, m.last_omdb_update
-                FROM movies m
-                JOIN omdb_movies o ON m.imdb_id = o.imdb_id
-                WHERE m.imdb_id IS NOT NULL
-            """
-
-            if min_year:
-                query += f" AND m.release_date >= '{min_year}-01-01'"
-            if max_year:
-                query += f" AND m.release_date <= '{max_year}-12-31'"
-
-            query += f" ORDER BY m.last_omdb_update ASC NULLS FIRST LIMIT {limit}"
-
-            candidates = db.query(query)
+            orchestrator = DataCollectionOrchestrator(db)
+            candidates = orchestrator.get_movies_for_refresh(
+                limit=limit,
+                min_release_year=min_year,
+                max_release_year=max_year,
+                data_source="omdb",
+            )
 
             if candidates.empty:
-                console.print("[yellow]No movies have OMDB data to refresh[/yellow]")
+                console.print("[yellow]No movies due for OMDB refresh[/yellow]")
             else:
                 console.print(f"Would refresh {len(candidates)} movies:")
-                console.print(candidates[["title", "release_date"]].head(10).to_string(index=False))
+                display_df = candidates[["title", "release_date"]].copy()
+                if "days_old" in candidates.columns:
+                    display_df["days_old"] = candidates["days_old"]
+                console.print(display_df.head(10).to_string(index=False))
                 if len(candidates) > 10:
                     console.print(f"... and {len(candidates) - 10} more")
 
@@ -294,24 +289,18 @@ def refresh_omdb(
                 TextColumn("[progress.description]{task.description}"),
                 console=console,
             ) as progress:
-                task = progress.add_task(f"Refreshing up to {limit:,} movies...", total=None)
+                if limit is not None:
+                    task = progress.add_task(f"Refreshing up to {limit:,} movies...", total=None)
+                else:
+                    task = progress.add_task("Refreshing movies (no limit)...", total=None)
 
-                # Get movies that have OMDB data and filter by year
-                query = """
-                    SELECT m.*
-                    FROM movies m
-                    JOIN omdb_movies o ON m.imdb_id = o.imdb_id
-                    WHERE m.imdb_id IS NOT NULL
-                """
-
-                if min_year:
-                    query += f" AND m.release_date >= '{min_year}-01-01'"
-                if max_year:
-                    query += f" AND m.release_date <= '{max_year}-12-31'"
-
-                query += f" ORDER BY m.last_omdb_update ASC NULLS FIRST LIMIT {limit}"
-
-                movies_to_refresh = db.query(query)
+                # Get movies that need OMDB refresh specifically
+                movies_to_refresh = orchestrator.get_movies_for_refresh(
+                    limit=limit,
+                    min_release_year=min_year,
+                    max_release_year=max_year,
+                    data_source="omdb",  # Only get movies needing OMDB refresh
+                )
 
                 if movies_to_refresh.empty:
                     progress.update(task, completed=True)

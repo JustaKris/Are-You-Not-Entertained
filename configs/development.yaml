@@ -40,6 +40,7 @@ tmdb_min_popularity: 10.0       # Minimum popularity score (0-100+)
 tmdb_min_vote_count: 50         # Minimum number of votes required
 tmdb_min_release_year: 1950     # Earliest year to collect
 tmdb_max_release_year: null     # Latest year (null = current year)
+tmdb_max_movies: null
 tmdb_allowed_release_statuses:
   - Released
   - Post Production

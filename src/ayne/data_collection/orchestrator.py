@@ -123,6 +123,7 @@ class DataCollectionOrchestrator:
         min_release_year: Optional[int] = None,
         max_release_year: Optional[int] = None,
         include_frozen: bool = False,
+        data_source: Optional[str] = None,
     ) -> pd.DataFrame:
         """Get movies that need data refresh based on age and last update.
 
@@ -131,11 +132,14 @@ class DataCollectionOrchestrator:
             min_release_year: Filter movies by minimum release year
             max_release_year: Filter movies by maximum release year
             include_frozen: Include frozen movies in results (force refresh)
+            data_source: Filter by specific data source ('tmdb', 'omdb', or None for both)
 
         Returns:
             DataFrame of movies due for refresh
         """
-        query = get_movies_due_for_refresh_query(limit=None, include_frozen=include_frozen)
+        query = get_movies_due_for_refresh_query(
+            limit=None, include_frozen=include_frozen, data_source=data_source
+        )
 
         # Add year filtering to the base query (before ORDER BY and LIMIT)
         if min_release_year or max_release_year:
@@ -653,12 +657,37 @@ class DataCollectionOrchestrator:
 
         except APIRateLimitExceeded as e:
             # OMDB daily quota exceeded - save what we got and re-raise
-            if e.items_processed > 0:
-                logger.info(f"💾 Saving {e.items_processed} movies fetched before quota limit...")
+            if e.items_processed > 0 and e.partial_data:
+                logger.info(f"💾 Saving {len(e.partial_data)} movies fetched before quota limit...")
 
-                # We don't have the actual data since it's in the exception
-                # The partial results were already processed in get_batch_movies
-                # Just log and re-raise so CLI can handle it
+                # Save the partial results
+                df_omdb = pd.DataFrame(e.partial_data)
+                self.db.upsert_dataframe("omdb_movies", df_omdb, key_columns=["imdb_id"])
+
+                # Update timestamps in movies table
+                now = datetime.now(timezone.utc).isoformat()
+                for imdb_id in df_omdb["imdb_id"]:
+                    self.db.execute(
+                        "UPDATE movies SET last_omdb_update = ? WHERE imdb_id = ?",
+                        [now, imdb_id],
+                    )
+
+                # Check if any movies now have both TMDB and OMDB data, set last_full_refresh
+                imdb_ids_str = ",".join(f"'{id}'" for id in df_omdb["imdb_id"])
+                self.db.execute(
+                    f"""
+                    UPDATE movies
+                    SET last_full_refresh = ?
+                    WHERE imdb_id IN ({imdb_ids_str})
+                      AND last_tmdb_update IS NOT NULL
+                      AND last_omdb_update IS NOT NULL
+                      AND last_full_refresh IS NULL
+                    """,
+                    [now],
+                )
+
+                logger.info(f"✅ Saved {len(e.partial_data)} movies before quota limit")
+
             raise  # Re-raise to be caught by CLI
 
     async def _check_if_data_changed(

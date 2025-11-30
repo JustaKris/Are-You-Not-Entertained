@@ -385,6 +385,7 @@ def refresh_tmdb(
                 limit=limit,
                 min_release_year=min_year,
                 max_release_year=max_year,
+                data_source="tmdb",  # Only TMDB refresh candidates
             )
 
             if candidates.empty:
@@ -413,13 +414,17 @@ def refresh_tmdb(
                 TextColumn("[progress.description]{task.description}"),
                 console=console,
             ) as progress:
-                task = progress.add_task(f"Refreshing up to {limit:,} movies...", total=None)
+                if limit is not None:
+                    task = progress.add_task(f"Refreshing up to {limit:,} movies...", total=None)
+                else:
+                    task = progress.add_task("Refreshing movies (no limit)...", total=None)
 
-                # Get movies that need refresh
+                # Get movies that need TMDB refresh specifically
                 movies_to_refresh = orchestrator.get_movies_for_refresh(
                     limit=limit,
                     min_release_year=min_year,
                     max_release_year=max_year,
+                    data_source="tmdb",  # Only get movies needing TMDB refresh
                 )
 
                 if movies_to_refresh.empty:

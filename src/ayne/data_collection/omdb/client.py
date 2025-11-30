@@ -218,12 +218,13 @@ class OMDBClient:
             elif isinstance(result, dict):
                 movies.append(result)
 
-        # If quota was exceeded, raise custom exception with progress info
+        # If quota was exceeded, raise custom exception with progress info AND partial data
         if self._quota_exceeded.is_set():
             raise APIRateLimitExceeded(
                 api_name="OMDB",
                 items_processed=successful_fetches,
                 total_requested=total,
+                partial_data=movies,  # Include the successfully fetched movies
             )
 
         logger.info(f"Successfully fetched {len(movies)}/{total} movies")

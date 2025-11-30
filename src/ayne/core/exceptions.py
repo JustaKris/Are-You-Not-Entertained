@@ -97,19 +97,28 @@ class APIRateLimitExceeded(APIError):
         api_name: Name of the API (e.g., 'OMDB', 'TMDB')
         items_processed: Number of items successfully processed before limit
         total_requested: Total number of items requested
+        partial_data: List of successfully fetched items before quota hit
     """
 
-    def __init__(self, api_name: str, items_processed: int, total_requested: int):
+    def __init__(
+        self,
+        api_name: str,
+        items_processed: int,
+        total_requested: int,
+        partial_data: list | None = None,
+    ):
         """Initialize APIRateLimitExceeded.
 
         Args:
             api_name: Name of the API that hit the limit
             items_processed: Number of items successfully processed
             total_requested: Total number of items that were requested
+            partial_data: Optional list of successfully fetched items
         """
         self.api_name = api_name
         self.items_processed = items_processed
         self.total_requested = total_requested
+        self.partial_data = partial_data or []
 
         message = (
             f"{api_name} daily quota exceeded.\n\n"
