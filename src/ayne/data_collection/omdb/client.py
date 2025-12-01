@@ -175,6 +175,7 @@ class OMDBClient:
 
                 if result:
                     successful_fetches += 1
+                    movies.append(result)  # Add to list immediately for cancellation handling
 
                 if progress_callback:
                     progress_callback(completed, total)
@@ -209,14 +210,26 @@ class OMDBClient:
 
         # Create tasks for all movies
         tasks = [fetch_with_progress(imdb_id) for imdb_id in valid_ids]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Filter out None and exceptions
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+        except asyncio.CancelledError:
+            # Asyncio task cancelled (from KeyboardInterrupt) - raise with partial data
+            from ayne.core.exceptions import UserCancelledOperation
+
+            logger.info(f"Cancellation detected: saved {len(movies)} movies so far")
+            raise UserCancelledOperation(
+                operation_name="OMDB batch fetch",
+                items_processed=successful_fetches,
+                total_requested=total,
+                partial_data=movies,
+            ) from None
+
+        # Filter out None and exceptions (no longer need to append, already done in fetch_with_progress)
         for result in results:
             if isinstance(result, Exception):
                 logger.error(f"Task failed: {result}")
-            elif isinstance(result, dict):
-                movies.append(result)
+            # Note: movies already appended in fetch_with_progress
 
         # If quota was exceeded, raise custom exception with progress info AND partial data
         if self._quota_exceeded.is_set():

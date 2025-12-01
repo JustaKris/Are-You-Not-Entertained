@@ -191,7 +191,12 @@ def enrich_omdb(
             await orchestrator.close()
             db.close()
 
-    asyncio.run(_run_enrichment())
+    try:
+        asyncio.run(_run_enrichment())
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠ Operation Cancelled[/yellow]\n")
+        console.print("[bold]Your progress has been saved[/bold]")
+        console.print("Run the same command again to continue\n")
 
 
 @app.command("refresh")

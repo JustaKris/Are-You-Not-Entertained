@@ -134,6 +134,48 @@ class APIRateLimitExceeded(APIError):
         super().__init__(message)
 
 
+class UserCancelledOperation(AyneError):
+    """Raised when user cancels an operation (e.g., Ctrl+C).
+
+    This exception preserves partial data collected before cancellation.
+
+    Attributes:
+        operation_name: Name of the operation that was cancelled
+        items_processed: Number of items successfully processed before cancellation
+        total_requested: Total number of items that were requested
+        partial_data: List of successfully fetched items before cancellation
+    """
+
+    def __init__(
+        self,
+        operation_name: str,
+        items_processed: int,
+        total_requested: int,
+        partial_data: list | None = None,
+    ):
+        """Initialize UserCancelledOperation.
+
+        Args:
+            operation_name: Name of the cancelled operation
+            items_processed: Number of items successfully processed
+            total_requested: Total number of items that were requested
+            partial_data: Optional list of successfully fetched items
+        """
+        self.operation_name = operation_name
+        self.items_processed = items_processed
+        self.total_requested = total_requested
+        self.partial_data = partial_data or []
+
+        message = (
+            f"Operation cancelled by user.\n\n"
+            f"Progress: {items_processed}/{total_requested} items processed successfully\n\n"
+            f"Your data up to this point has been saved.\n\n"
+            f"You can resume by running the same command again."
+        )
+
+        super().__init__(message)
+
+
 class APIAuthenticationError(APIError):
     """Raised when API authentication fails."""
 

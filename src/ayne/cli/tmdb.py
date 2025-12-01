@@ -162,7 +162,12 @@ def update_tmdb(
             await orchestrator.close()
             db.close()
 
-    asyncio.run(_run_collection())
+    try:
+        asyncio.run(_run_collection())
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠ Operation Cancelled[/yellow]\n")
+        console.print("[bold]Your progress has been saved[/bold]")
+        console.print("Run the same command again to continue\n")
 
 
 @app.command("enrich")
@@ -317,7 +322,12 @@ def enrich_tmdb(
             await orchestrator.close()
             db.close()
 
-    asyncio.run(_run_enrichment())
+    try:
+        asyncio.run(_run_enrichment())
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠ Operation Cancelled[/yellow]\n")
+        console.print("[bold]Your progress has been saved[/bold]")
+        console.print("Run the same command again to continue\n")
 
 
 @app.command("refresh")
@@ -452,4 +462,9 @@ def refresh_tmdb(
             await orchestrator.close()
             db.close()
 
-    asyncio.run(_run_refresh())
+    try:
+        asyncio.run(_run_refresh())
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠ Operation Cancelled[/yellow]\n")
+        console.print("[bold]Your progress has been saved[/bold]")
+        console.print("Run the same command again to continue\n")

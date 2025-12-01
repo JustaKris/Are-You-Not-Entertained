@@ -275,7 +275,12 @@ class TMDBClient:
             for page in range(1, pages_to_fetch + 1)
         ]
 
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+        except asyncio.CancelledError:
+            # Asyncio task cancelled during discover - reraise to preserve stack
+            # The discover_movies function doesn't track completed items the same way
+            raise
 
         for result in results:
             if isinstance(result, Exception):
@@ -381,10 +386,17 @@ class TMDBClient:
         completed = 0
 
         # Create tasks for all movies
+        completed = 0
+        movies: list[dict[str, Any]] = []
+
         async def fetch_with_progress(tmdb_id: int) -> Optional[Dict[str, Any]]:
             nonlocal completed
             result = await self.get_movie_details(tmdb_id)
             completed += 1
+
+            # Add successful results immediately to movies list for cancellation handling
+            if result is not None:
+                movies.append(result)
 
             if progress_callback:
                 progress_callback(completed, total)
@@ -394,10 +406,22 @@ class TMDBClient:
             return result
 
         tasks = [fetch_with_progress(tmdb_id) for tmdb_id in tmdb_ids]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+        except asyncio.CancelledError:
+            # Asyncio task cancelled (from KeyboardInterrupt) - raise with partial data
+            from ayne.core.exceptions import UserCancelledOperation
+
+            raise UserCancelledOperation(
+                operation_name="TMDB batch fetch",
+                items_processed=completed,
+                total_requested=total,
+                partial_data=movies,
+            ) from None
 
         # Filter out None and exceptions, and apply status filtering if specified
-        movies: list[dict[str, Any]] = []
+        final_movies: list[dict[str, Any]] = []
         filtered_count = 0
         for result in results:
             if isinstance(result, Exception):
@@ -407,19 +431,19 @@ class TMDBClient:
                 if allowed_statuses:
                     movie_status = result.get("status", "")
                     if movie_status in allowed_statuses:
-                        movies.append(result)
+                        final_movies.append(result)
                     else:
                         filtered_count += 1
                 else:
-                    movies.append(result)
+                    final_movies.append(result)
 
         if filtered_count > 0:
             logger.info(
                 f"Filtered out {filtered_count} movies due to release status not in {allowed_statuses}"
             )
 
-        logger.info(f"Successfully fetched {len(movies)}/{total} movies")
-        return movies
+        logger.info(f"Successfully fetched {len(final_movies)}/{total} movies")
+        return final_movies
 
     async def close(self):
         """Cleanup method (placeholder for future resource cleanup)."""
