@@ -739,7 +739,7 @@ def get_api_usage_estimates() -> Dict[str, Any]:
 
         # Rate limits (conservative estimates)
         tmdb_per_day = 100_000  # Conservative batch processing rate
-        omdb_per_day = 1_000    # Single API key limit
+        omdb_per_day = 1_000  # Single API key limit
 
         estimates = {
             "tmdb_pending": tmdb_pending,

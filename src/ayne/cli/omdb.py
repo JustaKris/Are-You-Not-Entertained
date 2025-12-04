@@ -61,7 +61,9 @@ def enrich_omdb(
         console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]\n")
 
     # Use provided value if set, otherwise fall back to config default if it exists
-    max_movies = max_movies if max_movies is not None else getattr(settings, "omdb_max_movies", None)
+    max_movies = (
+        max_movies if max_movies is not None else getattr(settings, "omdb_max_movies", None)
+    )
 
     # Use settings defaults for year filters if not provided
     min_year = min_year or getattr(settings, "omdb_min_release_year", None)
