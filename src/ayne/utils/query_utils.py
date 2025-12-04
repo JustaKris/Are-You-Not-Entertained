@@ -541,3 +541,221 @@ def get_data_quality_metrics() -> pd.DataFrame:
         return df
     finally:
         db.close()
+
+
+def get_refresh_compliance_by_age_group() -> pd.DataFrame:
+    """Analyze refresh compliance based on movie age groups.
+
+    Checks if movies are being refreshed according to the expected intervals:
+    - Recent (0-60 days): Every 5 days
+    - New (61-180 days): Every 14 days
+    - Established (181-730 days): Every 30 days
+    - Mature (731-1825 days): Every 90 days
+    - Archived (1826+ days): Every 180 days
+
+    Returns:
+        DataFrame with age groups, expected vs actual refresh patterns
+
+    Example:
+        >>> df = get_refresh_compliance_by_age_group()
+        >>> print(df.to_string())
+    """
+    query = """
+        WITH movie_ages AS (
+            SELECT
+                m.movie_id,
+                m.title,
+                m.release_date,
+                m.last_tmdb_update,
+                m.last_omdb_update,
+                m.data_frozen,
+                DATEDIFF('day', m.release_date, CURRENT_DATE) as days_since_release,
+                DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) as days_since_tmdb_update,
+                DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) as days_since_omdb_update,
+                CASE
+                    WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 60 THEN 'Recent (0-60d)'
+                    WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 180 THEN 'New (61-180d)'
+                    WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 730 THEN 'Established (181-730d)'
+                    WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 1825 THEN 'Mature (731-1825d)'
+                    ELSE 'Archived (1826+d)'
+                END as age_group,
+                CASE
+                    WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 60 THEN 5
+                    WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 180 THEN 14
+                    WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 730 THEN 30
+                    WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 1825 THEN 90
+                    ELSE 180
+                END as expected_refresh_days
+            FROM movies m
+            WHERE m.release_date IS NOT NULL
+              AND (m.data_frozen IS NULL OR m.data_frozen = FALSE)
+        )
+        SELECT
+            age_group,
+            expected_refresh_days,
+            COUNT(*) as total_movies,
+            COUNT(CASE WHEN last_tmdb_update IS NULL THEN 1 END) as never_updated_tmdb,
+            COUNT(CASE WHEN days_since_tmdb_update > expected_refresh_days THEN 1 END) as overdue_tmdb,
+            COUNT(CASE WHEN days_since_tmdb_update <= expected_refresh_days THEN 1 END) as compliant_tmdb,
+            ROUND(100.0 * COUNT(CASE WHEN days_since_tmdb_update <= expected_refresh_days THEN 1 END)
+                / NULLIF(COUNT(CASE WHEN last_tmdb_update IS NOT NULL THEN 1 END), 0), 1) as pct_compliant_tmdb,
+            ROUND(AVG(CASE WHEN last_tmdb_update IS NOT NULL THEN days_since_tmdb_update END), 1) as avg_days_since_update
+        FROM movie_ages
+        GROUP BY age_group, expected_refresh_days
+        ORDER BY
+            CASE age_group
+                WHEN 'Recent (0-60d)' THEN 1
+                WHEN 'New (61-180d)' THEN 2
+                WHEN 'Established (181-730d)' THEN 3
+                WHEN 'Mature (731-1825d)' THEN 4
+                WHEN 'Archived (1826+d)' THEN 5
+            END
+    """
+
+    db = get_db_client(read_only=True)
+    try:
+        df = db.query(query)
+        logger.info("Retrieved refresh compliance analysis")
+        return df
+    finally:
+        db.close()
+
+
+def get_consecutive_unchanged_stats() -> pd.DataFrame:
+    """Get statistics on consecutive unchanged refreshes to identify freeze candidates.
+
+    Movies with 3+ consecutive unchanged refreshes (and 1826+ days old) are frozen.
+    This helps monitor the freeze pipeline and identify movies approaching the threshold.
+
+    Returns:
+        DataFrame with unchanged refresh counts and movie statistics
+
+    Example:
+        >>> df = get_consecutive_unchanged_stats()
+        >>> print(df[df['consecutive_unchanged'] >= 2])  # Near freeze threshold
+    """
+    query = """
+        SELECT
+            m.consecutive_unchanged_refreshes as consecutive_unchanged,
+            COUNT(*) as movie_count,
+            COUNT(CASE WHEN m.data_frozen = TRUE THEN 1 END) as frozen_count,
+            COUNT(CASE WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) >= 1826 THEN 1 END) as old_enough_to_freeze,
+            ROUND(AVG(DATEDIFF('day', m.release_date, CURRENT_DATE)), 0) as avg_age_days,
+            MIN(EXTRACT(YEAR FROM m.release_date)) as earliest_year,
+            MAX(EXTRACT(YEAR FROM m.release_date)) as latest_year
+        FROM movies m
+        WHERE m.consecutive_unchanged_refreshes > 0
+          AND m.release_date IS NOT NULL
+        GROUP BY m.consecutive_unchanged_refreshes
+        ORDER BY m.consecutive_unchanged_refreshes DESC
+    """
+
+    db = get_db_client(read_only=True)
+    try:
+        df = db.query(query)
+        logger.info("Retrieved consecutive unchanged refresh statistics")
+        return df
+    finally:
+        db.close()
+
+
+def get_data_freshness_by_year() -> pd.DataFrame:
+    """Get data freshness metrics grouped by release year.
+
+    Shows how recently each year's movies were updated, helping identify
+    stale data cohorts that need attention.
+
+    Returns:
+        DataFrame with year, movie counts, and average days since last update
+
+    Example:
+        >>> df = get_data_freshness_by_year()
+        >>> stale = df[df['avg_days_since_tmdb_update'] > 90]
+    """
+    query = """
+        SELECT
+            EXTRACT(YEAR FROM m.release_date) as release_year,
+            COUNT(*) as total_movies,
+            COUNT(m.last_tmdb_update) as has_tmdb_update,
+            COUNT(m.last_omdb_update) as has_omdb_update,
+            ROUND(AVG(DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP)), 1) as avg_days_since_tmdb_update,
+            ROUND(AVG(DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP)), 1) as avg_days_since_omdb_update,
+            MAX(DATE(m.last_tmdb_update)) as most_recent_tmdb_update,
+            MIN(DATE(m.last_tmdb_update)) as least_recent_tmdb_update
+        FROM movies m
+        WHERE m.release_date IS NOT NULL
+          AND (m.data_frozen IS NULL OR m.data_frozen = FALSE)
+        GROUP BY release_year
+        HAVING COUNT(m.last_tmdb_update) > 0
+        ORDER BY release_year DESC
+    """
+
+    db = get_db_client(read_only=True)
+    try:
+        df = db.query(query)
+        logger.info(f"Retrieved data freshness for {len(df)} years")
+        return df
+    finally:
+        db.close()
+
+
+def get_api_usage_estimates() -> Dict[str, Any]:
+    """Estimate API usage and time to complete pending updates.
+
+    Based on rate limits:
+    - TMDB: ~40 requests/second (3,456,000/day theoretical)
+    - OMDB: 1,000 requests/day per key
+
+    Returns:
+        Dictionary with estimated completion times and request counts
+
+    Example:
+        >>> estimates = get_api_usage_estimates()
+        >>> print(f"Days to complete OMDB: {estimates['omdb_days_to_complete']:.1f}")
+    """
+    query = """
+        SELECT
+            COUNT(DISTINCT CASE WHEN m.last_tmdb_update IS NULL THEN m.movie_id END) as tmdb_never_updated,
+            COUNT(DISTINCT CASE WHEN m.last_omdb_update IS NULL AND m.imdb_id IS NOT NULL THEN m.movie_id END) as omdb_never_updated,
+            COUNT(DISTINCT CASE WHEN t.tmdb_id IS NOT NULL THEN m.movie_id END) as enriched_tmdb,
+            COUNT(DISTINCT CASE WHEN o.imdb_id IS NOT NULL THEN m.movie_id END) as enriched_omdb,
+            COUNT(DISTINCT m.movie_id) as total_movies,
+            COUNT(DISTINCT CASE WHEN m.tmdb_id IS NOT NULL AND t.tmdb_id IS NULL THEN m.movie_id END) as tmdb_id_no_enrichment,
+            COUNT(DISTINCT CASE WHEN m.imdb_id IS NOT NULL AND o.imdb_id IS NULL THEN m.movie_id END) as imdb_id_no_enrichment
+        FROM movies m
+        LEFT JOIN tmdb_movies t ON m.tmdb_id = t.tmdb_id
+        LEFT JOIN omdb_movies o ON m.imdb_id = o.imdb_id
+        WHERE (m.data_frozen IS NULL OR m.data_frozen = FALSE)
+    """
+
+    db = get_db_client(read_only=True)
+    try:
+        df = db.query(query)
+        row = df.iloc[0]
+
+        # Calculate pending: movies with IDs but no enrichment data
+        tmdb_pending = int(row["tmdb_id_no_enrichment"]) + int(row["tmdb_never_updated"])
+        omdb_pending = int(row["imdb_id_no_enrichment"]) + int(row["omdb_never_updated"])
+
+        # Rate limits (conservative estimates)
+        tmdb_per_day = 100_000  # Conservative batch processing rate
+        omdb_per_day = 1_000    # Single API key limit
+
+        estimates = {
+            "tmdb_pending": tmdb_pending,
+            "omdb_pending": omdb_pending,
+            "tmdb_never_updated": int(row["tmdb_never_updated"]),
+            "omdb_never_updated": int(row["omdb_never_updated"]),
+            "enriched_tmdb": int(row["enriched_tmdb"]),
+            "enriched_omdb": int(row["enriched_omdb"]),
+            "total_movies": int(row["total_movies"]),
+            "tmdb_days_to_complete": tmdb_pending / tmdb_per_day if tmdb_pending > 0 else 0,
+            "omdb_days_to_complete": omdb_pending / omdb_per_day if omdb_pending > 0 else 0,
+            "tmdb_rate_limit_per_day": tmdb_per_day,
+            "omdb_rate_limit_per_day": omdb_per_day,
+        }
+
+        logger.info("Calculated API usage estimates")
+        return estimates
+    finally:
+        db.close()

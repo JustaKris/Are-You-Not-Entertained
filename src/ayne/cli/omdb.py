@@ -60,7 +60,8 @@ def enrich_omdb(
     if dry_run:
         console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]\n")
 
-    max_movies = max_movies or settings.omdb_max_movies
+    # Use provided value if set, otherwise fall back to config default if it exists
+    max_movies = max_movies if max_movies is not None else getattr(settings, "omdb_max_movies", None)
 
     # Use settings defaults for year filters if not provided
     min_year = min_year or getattr(settings, "omdb_min_release_year", None)
@@ -117,6 +118,10 @@ def enrich_omdb(
         db = DuckDBClient()
         orchestrator = DataCollectionOrchestrator(db)
 
+        # Ensure these names exist even if an exception occurs before the context manager binds them
+        progress = None
+        task = None
+
         try:
             with Progress(
                 SpinnerColumn(),
@@ -151,7 +156,12 @@ def enrich_omdb(
 
         except APIRateLimitExceeded as e:
             # OMDB daily quota hit - this is expected, not an error
-            progress.update(task, completed=True)
+            if progress is not None and task is not None:
+                try:
+                    progress.update(task, completed=True)
+                except Exception:
+                    # If updating progress fails for any reason, ignore to avoid masking the rate limit handling
+                    pass
 
             console.print("\n[yellow]⚠ OMDB Daily Limit Reached[/yellow]\n")
             console.print(
