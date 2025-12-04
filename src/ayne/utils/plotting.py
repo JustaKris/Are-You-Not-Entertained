@@ -5,11 +5,13 @@ used across analysis notebooks.
 """
 
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.io as pio
 import seaborn as sns
 
 
 def configure_dark_mode(palette: str = "bright") -> None:
-    """Configure matplotlib for consistent dark-mode plotting across notebooks.
+    """Configure matplotlib and Plotly for consistent dark-mode plotting across notebooks.
 
     This function sets up:
     - Dark background matching VS Code theme
@@ -22,8 +24,9 @@ def configure_dark_mode(palette: str = "bright") -> None:
         palette: Seaborn palette name (default: "bright" for high contrast).
 
     Example:
-        >>> from tv_hml.utils.plotting import configure_dark_mode
+        >>> from ayne.utils.plotting import configure_dark_mode
         >>> configure_dark_mode()
+        >>> # Now both matplotlib and Plotly will use dark mode
         >>> plt.figure()
         >>> plt.plot([1, 2, 3])
         >>> plt.show()
@@ -33,7 +36,9 @@ def configure_dark_mode(palette: str = "bright") -> None:
         Colors: Dark backgrounds match VS Code (#1e1e1e, #2d2d2d).
         All text is white for maximum contrast.
         Includes edge colors and grid styling.
+        Configures both matplotlib and Plotly themes.
     """
+    # Configure matplotlib
     plt.style.use("dark_background")
     sns.set_palette(palette)
 
@@ -66,6 +71,77 @@ def configure_dark_mode(palette: str = "bright") -> None:
     }
 
     plt.rcParams.update(rcparams)
+
+    # Configure Plotly dark mode
+    # Create custom dark template matching VS Code theme with improved readability
+    plotly_template = go.layout.Template(
+        layout=go.Layout(
+            paper_bgcolor="#1e1e1e",  # Outer background
+            plot_bgcolor="#2d2d2d",   # Plot area background
+            font={"color": "white", "size": 13, "family": "Arial, sans-serif"},
+            title={
+                "font": {"size": 18, "color": "white"},
+                "x": 0.5,  # Center title
+                "xanchor": "center",
+                "pad": {"t": 20, "b": 10}  # Padding around title
+            },
+            # Enhanced margins to prevent text cutoff
+            margin={"l": 80, "r": 40, "t": 80, "b": 80},
+            xaxis={
+                "gridcolor": "#666666",
+                "linecolor": "#888888",
+                "tickcolor": "white",
+                "zerolinecolor": "#666666",
+                "title": {"font": {"size": 14}, "standoff": 15},
+                "tickfont": {"size": 12},
+                "automargin": True,  # Auto-adjust margins for long labels
+            },
+            yaxis={
+                "gridcolor": "#666666",
+                "linecolor": "#888888",
+                "tickcolor": "white",
+                "zerolinecolor": "#666666",
+                "title": {"font": {"size": 14}, "standoff": 15},
+                "tickfont": {"size": 12},
+                "automargin": True,  # Auto-adjust margins for long labels
+            },
+            legend={
+                "bgcolor": "rgba(45, 45, 45, 0.8)",
+                "bordercolor": "#666666",
+                "borderwidth": 1,
+                "font": {"size": 12},
+                "x": 1.02,  # Position to the right
+                "xanchor": "left",
+                "y": 1,
+                "yanchor": "top"
+            },
+            hoverlabel={
+                "bgcolor": "#2d2d2d",
+                "font": {"size": 13, "color": "white"},
+                "bordercolor": "#888888"
+            },
+            # Annotation defaults for better readability
+            annotationdefaults={
+                "font": {"size": 12, "color": "white"},
+                "bgcolor": "rgba(45, 45, 45, 0.8)",
+                "bordercolor": "#666666",
+                "borderwidth": 1,
+                "borderpad": 4
+            },
+            colorway=[
+                "#00d4ff",  # Cyan
+                "#ff79c6",  # Pink
+                "#c7ff00",  # Lime
+                "#ff9500",  # Orange
+                "#b19cd9",  # Purple
+                "#ff6b9d",  # Magenta
+            ],
+        )
+    )
+
+    # Register and set as default template
+    pio.templates["vscode_dark"] = plotly_template
+    pio.templates.default = "vscode_dark"
 
     # Enable matplotlib inline for Jupyter
     # Note: This won't work in regular Python scripts
