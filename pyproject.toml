@@ -293,13 +293,27 @@ exclude_dirs = [
 skips = ["B101", "B104", "B108", "B110", "B608"]
 
 # Markdown linting
-[tool.pymarkdown]
-plugins.md013.enabled = false  # Disable line length check (tables/code blocks can be long)
-plugins.md033.enabled = false  # Allow inline HTML (useful for badges, images)
-plugins.md013.line_length = 120  # Set reasonable line length if enabled
-plugins.md036.enabled = false  # Allow emphasis as pseudo-headings (common in docs)
-plugins.md024.enabled = false  # Allow duplicate headings (useful for examples)
-plugins.md040.enabled = false  # Don't require language for all code blocks (examples may not have)
-plugins.md031.enabled = false  # Allow code blocks without surrounding blank lines (nested examples)
-extensions.front-matter.enabled = true  # Support YAML front matter
-extensions.tables.enabled = true  # Enable table support
+[tool.pymarkdown.plugins.md013]
+enabled = false  # Disable line length check (tables/code blocks can be long)
+line_length = 120  # Set reasonable line length if enabled
+
+[tool.pymarkdown.plugins.md033]
+enabled = false  # Allow inline HTML (useful for badges, images)
+
+[tool.pymarkdown.plugins.md036]
+enabled = false  # Allow emphasis as pseudo-headings (common in docs)
+
+[tool.pymarkdown.plugins.md024]
+enabled = false  # Allow duplicate headings (useful for examples)
+
+[tool.pymarkdown.plugins.md040]
+enabled = false  # Don't require language for all code blocks (examples may not have)
+
+[tool.pymarkdown.plugins.md031]
+enabled = false  # Allow code blocks without surrounding blank lines (nested examples)
+
+[tool.pymarkdown.extensions.front_matter]
+enabled = true  # Support YAML front matter
+
+[tool.pymarkdown.extensions.tables]
+enabled = true  # Enable table support
