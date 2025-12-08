@@ -294,12 +294,12 @@ skips = ["B101", "B104", "B108", "B110", "B608"]
 
 # Markdown linting
 [tool.pymarkdown]
-plugins.md013.enabled = false
-plugins.md013.line_length = 120
-plugins.md024.enabled = false
-plugins.md031.enabled = false
-plugins.md033.enabled = false
-plugins.md036.enabled = false
-plugins.md040.enabled = false
-extensions.front-matter.enabled = true
-extensions.markdown-tables.enabled = true
+plugins.md013.enabled = false  # Disable line length check (tables/code blocks can be long)
+plugins.md033.enabled = false  # Allow inline HTML (useful for badges, images)
+plugins.md013.line_length = 120  # Set reasonable line length if enabled
+plugins.md036.enabled = false  # Allow emphasis as pseudo-headings (common in docs)
+plugins.md024.enabled = false  # Allow duplicate headings (useful for examples)
+plugins.md040.enabled = false  # Don't require language for all code blocks (examples may not have)
+plugins.md031.enabled = false  # Allow code blocks without surrounding blank lines (nested examples)
+extensions.front-matter.enabled = true  # Support YAML front matter
+extensions.tables.enabled = true  # Enable table support
