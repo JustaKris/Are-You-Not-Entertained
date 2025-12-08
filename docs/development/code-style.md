@@ -1,6 +1,6 @@
 # Code Style Guide
 
-Python code style guidelines for the TV-HML project.
+Python code style guidelines for the Are You Not Entertained (AYNE) project.
 
 ## Style Guidelines
 
@@ -63,7 +63,7 @@ Use `ruff check --select I --fix` to auto-sort imports.
 
 ## Tools & Automation
 
-The TV-HML project uses modern Python tooling for code quality:
+The AYNE project uses modern Python tooling for code quality:
 
 - **[Ruff](linting.md)** - Fast linting and code quality checks
 - **[Ruff Formatter](formatting.md)** - Consistent code formatting
@@ -107,7 +107,7 @@ For detailed usage and configuration, see:
 - **[Testing Guide](testing.md)** - Test practices and coverage
 - **[Linting Guide](linting.md)** - Code quality checks
 - **[Formatting Guide](formatting.md)** - Code formatting standards
-- **[CI/CD Pipeline](ci-cd.md)** - Automated quality checks
+- **GitHub Actions Workflows** - See `.github/workflows/` for automated quality checks
 
 ## Pre-commit Hooks
 

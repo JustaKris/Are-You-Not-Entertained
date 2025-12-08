@@ -103,4 +103,4 @@ Security scans run automatically in GitHub Actions:
 ## Related Documentation
 
 - **[Linting Guide](linting.md)** - Code quality checks
-- **GitHub Actions Workflows** - See `.github/workflows/security.yml` for automated security scanning
+- **GitHub Actions Workflows** - See `.github/workflows/security-audit.yml` for automated security scanning

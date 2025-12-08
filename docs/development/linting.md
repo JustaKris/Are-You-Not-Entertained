@@ -29,7 +29,7 @@ Ruff is an extremely fast Python linter written in Rust, combining the functiona
 uv run ruff check src/
 
 # Lint specific files
-uv run ruff check src/tv_hml/config/schema.py
+uv run ruff check src/ayne/config/schema.py
 
 # Show detailed output
 uv run ruff check src/ --output-format=full
@@ -226,8 +226,8 @@ import numpy as np
 from pydantic import BaseModel
 
 # Local
-from tv_hml.config.schema import Settings
-from tv_hml.utils.calendar import get_days_in_month
+from ayne.config.schema import Settings
+from ayne.utils.calendar import get_days_in_month
 ```
 
 ## Running All Checks
@@ -287,7 +287,7 @@ Linting runs automatically in GitHub Actions:
     uv run bandit -r src/
 ```
 
-See `.github/workflows/lint.yml`, `.github/workflows/type-check.yml`, and `.github/workflows/security.yml` for complete workflows.
+See `.github/workflows/python-lint.yml`, `.github/workflows/python-typecheck.yml`, and `.github/workflows/security-audit.yml` for complete workflows.
 
 ## IDE Integration
 

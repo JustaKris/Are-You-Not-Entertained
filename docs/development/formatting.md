@@ -12,7 +12,7 @@ uv run ruff format src/ scripts/ tests/
 uv run ruff format --check src/ scripts/ tests/
 
 # Format specific files
-uv run ruff format src/tv_hml/config/schema.py
+uv run ruff format src/ayne/config/schema.py
 ```
 
 ## Ruff Formatter
@@ -263,11 +263,11 @@ import pandas as pd
 import numpy as np
 from pydantic import BaseModel
 
-from tv_hml.config.schema import Settings
-from tv_hml.utils.calendar import get_days_in_month
+from ayne.config.schema import Settings
+from ayne.utils.io import load_dataframe
 
 # Bad - mixed order
-from tv_hml.config.schema import Settings
+from ayne.config.schema import Settings
 import pandas as pd
 import os
 from pydantic import BaseModel
@@ -566,7 +566,7 @@ Exit codes:
 - **[Linting Guide](linting.md)** - Code quality checks
 - **[Testing Guide](testing.md)** - Test practices and coverage
 - **[Code Style](code-style.md)** - General style guidelines
-- **[CI/CD Pipeline](ci-cd.md)** - Automated quality checks
+- **GitHub Actions Workflows** - See `.github/workflows/` for automated quality checks
 
 ## Resources
 

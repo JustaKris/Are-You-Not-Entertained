@@ -286,7 +286,7 @@ Pre-commit hooks match our GitHub Actions workflows:
 | ruff | `.github/workflows/python-lint.yml` |
 | mypy | `.github/workflows/python-typecheck.yml` |
 | pytest | `.github/workflows/python-tests.yml` |
-| bandit | `.github/workflows/python-security.yml` |
+| bandit | `.github/workflows/security-audit.yml` |
 | markdownlint | `.github/workflows/markdown-lint.yml` |
 
 Running pre-commit locally ensures CI/CD passes.

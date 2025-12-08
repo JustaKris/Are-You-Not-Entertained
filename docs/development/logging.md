@@ -20,7 +20,7 @@ This replaces the previous `logger.py` module with a more robust, production-rea
 ### Basic Usage
 
 ```python
-from ayne.tv_hml.utils.logging import get_logger
+from ayne.core.logging import get_logger
 
 # Get a logger for your module
 logger = get_logger(__name__)
@@ -37,7 +37,7 @@ The CLI automatically configures logging based on verbosity flags:
 
 ```python
 # In your own scripts using the library
-from tv_hml.utils.logging import configure_logging
+from ayne.core.logging import configure_logging
 
 # Configure logging once at application startup
 configure_logging(
@@ -70,10 +70,10 @@ configure_logging(level="INFO", use_json=False)
 **Output:**
 
 ```text
-2025-11-19 14:32:15 | INFO     | tv_hml.transform.fusion | Loading socio file from data/input/2025-09/socio/Sozio_2025_gxl.sav
-2025-11-19 14:32:16 | INFO     | tv_hml.transform.fusion | Loaded 20,332 panelists from socio file
-2025-11-19 14:32:17 | WARNING  | tv_hml.utils.directory  | Missing input subdirectory: weights
-2025-11-19 14:32:18 | ERROR    | tv_hml.io.s3            | Failed to download from S3: BucketNotFound
+2025-12-08 14:32:15 | INFO     | ayne.data_collection.tmdb.client | Fetching movie details from TMDB
+2025-12-08 14:32:16 | INFO     | ayne.data_collection.tmdb.client | Loaded 1,234 movies from TMDB
+2025-12-08 14:32:17 | WARNING  | ayne.database.duckdb_client  | Movie already exists in database
+2025-12-08 14:32:18 | ERROR    | ayne.data_collection.omdb.client | OMDB API rate limit exceeded
 ```
 
 **Features:**
@@ -92,8 +92,8 @@ configure_logging(level="INFO", use_json=True)
 **Output:**
 
 ```json
-{"timestamp": "2025-11-19 14:32:15", "level": "INFO", "logger": "tv_hml.transform.fusion", "message": "Loading socio file", "module": "fusion", "process": 12345, "thread": 67890}
-{"timestamp": "2025-11-19 14:32:16", "level": "INFO", "logger": "tv_hml.transform.fusion", "message": "Loaded 20,332 panelists", "module": "fusion", "process": 12345, "thread": 67890}
+{"timestamp": "2025-12-08 14:32:15", "level": "INFO", "logger": "ayne.data_collection.tmdb.client", "message": "Fetching movie details", "module": "client", "process": 12345, "thread": 67890}
+{"timestamp": "2025-12-08 14:32:16", "level": "INFO", "logger": "ayne.data_collection.tmdb.client", "message": "Loaded 1,234 movies", "module": "client", "process": 12345, "thread": 67890}
 ```
 
 **Features:**
@@ -271,11 +271,11 @@ logging.getLogger("some_noisy_library").setLevel(logging.ERROR)
 **Old Code (`logger.py`):**
 
 ```python
-from ayne.tv_hml.utils.logger import setup_logger, get_logger
+from ayne.core.logger import setup_logger, get_logger
 
 # Setup with file handler
 logger = setup_logger(
-    name="tv_hml.module",
+    name="ayne.module",
     level=logging.INFO,
     log_file="logs/module.log",
     console=True
@@ -285,7 +285,7 @@ logger = setup_logger(
 **New Code (`logging.py`):**
 
 ```python
-from ayne.tv_hml.utils.logging import configure_logging, get_logger
+from ayne.core.logging import configure_logging, get_logger
 
 # Configure once at app startup
 configure_logging(level="INFO", use_json=False)
@@ -397,4 +397,4 @@ if __name__ == "__main__":
 ---
 
 **Last Updated:** November 19, 2025  
-**Logging Module:** `src/tv_hml/utils/logging.py`
+**Logging Module:** `src/ayne/core/logging.py`

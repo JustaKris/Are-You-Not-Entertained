@@ -1,4 +1,4 @@
-name: docs
+name: "Docs: Build & Publish"
 
 on:
   pull_request:

@@ -133,9 +133,9 @@ def test_example(temp_data_dir, test_settings):
 
 ```python
 import pytest
-from tv_hml.utils.calendar import get_days_in_month
+from ayne.utils.io import save_dataframe, load_dataframe
 
-class TestCalendarFunctions:
+class TestIOFunctions:
     """Test calendar utility functions."""
 
     def test_get_days_in_month_february_leap_year(self):
@@ -155,8 +155,8 @@ class TestCalendarFunctions:
 ### Integration Test Example
 
 ```python
-from tv_hml.config.schema import Settings
-from tv_hml.utils.directory import DirectoryManager
+from ayne.config.schema import Settings
+from ayne.utils.directory import DirectoryManager
 
 class TestConfigurationIntegration:
     """Test integration between config and directory management."""
@@ -282,7 +282,7 @@ Tests run automatically in GitHub Actions:
     file: ./reports/coverage/coverage.xml
 ```
 
-See `.github/workflows/test.yml` for the complete test workflow.
+See `.github/workflows/python-tests.yml` for the complete test workflow.
 
 ## Test Configuration
 
@@ -312,7 +312,7 @@ markers = [
 
 ### Common Issues
 
-**Issue**: `ModuleNotFoundError: No module named 'tv_hml'`
+**Issue**: `ModuleNotFoundError: No module named 'ayne'`
 
 ```powershell
 # Install package in editable mode
@@ -351,7 +351,7 @@ Get-ChildItem -Recurse -Filter "__pycache__" | Remove-Item -Recurse -Force
 - **[Linting Guide](linting.md)** - Code quality checks
 - **[Formatting Guide](formatting.md)** - Code formatting standards
 - **[Code Style](code-style.md)** - General style guidelines
-- **GitHub Actions Workflows** - See `.github/workflows/test.yml` for automated testing
+- **GitHub Actions Workflows** - See `.github/workflows/python-tests.yml` for automated testing
 
 ## Next Steps
 
