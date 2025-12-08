@@ -111,7 +111,7 @@ def test_example(temp_data_dir, test_settings):
     """Test using fixtures."""
     # temp_data_dir is a Path object to temporary directory
     assert temp_data_dir.exists()
-    
+
     # test_settings has pre-configured paths
     assert test_settings.paths.data_root == temp_data_dir
     assert test_settings.analysis.year == 2025
@@ -145,7 +145,7 @@ class TestIOFunctions:
     def test_get_days_in_month_february_non_leap_year(self):
         """February in non-leap year has 28 days."""
         assert get_days_in_month(2025, 2) == 28
-    
+
     def test_get_days_in_month_invalid_month(self):
         """Invalid month raises ValueError."""
         with pytest.raises(ValueError, match="Month must be between 1 and 12"):
@@ -168,7 +168,7 @@ class TestConfigurationIntegration:
             test_settings.analysis.year,
             test_settings.analysis.month
         )
-        
+
         # Verify directory structure created
         assert structure["input"]["weights"].exists()
         assert structure["output"]["durations"].exists()
@@ -202,18 +202,18 @@ import pytest
 
 class TestS3Download:
     """Test S3 download functionality."""
-    
+
     @patch('boto3.client')
     def test_download_weights(self, mock_boto_client, temp_data_dir):
         """Test successful S3 download."""
         # Arrange
         mock_s3 = Mock()
         mock_boto_client.return_value = mock_s3
-        
+
         # Act
         downloader = S3Downloader(bucket="test-bucket")
         result = downloader.download_file("key", temp_data_dir / "file.txt")
-        
+
         # Assert
         mock_s3.download_file.assert_called_once()
         assert result.exists()

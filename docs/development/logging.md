@@ -222,7 +222,7 @@ logging.getLogger("some_noisy_library").setLevel(logging.ERROR)
    # BAD - logs 10,000 times
    for i in range(10000):
        logger.debug(f"Processing item {i}")
-   
+
    # GOOD - logs once or periodically
    logger.info(f"Processing {len(items):,} items")
    for i, item in enumerate(items):
@@ -235,7 +235,7 @@ logging.getLogger("some_noisy_library").setLevel(logging.ERROR)
    ```python
    # BAD
    logger.info(f"Password: {password}")
-   
+
    # GOOD
    logger.info("Authentication successful")
    ```
@@ -245,7 +245,7 @@ logging.getLogger("some_noisy_library").setLevel(logging.ERROR)
    ```python
    # BAD
    print("Processing started")
-   
+
    # GOOD
    logger.info("Processing started")
    ```
@@ -257,7 +257,7 @@ logging.getLogger("some_noisy_library").setLevel(logging.ERROR)
    logger = get_logger(__name__)
    logger.info("Starting...")
    configure_logging()
-   
+
    # GOOD - configure first
    configure_logging()
    logger = get_logger(__name__)
@@ -396,5 +396,5 @@ if __name__ == "__main__":
 
 ---
 
-**Last Updated:** November 19, 2025  
+**Last Updated:** November 19, 2025
 **Logging Module:** `src/ayne/core/logging.py`

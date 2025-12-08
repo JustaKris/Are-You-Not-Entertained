@@ -7,7 +7,7 @@ Security practices and vulnerability scanning for the Are You Not Entertained (A
 Security best practices include:
 
 - **Static security scanning** with Bandit
-- **Dependency vulnerability scanning** with pip-audit  
+- **Dependency vulnerability scanning** with pip-audit
 - **Secret scanning** via GitHub
 - **Secure coding practices**
 - **CI/CD security gates**
@@ -46,7 +46,7 @@ Replace asserts with proper exceptions:
 # Bad
 assert isinstance(df, pd.DataFrame)
 
-# Good  
+# Good
 if not isinstance(df, pd.DataFrame):
     raise TypeError("Expected DataFrame")
 ```
