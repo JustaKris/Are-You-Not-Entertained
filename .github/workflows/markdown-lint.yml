@@ -40,7 +40,7 @@ jobs:
       - name: Run markdown linting
         run: |
           echo "Running markdown linting on documentation..."
-          uv run pymarkdown --config pyproject.toml scan docs/ README.md
+          uv run pymarkdownlnt scan docs/ README.md
 
       - name: Summary
         if: success()
