@@ -62,7 +62,7 @@ def test_model_serialization():
     print(f"✅ Loaded model type: {type(loaded_model).__name__}")
 
     # Test load with metadata
-    loaded_model2, loaded_metadata = load_model(path, load_metadata=True)
+    _loaded_model2, loaded_metadata = load_model(path, load_metadata=True)
     assert loaded_metadata.get("test_run") is True, "Metadata not loaded correctly"
     assert loaded_metadata.get("n_features") == 5, "Metadata values incorrect"
     print(f"✅ Loaded metadata: {loaded_metadata.get('model_class')}")

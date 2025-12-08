@@ -21,7 +21,7 @@ from ayne.core.logging import configure_logging, get_logger
 
 __all__ = [
     "__version__",
-    "settings",
-    "get_logger",
     "configure_logging",
+    "get_logger",
+    "settings",
 ]

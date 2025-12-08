@@ -6,9 +6,9 @@ Determines when to refresh movie data based on:
 - Data frozen status
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ayne.core.logging import get_logger
 
@@ -64,7 +64,7 @@ def get_movie_age(release_date: datetime) -> MovieAge:
     Returns:
         MovieAge enum
     """
-    days_since_release = (datetime.now(timezone.utc) - release_date).days
+    days_since_release = (datetime.now(UTC) - release_date).days
 
     if days_since_release <= RefreshThresholds.AGE_RECENT:
         return MovieAge.RECENT
@@ -139,7 +139,7 @@ def get_numbers_refresh_interval(release_date: datetime) -> int:
     return intervals[age]
 
 
-def needs_tmdb_refresh(release_date: datetime, last_tmdb_update: Optional[datetime]) -> bool:
+def needs_tmdb_refresh(release_date: datetime, last_tmdb_update: datetime | None) -> bool:
     """Check if TMDB data needs refresh.
 
     Args:
@@ -154,15 +154,15 @@ def needs_tmdb_refresh(release_date: datetime, last_tmdb_update: Optional[dateti
 
     # Ensure timezone awareness
     if last_tmdb_update.tzinfo is None:
-        last_tmdb_update = last_tmdb_update.replace(tzinfo=timezone.utc)
+        last_tmdb_update = last_tmdb_update.replace(tzinfo=UTC)
 
     interval_days = get_tmdb_refresh_interval(release_date)
-    threshold = datetime.now(timezone.utc) - timedelta(days=interval_days)
+    threshold = datetime.now(UTC) - timedelta(days=interval_days)
 
     return last_tmdb_update < threshold
 
 
-def needs_omdb_refresh(release_date: datetime, last_omdb_update: Optional[datetime]) -> bool:
+def needs_omdb_refresh(release_date: datetime, last_omdb_update: datetime | None) -> bool:
     """Check if OMDB data needs refresh.
 
     Args:
@@ -177,15 +177,15 @@ def needs_omdb_refresh(release_date: datetime, last_omdb_update: Optional[dateti
 
     # Ensure timezone awareness
     if last_omdb_update.tzinfo is None:
-        last_omdb_update = last_omdb_update.replace(tzinfo=timezone.utc)
+        last_omdb_update = last_omdb_update.replace(tzinfo=UTC)
 
     interval_days = get_omdb_refresh_interval(release_date)
-    threshold = datetime.now(timezone.utc) - timedelta(days=interval_days)
+    threshold = datetime.now(UTC) - timedelta(days=interval_days)
 
     return last_omdb_update < threshold
 
 
-def needs_numbers_refresh(release_date: datetime, last_numbers_update: Optional[datetime]) -> bool:
+def needs_numbers_refresh(release_date: datetime, last_numbers_update: datetime | None) -> bool:
     """Check if box office data needs refresh.
 
     Args:
@@ -199,15 +199,15 @@ def needs_numbers_refresh(release_date: datetime, last_numbers_update: Optional[
         return True
 
     interval_days = get_numbers_refresh_interval(release_date)
-    threshold = datetime.now(timezone.utc) - timedelta(days=interval_days)
+    threshold = datetime.now(UTC) - timedelta(days=interval_days)
 
     return last_numbers_update < threshold
 
 
 def should_freeze_movie(
     release_date: datetime,
-    last_tmdb_update: Optional[datetime],
-    last_omdb_update: Optional[datetime],
+    last_tmdb_update: datetime | None,
+    last_omdb_update: datetime | None,
     consecutive_unchanged_cycles: int = 0,
 ) -> bool:
     """Determine if a movie should be frozen (no more automatic refreshes).
@@ -225,7 +225,7 @@ def should_freeze_movie(
     Returns:
         True if movie should be frozen
     """
-    days_since_release = (datetime.now(timezone.utc) - release_date).days
+    days_since_release = (datetime.now(UTC) - release_date).days
 
     # Must be old enough
     if days_since_release < RefreshThresholds.FREEZE_MIN_AGE_DAYS:
@@ -244,7 +244,7 @@ def should_freeze_movie(
 
 
 def get_movies_due_for_refresh_query(
-    limit: Optional[int] = None, include_frozen: bool = False, data_source: Optional[str] = None
+    limit: int | None = None, include_frozen: bool = False, data_source: str | None = None
 ) -> str:
     """Generate SQL query to fetch movies due for refresh.
 
@@ -431,7 +431,7 @@ def get_movies_due_for_refresh_query(
     return query
 
 
-def calculate_refresh_plan(movie: Dict[str, Any]) -> Dict[str, bool]:
+def calculate_refresh_plan(movie: dict[str, Any]) -> dict[str, bool]:
     """Calculate what data sources need refreshing for a movie.
 
     Args:
@@ -449,7 +449,7 @@ def calculate_refresh_plan(movie: Dict[str, Any]) -> Dict[str, bool]:
 
     # Ensure timezone awareness
     if release_date and release_date.tzinfo is None:
-        release_date = release_date.replace(tzinfo=timezone.utc)
+        release_date = release_date.replace(tzinfo=UTC)
 
     last_tmdb = movie.get("last_tmdb_update")
     last_omdb = movie.get("last_omdb_update")
@@ -463,21 +463,21 @@ def calculate_refresh_plan(movie: Dict[str, Any]) -> Dict[str, bool]:
     elif isinstance(last_tmdb, str):
         last_tmdb = datetime.fromisoformat(last_tmdb.replace("Z", "+00:00"))
     elif last_tmdb and last_tmdb.tzinfo is None:
-        last_tmdb = last_tmdb.replace(tzinfo=timezone.utc)
+        last_tmdb = last_tmdb.replace(tzinfo=UTC)
 
     if pd.isna(last_omdb):
         last_omdb = None
     elif isinstance(last_omdb, str):
         last_omdb = datetime.fromisoformat(last_omdb.replace("Z", "+00:00"))
     elif last_omdb and last_omdb.tzinfo is None:
-        last_omdb = last_omdb.replace(tzinfo=timezone.utc)
+        last_omdb = last_omdb.replace(tzinfo=UTC)
 
     if pd.isna(last_numbers):
         last_numbers = None
     elif isinstance(last_numbers, str):
         last_numbers = datetime.fromisoformat(last_numbers.replace("Z", "+00:00"))
     elif last_numbers and last_numbers.tzinfo is None:
-        last_numbers = last_numbers.replace(tzinfo=timezone.utc)
+        last_numbers = last_numbers.replace(tzinfo=UTC)
 
     return {
         "needs_tmdb": needs_tmdb_refresh(release_date, last_tmdb),

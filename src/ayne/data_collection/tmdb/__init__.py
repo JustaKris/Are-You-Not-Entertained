@@ -12,8 +12,8 @@ from .normalizers import normalize_discover_results, normalize_movie_details
 __all__ = [
     "TMDBClient",
     "TMDBDiscoverMovie",
-    "TMDBMovieDetails",
     "TMDBDiscoverMovieNormalized",
+    "TMDBMovieDetails",
     "TMDBMovieDetailsNormalized",
     "normalize_discover_results",
     "normalize_movie_details",

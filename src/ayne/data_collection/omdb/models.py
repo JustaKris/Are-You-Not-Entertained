@@ -1,7 +1,5 @@
 """Pydantic models for OMDB API responses."""
 
-from typing import List, Optional
-
 from pydantic import BaseModel
 
 
@@ -16,25 +14,25 @@ class OMDBMovieResponse(BaseModel):
     """Model for OMDB API full response."""
 
     Response: str
-    imdbID: Optional[str] = None
-    Title: Optional[str] = None
-    Year: Optional[str] = None
-    Genre: Optional[str] = None
-    Director: Optional[str] = None
-    Writer: Optional[str] = None
-    Actors: Optional[str] = None
-    imdbRating: Optional[str] = None
-    imdbVotes: Optional[str] = None
-    Metascore: Optional[str] = None
-    BoxOffice: Optional[str] = None
-    Released: Optional[str] = None
-    Runtime: Optional[str] = None
-    Language: Optional[str] = None
-    Country: Optional[str] = None
-    Rated: Optional[str] = None
-    Awards: Optional[str] = None
-    Ratings: Optional[List[OMDBRating]] = None
-    Error: Optional[str] = None
+    imdbID: str | None = None
+    Title: str | None = None
+    Year: str | None = None
+    Genre: str | None = None
+    Director: str | None = None
+    Writer: str | None = None
+    Actors: str | None = None
+    imdbRating: str | None = None
+    imdbVotes: str | None = None
+    Metascore: str | None = None
+    BoxOffice: str | None = None
+    Released: str | None = None
+    Runtime: str | None = None
+    Language: str | None = None
+    Country: str | None = None
+    Rated: str | None = None
+    Awards: str | None = None
+    Ratings: list[OMDBRating] | None = None
+    Error: str | None = None
 
     class Config:
         """Pydantic config for field aliasing."""
@@ -45,23 +43,23 @@ class OMDBMovieResponse(BaseModel):
 class OMDBMovieNormalized(BaseModel):
     """Normalized OMDB movie for storage."""
 
-    imdb_id: Optional[str]
-    title: Optional[str]
-    year: Optional[int]
-    genre: Optional[str]
-    director: Optional[str]
-    writer: Optional[str]
-    actors: Optional[str]
-    imdb_rating: Optional[float]
-    imdb_votes: Optional[int]
-    metascore: Optional[int]
-    box_office: Optional[int]
-    released: Optional[str]
-    runtime: Optional[int]
-    language: Optional[str]
-    country: Optional[str]
-    rated: Optional[str]
-    awards: Optional[str]
-    rotten_tomatoes_rating: Optional[int]
-    meta_critic_rating: Optional[int]
+    imdb_id: str | None
+    title: str | None
+    year: int | None
+    genre: str | None
+    director: str | None
+    writer: str | None
+    actors: str | None
+    imdb_rating: float | None
+    imdb_votes: int | None
+    metascore: int | None
+    box_office: int | None
+    released: str | None
+    runtime: int | None
+    language: str | None
+    country: str | None
+    rated: str | None
+    awards: str | None
+    rotten_tomatoes_rating: int | None
+    meta_critic_rating: int | None
     last_updated_utc: str

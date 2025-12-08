@@ -1,14 +1,13 @@
 """OMDB data enrichment CLI commands - Restructured."""
 
 import asyncio
-from typing import Optional
 
 import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ayne.core.config import settings
-from ayne.core.exceptions import APIRateLimitExceeded
+from ayne.core.exceptions import APIRateLimitError
 from ayne.core.logging import configure_logging, get_logger
 from ayne.data_collection.orchestrator import DataCollectionOrchestrator
 from ayne.database.duckdb_client import DuckDBClient
@@ -22,17 +21,17 @@ logger = get_logger(__name__)
 
 @app.command("enrich")
 def enrich_omdb(
-    max_movies: Optional[int] = typer.Option(
+    max_movies: int | None = typer.Option(
         None,
         "--max-movies",
         help="Maximum number of movies to enrich (uses config default)",
     ),
-    min_year: Optional[int] = typer.Option(
+    min_year: int | None = typer.Option(
         None,
         "--min-year",
         help="Minimum release year",
     ),
-    max_year: Optional[int] = typer.Option(
+    max_year: int | None = typer.Option(
         None,
         "--max-year",
         help="Maximum release year",
@@ -61,7 +60,9 @@ def enrich_omdb(
         console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]\n")
 
     # Use provided value if set, otherwise fall back to config default if it exists
-    max_movies = max_movies if max_movies is not None else getattr(settings, "omdb_max_movies", None)
+    max_movies = (
+        max_movies if max_movies is not None else getattr(settings, "omdb_max_movies", None)
+    )
 
     # Use settings defaults for year filters if not provided
     min_year = min_year or getattr(settings, "omdb_min_release_year", None)
@@ -154,14 +155,14 @@ def enrich_omdb(
                 console.print("\n[bold]Recently enriched:[/bold]")
                 console.print(sample.to_string(index=False))
 
-        except APIRateLimitExceeded as e:
+        except APIRateLimitError as e:
             # OMDB daily quota hit - this is expected, not an error
             if progress is not None and task is not None:
-                try:
-                    progress.update(task, completed=True)
-                except Exception:
+                from contextlib import suppress
+
+                with suppress(Exception):
                     # If updating progress fails for any reason, ignore to avoid masking the rate limit handling
-                    pass
+                    progress.update(task, completed=True)
 
             console.print("\n[yellow]⚠ OMDB Daily Limit Reached[/yellow]\n")
             console.print(
@@ -211,18 +212,18 @@ def enrich_omdb(
 
 @app.command("refresh")
 def refresh_omdb(
-    limit: Optional[int] = typer.Option(
+    limit: int | None = typer.Option(
         None,
         "--limit",
         "-n",
         help="Maximum number of movies to refresh (uses config default if not specified)",
     ),
-    min_year: Optional[int] = typer.Option(
+    min_year: int | None = typer.Option(
         None,
         "--min-year",
         help="Minimum release year",
     ),
-    max_year: Optional[int] = typer.Option(
+    max_year: int | None = typer.Option(
         None,
         "--max-year",
         help="Maximum release year",
@@ -322,7 +323,7 @@ def refresh_omdb(
                     console.print("\n[yellow]No movies need OMDB refresh[/yellow]")
                     return
 
-                tmdb_updated, omdb_updated, frozen = await orchestrator.refresh_movie_data(
+                _tmdb_updated, omdb_updated, _frozen = await orchestrator.refresh_movie_data(
                     movies_to_refresh,
                     fetch_tmdb=False,  # OMDB only
                     fetch_omdb=True,

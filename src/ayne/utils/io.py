@@ -13,7 +13,7 @@ Best practices:
 """
 
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import pandas as pd
 
@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 def save_dataframe(
     df: pd.DataFrame,
     filename: str,
-    directory: Optional[Union[str, Path]] = None,
+    directory: str | Path | None = None,
     format: str = "parquet",
     **kwargs: Any,
 ) -> Path:
@@ -43,15 +43,16 @@ def save_dataframe(
         Path to the saved file
 
     Example:
-        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
         >>> save_dataframe(df, "my_data", format="parquet")
         >>> save_dataframe(df, "my_data.csv", format="csv", index=False)
     """
     # Set default directory if not provided
-    if directory is None:
-        directory = Path(settings.data_processed_dir)  # type: ignore
-    else:
-        directory = Path(directory)
+    directory = (
+        Path(settings.data_processed_dir)  # type: ignore
+        if directory is None
+        else Path(directory)
+    )
 
     # Create directory if it doesn't exist
     directory.mkdir(parents=True, exist_ok=True)
@@ -91,8 +92,8 @@ def save_dataframe(
 
 
 def load_dataframe(
-    filepath: Union[str, Path],
-    format: Optional[str] = None,
+    filepath: str | Path,
+    format: str | None = None,
     **kwargs: Any,
 ) -> pd.DataFrame:
     """Load a pandas DataFrame from disk.
@@ -167,7 +168,7 @@ def save_artifacts(
 
 def load_artifacts(
     filename: str,
-    format: Optional[str] = None,
+    format: str | None = None,
     **kwargs: Any,
 ) -> pd.DataFrame:
     """Load model artifacts from the artifacts directory.
@@ -221,7 +222,7 @@ def save_processed_data(
 
 def load_processed_data(
     filename: str,
-    format: Optional[str] = None,
+    format: str | None = None,
     **kwargs: Any,
 ) -> pd.DataFrame:
     """Load processed data from the processed data directory.

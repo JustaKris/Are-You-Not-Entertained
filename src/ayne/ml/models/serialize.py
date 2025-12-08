@@ -13,7 +13,7 @@ Joblib is the recommended approach for scikit-learn models because:
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import joblib
 
@@ -26,9 +26,9 @@ logger = get_logger(__name__)
 def save_model(
     model: Any,
     filename: str,
-    directory: Optional[Union[str, Path]] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-    compress: Union[int, bool] = 3,
+    directory: str | Path | None = None,
+    metadata: dict[str, Any] | None = None,
+    compress: int | bool = 3,
 ) -> Path:
     """Save a trained ML model to disk using joblib.
 
@@ -49,7 +49,7 @@ def save_model(
         ...     "model_type": "RandomForestRegressor",
         ...     "features": X_train.columns.tolist(),
         ...     "train_score": 0.95,
-        ...     "test_score": 0.87
+        ...     "test_score": 0.87,
         ... }
         >>> save_model(model, "rf_model", metadata=metadata)
     """
@@ -96,9 +96,9 @@ def save_model(
 
 
 def load_model(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     load_metadata: bool = False,
-) -> Union[Any, tuple[Any, Dict[str, Any]]]:
+) -> Any | tuple[Any, dict[str, Any]]:
     """Load a trained ML model from disk.
 
     Args:
@@ -126,7 +126,7 @@ def load_model(
         if load_metadata:
             metadata_path = filepath.with_suffix(".json")
             if metadata_path.exists():
-                with open(metadata_path, "r") as f:
+                with open(metadata_path) as f:
                     metadata = json.load(f)
                 logger.info(f"Loaded metadata from {metadata_path}")
                 return model, metadata
@@ -144,7 +144,7 @@ def load_model(
 def save_pipeline(
     pipeline: Any,
     name: str,
-    metadata: Optional[Dict[str, Any]] = None,
+    metadata: dict[str, Any] | None = None,
 ) -> Path:
     """Save a scikit-learn pipeline with metadata.
 
@@ -160,10 +160,7 @@ def save_pipeline(
 
     Example:
         >>> from sklearn.pipeline import Pipeline
-        >>> pipe = Pipeline([
-        ...     ('scaler', StandardScaler()),
-        ...     ('model', RandomForestRegressor())
-        ... ])
+        >>> pipe = Pipeline([("scaler", StandardScaler()), ("model", RandomForestRegressor())])
         >>> pipe.fit(X_train, y_train)
         >>> save_pipeline(pipe, "full_pipeline", metadata={"version": "1.0"})
     """
@@ -171,8 +168,8 @@ def save_pipeline(
 
 
 def load_pipeline(
-    filepath: Union[str, Path], load_metadata: bool = False
-) -> Union[Any, tuple[Any, Dict[str, Any]]]:
+    filepath: str | Path, load_metadata: bool = False
+) -> Any | tuple[Any, dict[str, Any]]:
     """Load a scikit-learn pipeline from disk.
 
     This is a convenience wrapper around load_model specifically for pipelines.
@@ -190,7 +187,7 @@ def load_pipeline(
     return load_model(filepath, load_metadata=load_metadata)
 
 
-def list_saved_models(directory: Optional[Union[str, Path]] = None) -> list[Path]:
+def list_saved_models(directory: str | Path | None = None) -> list[Path]:
     """List all saved models in a directory.
 
     Args:
@@ -218,7 +215,7 @@ def list_saved_models(directory: Optional[Union[str, Path]] = None) -> list[Path
     return sorted(model_files)
 
 
-def get_model_info(filepath: Union[str, Path]) -> Dict[str, Any]:
+def get_model_info(filepath: str | Path) -> dict[str, Any]:
     """Get information about a saved model without loading it.
 
     Args:
@@ -237,7 +234,7 @@ def get_model_info(filepath: Union[str, Path]) -> Dict[str, Any]:
     if not filepath.exists():
         raise FileNotFoundError(f"Model file not found: {filepath}")
 
-    info: Dict[str, Any] = {
+    info: dict[str, Any] = {
         "filepath": str(filepath),
         "filename": filepath.name,
         "file_size_mb": filepath.stat().st_size / (1024 * 1024),
@@ -247,7 +244,7 @@ def get_model_info(filepath: Union[str, Path]) -> Dict[str, Any]:
     # Try to load metadata
     metadata_path = filepath.with_suffix(".json")
     if metadata_path.exists():
-        with open(metadata_path, "r") as f:
+        with open(metadata_path) as f:
             metadata = json.load(f)
         info.update(metadata)
 

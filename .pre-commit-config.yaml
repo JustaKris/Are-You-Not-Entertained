@@ -33,7 +33,7 @@ repos:
   - id: check-docstring-first
   - id: debug-statements      # Prevent debug statements
 
-  # Ruff - Fast Python linter & formatter (replaces flake8, isort, etc.)
+  # Ruff - Fast Python linter & formatter (replaces flake8, isort, black)
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.8.4
   hooks:
@@ -44,14 +44,6 @@ repos:
       # Formatting
   - id: ruff-format
     types_or: [python, pyi]
-
-  # Black - Python code formatter (if you prefer over ruff-format)
-  # Uncomment if you want to use black instead of ruff-format
-  # - repo: https://github.com/psf/black
-  #   rev: 24.10.0
-  #   hooks:
-  #     - id: black
-  #       language_version: python3.11
 
   # MyPy - Static type checking
 - repo: https://github.com/pre-commit/mirrors-mypy

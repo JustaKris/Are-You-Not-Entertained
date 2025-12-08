@@ -8,13 +8,14 @@ Features:
 """
 
 import asyncio
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import httpx
 
 from ayne.core.config import settings
-from ayne.core.exceptions import APIRateLimitExceeded
+from ayne.core.exceptions import APIRateLimitError
 from ayne.core.logging import get_logger
 from ayne.data_collection.omdb.normalizers import normalize_movie_response
 from ayne.data_collection.rate_limiter import AsyncRateLimiter, retry_with_backoff
@@ -27,10 +28,10 @@ class OMDBClient:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         requests_per_second: float = 2.0,
         max_concurrent: int = 5,
-        output_dir: Optional[Path] = None,
+        output_dir: Path | None = None,
     ):
         """Initialize async OMDB client.
 
@@ -70,7 +71,7 @@ class OMDBClient:
             f"concurrent: {max_concurrent}, output: {self.output_dir})"
         )
 
-    async def _request(self, params: Dict, retry_count: int = 3) -> Dict:
+    async def _request(self, params: dict, retry_count: int = 3) -> dict:
         """Make async API request with rate limiting and retry logic.
 
         Args:
@@ -112,7 +113,7 @@ class OMDBClient:
                 self._quota_exceeded.set()
             raise
 
-    async def get_movie_by_imdb_id(self, imdb_id: str) -> Optional[Dict[str, Any]]:
+    async def get_movie_by_imdb_id(self, imdb_id: str) -> dict[str, Any] | None:
         """Fetch movie by IMDb ID.
 
         Args:
@@ -134,8 +135,8 @@ class OMDBClient:
             return None
 
     async def get_batch_movies(
-        self, imdb_ids: List[str], progress_callback: Optional[Callable[[int, int], None]] = None
-    ) -> List[Dict[str, Any]]:
+        self, imdb_ids: list[str], progress_callback: Callable[[int, int], None] | None = None
+    ) -> list[dict[str, Any]]:
         """Fetch multiple movies by IMDb ID concurrently.
 
         Args:
@@ -146,7 +147,7 @@ class OMDBClient:
             List of normalized movie data
 
         Raises:
-            APIRateLimitExceeded: If OMDB daily quota is reached (401 errors)
+            APIRateLimitError: If OMDB daily quota is reached (401 errors)
         """
         # Reset quota flag at the start of each batch
         self._quota_exceeded.clear()
@@ -163,10 +164,10 @@ class OMDBClient:
 
         completed = 0
         successful_fetches = 0
-        movies: List[Dict[str, Any]] = []
+        movies: list[dict[str, Any]] = []
 
         # Create tasks for all movies
-        async def fetch_with_progress(imdb_id: str) -> Optional[Dict[str, Any]]:
+        async def fetch_with_progress(imdb_id: str) -> dict[str, Any] | None:
             nonlocal completed, successful_fetches
 
             try:
@@ -190,12 +191,11 @@ class OMDBClient:
                 if e.response.status_code == 401:
                     # Only log warning for the FIRST 401 (actual API error)
                     # Subsequent 401s are from our flag check, silently skip them
-                    if "[Quota Check]" not in str(e):
-                        if not self._quota_exceeded.is_set():
-                            self._quota_exceeded.set()
-                            logger.warning(
-                                f"OMDB daily quota exceeded after {successful_fetches} successful requests"
-                            )
+                    if "[Quota Check]" not in str(e) and not self._quota_exceeded.is_set():
+                        self._quota_exceeded.set()
+                        logger.warning(
+                            f"OMDB daily quota exceeded after {successful_fetches} successful requests"
+                        )
                     return None
 
                 # Other HTTP errors
@@ -215,10 +215,10 @@ class OMDBClient:
             results = await asyncio.gather(*tasks, return_exceptions=True)
         except asyncio.CancelledError:
             # Asyncio task cancelled (from KeyboardInterrupt) - raise with partial data
-            from ayne.core.exceptions import UserCancelledOperation
+            from ayne.core.exceptions import UserCancelledError
 
             logger.info(f"Cancellation detected: saved {len(movies)} movies so far")
-            raise UserCancelledOperation(
+            raise UserCancelledError(
                 operation_name="OMDB batch fetch",
                 items_processed=successful_fetches,
                 total_requested=total,
@@ -233,7 +233,7 @@ class OMDBClient:
 
         # If quota was exceeded, raise custom exception with progress info AND partial data
         if self._quota_exceeded.is_set():
-            raise APIRateLimitExceeded(
+            raise APIRateLimitError(
                 api_name="OMDB",
                 items_processed=successful_fetches,
                 total_requested=total,

@@ -17,8 +17,8 @@ from .config_loader import get_settings, reload_settings, settings
 from .settings import Settings
 
 __all__ = [
-    "settings",
+    "Settings",
     "get_settings",
     "reload_settings",
-    "Settings",
+    "settings",
 ]

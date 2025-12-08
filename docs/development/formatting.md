@@ -1,6 +1,6 @@
 # Formatting Guide
 
-Code formatting standards for the TV-HML project using Ruff and pre-commit hooks.
+Code formatting standards for the Are You Not Entertained (AYNE) project using Ruff formatter and pre-commit hooks.
 
 ## Quick Start
 
@@ -17,7 +17,7 @@ uv run ruff format src/tv_hml/config/schema.py
 
 ## Ruff Formatter
 
-Ruff's formatter is compatible with Black but much faster.
+Ruff's built-in formatter provides fast, consistent Python code formatting.
 
 ### Basic Usage
 
@@ -47,22 +47,23 @@ Settings in `pyproject.toml`:
 
 ```toml
 [tool.ruff]
-line-length = 88
-indent-width = 4
+line-length = 100
 target-version = "py311"
+fix = true
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+docstring-code-format = true
 ```
 
 ## Formatting Rules
 
 ### Line Length
 
-Maximum 88 characters (Black default):
+Maximum 100 characters (project default):
 
 ```python
 # Good
@@ -312,8 +313,8 @@ Install Ruff extension and configure:
       "source.organizeImports.ruff": "explicit"
     }
   },
-  "ruff.format.args": ["--line-length", "88"],
-  "editor.rulers": [88]
+  "ruff.format.args": ["--line-length", "100"],
+  "editor.rulers": [100]
 }
 ```
 
@@ -364,7 +365,7 @@ repos:
       # Run linter
       - id: ruff
         args: [--fix]
-      
+
       # Run formatter
       - id: ruff-format
 
@@ -570,6 +571,5 @@ Exit codes:
 ## Resources
 
 - [Ruff Formatter Documentation](https://docs.astral.sh/ruff/formatter/)
-- [Black Documentation](https://black.readthedocs.io/) (compatible style)
 - [PEP 8 Style Guide](https://pep8.org/)
 - [Pre-commit Documentation](https://pre-commit.com/)

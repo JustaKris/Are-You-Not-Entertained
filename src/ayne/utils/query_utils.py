@@ -10,7 +10,7 @@ Modern best practices:
 - Clean separation of concerns
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -38,10 +38,10 @@ def get_db_client(read_only: bool = True) -> DuckDBClient:
 
 
 def query_movies(
-    filters: Optional[Dict[str, Any]] = None,
-    columns: Optional[List[str]] = None,
-    limit: Optional[int] = None,
-    order_by: Optional[str] = None,
+    filters: dict[str, Any] | None = None,
+    columns: list[str] | None = None,
+    limit: int | None = None,
+    order_by: str | None = None,
 ) -> pd.DataFrame:
     """Query movies table with convenient filtering.
 
@@ -60,7 +60,7 @@ def query_movies(
         ...     filters={"release_year": 2024},
         ...     columns=["title", "budget", "revenue"],
         ...     order_by="revenue DESC",
-        ...     limit=100
+        ...     limit=100,
         ... )
     """
     # Build SELECT clause
@@ -69,7 +69,7 @@ def query_movies(
     # Build WHERE clause
     where_clause = ""
     if filters:
-        conditions = [f"{col} = {repr(val)}" for col, val in filters.items()]
+        conditions = [f"{col} = {val!r}" for col, val in filters.items()]
         where_clause = "WHERE " + " AND ".join(conditions)
 
     # Build ORDER BY clause
@@ -223,7 +223,7 @@ def get_movies_with_financials(min_budget: float = 0, min_revenue: float = 0) ->
         db.close()
 
 
-def get_movies_by_year_range(start_year: int, end_year: Optional[int] = None) -> pd.DataFrame:
+def get_movies_by_year_range(start_year: int, end_year: int | None = None) -> pd.DataFrame:
     """Get movies released in a specific year range.
 
     Args:
@@ -326,7 +326,7 @@ def get_enrichment_status_by_year() -> pd.DataFrame:
 
     Example:
         >>> df = get_enrichment_status_by_year()
-        >>> print(df[df['release_year'] >= 2020])
+        >>> print(df[df["release_year"] >= 2020])
     """
     query = """
         SELECT
@@ -368,7 +368,7 @@ def get_movies_due_for_update_by_year() -> pd.DataFrame:
 
     Example:
         >>> df = get_movies_due_for_update_by_year()
-        >>> total_due = df['movies_due_for_update'].sum()
+        >>> total_due = df["movies_due_for_update"].sum()
         >>> print(f"Total movies due: {total_due}")
     """
     query = """
@@ -395,7 +395,7 @@ def get_movies_due_for_update_by_year() -> pd.DataFrame:
         db.close()
 
 
-def get_database_summary_stats() -> Dict[str, Any]:
+def get_database_summary_stats() -> dict[str, Any]:
     """Get high-level database statistics.
 
     Returns:
@@ -632,7 +632,7 @@ def get_consecutive_unchanged_stats() -> pd.DataFrame:
 
     Example:
         >>> df = get_consecutive_unchanged_stats()
-        >>> print(df[df['consecutive_unchanged'] >= 2])  # Near freeze threshold
+        >>> print(df[df["consecutive_unchanged"] >= 2])  # Near freeze threshold
     """
     query = """
         SELECT
@@ -670,7 +670,7 @@ def get_data_freshness_by_year() -> pd.DataFrame:
 
     Example:
         >>> df = get_data_freshness_by_year()
-        >>> stale = df[df['avg_days_since_tmdb_update'] > 90]
+        >>> stale = df[df["avg_days_since_tmdb_update"] > 90]
     """
     query = """
         SELECT
@@ -699,7 +699,7 @@ def get_data_freshness_by_year() -> pd.DataFrame:
         db.close()
 
 
-def get_api_usage_estimates() -> Dict[str, Any]:
+def get_api_usage_estimates() -> dict[str, Any]:
     """Estimate API usage and time to complete pending updates.
 
     Based on rate limits:
@@ -739,7 +739,7 @@ def get_api_usage_estimates() -> Dict[str, Any]:
 
         # Rate limits (conservative estimates)
         tmdb_per_day = 100_000  # Conservative batch processing rate
-        omdb_per_day = 1_000    # Single API key limit
+        omdb_per_day = 1_000  # Single API key limit
 
         estimates = {
             "tmdb_pending": tmdb_pending,

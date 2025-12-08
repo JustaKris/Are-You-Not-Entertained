@@ -1,24 +1,24 @@
 """Normalizers for OMDB API responses."""
 
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from .models import OMDBMovieNormalized, OMDBMovieResponse
 
 
 def utc_now() -> str:
     """Get current UTC timestamp."""
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
-def clean_numeric(val: Any) -> Optional[Any]:
+def clean_numeric(val: Any) -> Any | None:
     """Clean numeric values, return None for N/A or empty."""
     if val in (None, "", "N/A"):
         return None
     return val
 
 
-def clean_box_office(val: Optional[str]) -> Optional[int]:
+def clean_box_office(val: str | None) -> int | None:
     """Clean box office value from string like '$123,456,789' to integer.
 
     Args:
@@ -35,7 +35,7 @@ def clean_box_office(val: Optional[str]) -> Optional[int]:
         return None
 
 
-def clean_runtime(value: Optional[str]) -> Optional[int]:
+def clean_runtime(value: str | None) -> int | None:
     """Clean runtime value from string like '142 min' to integer.
 
     Args:
@@ -52,7 +52,7 @@ def clean_runtime(value: Optional[str]) -> Optional[int]:
         return None
 
 
-def extract_ratings(movie: OMDBMovieResponse) -> tuple[Optional[int], Optional[int]]:
+def extract_ratings(movie: OMDBMovieResponse) -> tuple[int | None, int | None]:
     """Extract Rotten Tomatoes and Metacritic ratings from OMDB ratings list.
 
     Args:
@@ -86,7 +86,7 @@ def extract_ratings(movie: OMDBMovieResponse) -> tuple[Optional[int], Optional[i
     return rotten_tomatoes, meta_critic
 
 
-def normalize_movie_response(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def normalize_movie_response(data: dict[str, Any]) -> dict[str, Any] | None:
     """Normalize OMDB API response to storage format.
 
     Args:
@@ -116,10 +116,10 @@ def normalize_movie_response(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     imdb_votes = None
     if movie.imdbVotes:
-        try:
+        from contextlib import suppress
+
+        with suppress(Exception):
             imdb_votes = int(movie.imdbVotes.replace(",", ""))
-        except Exception:
-            pass
 
     metascore = None
     if movie.Metascore and movie.Metascore.isdigit():

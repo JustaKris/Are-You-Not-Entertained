@@ -1,7 +1,5 @@
 """Pydantic models for TMDB API responses."""
 
-from typing import List, Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -10,11 +8,11 @@ class TMDBDiscoverMovie(BaseModel):
 
     tmdb_id: int = Field(..., alias="id")
     title: str
-    release_date: Optional[str] = None
+    release_date: str | None = None
     vote_count: int
     vote_average: float
     popularity: float
-    genre_ids: List[int]
+    genre_ids: list[int]
 
     class Config:
         """Pydantic config for field aliasing."""
@@ -34,7 +32,7 @@ class TMDBProductionCompany(BaseModel):
 
     id: int
     name: str
-    logo_path: Optional[str] = None
+    logo_path: str | None = None
     origin_country: str
 
 
@@ -57,21 +55,21 @@ class TMDBMovieDetails(BaseModel):
     """Model for TMDB movie details API response."""
 
     id: int
-    imdb_id: Optional[str] = None
+    imdb_id: str | None = None
     title: str
-    release_date: Optional[str] = None
+    release_date: str | None = None
     status: str
     budget: int
     revenue: int
-    runtime: Optional[int] = None
+    runtime: int | None = None
     vote_count: int
     vote_average: float
     popularity: float
-    genres: List[TMDBGenre]
-    production_companies: List[TMDBProductionCompany]
-    production_countries: List[TMDBProductionCountry]
-    spoken_languages: List[TMDBSpokenLanguage]
-    overview: Optional[str] = None
+    genres: list[TMDBGenre]
+    production_companies: list[TMDBProductionCompany]
+    production_countries: list[TMDBProductionCountry]
+    spoken_languages: list[TMDBSpokenLanguage]
+    overview: str | None = None
 
     class Config:
         """Pydantic config for field aliasing."""
@@ -84,7 +82,7 @@ class TMDBDiscoverMovieNormalized(BaseModel):
 
     tmdb_id: int
     title: str
-    release_date: Optional[str]
+    release_date: str | None
     vote_count: int
     vote_average: float
     popularity: float
@@ -96,13 +94,13 @@ class TMDBMovieDetailsNormalized(BaseModel):
     """Normalized TMDB movie details for storage."""
 
     tmdb_id: int
-    imdb_id: Optional[str]
+    imdb_id: str | None
     title: str
-    release_date: Optional[str]
+    release_date: str | None
     status: str
     budget: int
     revenue: int
-    runtime: Optional[int]
+    runtime: int | None
     vote_count: int
     vote_average: float
     popularity: float
@@ -110,5 +108,5 @@ class TMDBMovieDetailsNormalized(BaseModel):
     production_companies: str  # Comma-separated
     production_countries: str  # Comma-separated
     spoken_languages: str  # Comma-separated
-    overview: Optional[str]
+    overview: str | None
     last_updated_utc: str

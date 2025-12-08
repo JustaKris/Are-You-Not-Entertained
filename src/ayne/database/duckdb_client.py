@@ -14,8 +14,9 @@ Place this file in: src/data/duckdb_client.py
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 
 import duckdb
 import pandas as pd
@@ -38,7 +39,7 @@ class DuckDBClient:
         db.close()
     """
 
-    def __init__(self, db_path: Optional[str | Path] = None, read_only: bool = False):
+    def __init__(self, db_path: str | Path | None = None, read_only: bool = False):
         """Initialize DuckDB client with specified database path.
 
         Args:
@@ -83,7 +84,7 @@ class DuckDBClient:
     # ----------------------
     # Basic exec/query
     # ----------------------
-    def execute(self, sql: str, params: Optional[Sequence[Any]] = None) -> Any:
+    def execute(self, sql: str, params: Sequence[Any] | None = None) -> Any:
         """Execute a SQL statement. For DDL/DML you can call this.
         Returns the DuckDB relation (caller can call .df()).
         """
@@ -92,7 +93,7 @@ class DuckDBClient:
             return self._conn.execute(sql, params)
         return self._conn.execute(sql)
 
-    def query(self, sql: str, params: Optional[Sequence[Any]] = None) -> pd.DataFrame:
+    def query(self, sql: str, params: Sequence[Any] | None = None) -> pd.DataFrame:
         """Execute a SELECT query and return a pandas DataFrame."""
         rel = self.execute(sql, params)
         df = rel.df()
@@ -102,7 +103,7 @@ class DuckDBClient:
     # ----------------------
     # Schema management
     # ----------------------
-    def create_tables_from_sql(self, schema_path: Optional[Path | str] = None) -> None:
+    def create_tables_from_sql(self, schema_path: Path | str | None = None) -> None:
         """Execute a schema SQL file (schema.sql) to create all tables."""
         schema_path = Path(schema_path) if schema_path else (Path(__file__).parent / "schema.sql")
         if not schema_path.exists():
@@ -225,16 +226,16 @@ class DuckDBClient:
         self.execute(insert_sql)
 
         # Unregister staging view
-        try:
-            self._conn.unregister(staging_view)
-        except Exception:
+        from contextlib import suppress
+
+        with suppress(Exception):
             # older DuckDB versions may not require/allow unregister; ignore safely
-            pass
+            self._conn.unregister(staging_view)
 
         logger.info("Upsert complete: %s rows upserted into %s", len(df), table_name)
 
     def upsert_records(
-        self, table_name: str, records: Sequence[Dict[str, Any]], key_columns: Sequence[str]
+        self, table_name: str, records: Sequence[dict[str, Any]], key_columns: Sequence[str]
     ):
         """Convenience wrapper: turn records (list of dict) into DataFrame and upsert."""
         if not records:
@@ -246,7 +247,7 @@ class DuckDBClient:
     # ----------------------
     # Refresh state helpers
     # ----------------------
-    def get_movies_due_for_refresh(self, limit: Optional[int] = 1000) -> pd.DataFrame:
+    def get_movies_due_for_refresh(self, limit: int | None = 1000) -> pd.DataFrame:
         """Return movies that are due for refresh based on movie_refresh_state.next_refresh_due,
         OR movies not present in refresh_state table (first time).
         """
@@ -262,7 +263,7 @@ class DuckDBClient:
         """
         return self.query(sql)
 
-    def set_next_refresh(self, movie_id: int, next_refresh_ts: Optional[str]):
+    def set_next_refresh(self, movie_id: int, next_refresh_ts: str | None):
         """Insert/update the next_refresh_due for a movie in movie_refresh_state.
         If the row does not exist, create it.
         """
@@ -293,7 +294,7 @@ class DuckDBClient:
         self.execute(sql)
 
     def batch_update_timestamps(
-        self, table_name: str, id_column: str, timestamp_column: str, ids: List[Any], timestamp: str
+        self, table_name: str, id_column: str, timestamp_column: str, ids: list[Any], timestamp: str
     ) -> None:
         """Batch update timestamps for multiple records.
 

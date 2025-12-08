@@ -55,26 +55,21 @@ Settings in `pyproject.toml`:
 
 ```toml
 [tool.ruff]
-line-length = 88
+line-length = 100
 target-version = "py311"
+fix = true
 
 [tool.ruff.lint]
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "N",   # pep8-naming
-    "UP",  # pyupgrade
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-]
+select = ["E", "W", "F", "I", "B", "C4", "D"]
 ignore = [
-    "E501",  # Line too long (handled by formatter)
+    "E501",   # Line too long (handled by formatter)
+    "B008",   # Function call in argument defaults
+    "D203",   # 1 blank line before class (conflicts with D211)
+    "D213",   # Multi-line docstring summary second line
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["D"]  # Don't require docstrings in tests
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 ```
 
 ## Type Checking with Mypy
@@ -370,7 +365,7 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
-  
+
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.7.1
     hooks:

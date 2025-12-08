@@ -8,7 +8,7 @@ Python code style guidelines for the TV-HML project.
 
 Follow [PEP 8](https://pep8.org/) with these specifics:
 
-- Line length: 88 characters (Black default)
+- Line length: 100 characters (project default)
 - Indentation: 4 spaces
 - Use double quotes for strings
 - Trailing commas in multi-line structures
@@ -30,16 +30,16 @@ Use Google-style docstrings:
 ```python
 def example_function(param1: str, param2: int) -> bool:
     """Short description.
-    
+
     Longer description if needed.
-    
+
     Args:
         param1: Description of param1.
         param2: Description of param2.
-        
+
     Returns:
         Description of return value.
-        
+
     Raises:
         ValueError: When param2 is negative.
     """

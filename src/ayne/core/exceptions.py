@@ -82,16 +82,11 @@ class APIError(AyneError):
 
 
 class APIRateLimitError(APIError):
-    """Raised when API rate limit is exceeded."""
+    """Raised when API rate limit is exceeded or daily/monthly quota is exhausted.
 
-    pass
-
-
-class APIRateLimitExceeded(APIError):
-    """Raised when API daily/monthly quota is exceeded.
-
-    This is different from rate limiting (429) - it indicates the API quota
-    for the billing period has been exhausted (typically 401 Unauthorized).
+    This covers both:
+    - Rate limiting (429): Too many requests in a short time
+    - Quota exhaustion (401): API quota for billing period exhausted
 
     Attributes:
         api_name: Name of the API (e.g., 'OMDB', 'TMDB')
@@ -107,7 +102,7 @@ class APIRateLimitExceeded(APIError):
         total_requested: int,
         partial_data: list | None = None,
     ):
-        """Initialize APIRateLimitExceeded.
+        """Initialize APIRateLimitError.
 
         Args:
             api_name: Name of the API that hit the limit
@@ -134,7 +129,7 @@ class APIRateLimitExceeded(APIError):
         super().__init__(message)
 
 
-class UserCancelledOperation(AyneError):
+class UserCancelledError(AyneError):
     """Raised when user cancels an operation (e.g., Ctrl+C).
 
     This exception preserves partial data collected before cancellation.
@@ -153,7 +148,7 @@ class UserCancelledOperation(AyneError):
         total_requested: int,
         partial_data: list | None = None,
     ):
-        """Initialize UserCancelledOperation.
+        """Initialize UserCancelledError.
 
         Args:
             operation_name: Name of the cancelled operation

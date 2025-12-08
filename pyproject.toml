@@ -70,15 +70,11 @@ dependencies = [
     "rich>=13.0,<14.0",  # Beautiful terminal formatting
 ]
 
-[project.scripts]
-ayne = "ayne.cli.main:app"
-
 [dependency-groups]
 dev = [
     "pytest>=8.3.0,<9.0.0",
     "pytest-cov>=6.0.0,<7.0.0",
-    "black>=24.0.0,<25.0.0",
-    "ruff>=0.6.0,<1.0.0",
+    "ruff>=0.8.0,<1.0.0",
     "mypy>=1.13.0,<2.0.0",
     "pip-audit>=2.9.0,<3.0.0",
     "bandit>=1.8.0,<2.0.0",
@@ -114,6 +110,9 @@ docs = [
     "pymdown-extensions>=10.0.0,<11.0.0",
 ]
 
+[project.scripts]
+ayne = "ayne.cli.main:app"
+
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -125,28 +124,6 @@ package-dir = {"" = "src"}
 where = ["src"]
 include = ["ayne*"]
 namespaces = false
-
-# Black configuration
-[tool.black]
-line-length = 100
-target-version = ['py311', 'py312', 'py313']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | notebooks
-  | __pycache__
-)/
-'''
 
 # Ruff configuration
 [tool.ruff]
@@ -167,8 +144,28 @@ exclude = [
     "__pycache__",
 ]
 
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "B", "C4", "D"]  # Includes docstring checks
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "D",   # pydocstyle
+    "UP",  # pyupgrade (modernize Python syntax)
+    "N",   # pep8-naming
+    "SIM", # flake8-simplify (simplify code)
+    "RUF", # Ruff-specific rules
+]
 ignore = [
     "E501",   # Line too long (handled by formatter)
     "B008",   # Function call in argument defaults
@@ -178,10 +175,16 @@ ignore = [
     "D205",   # 1 blank line between summary and description (too strict)
     "D415",   # First line punctuation (docstrings can be phrases)
     "D102",   # Missing docstring in public method (too verbose for simple methods)
+    "RUF001", # Ambiguous unicode (intentional use of × and ℹ for display)
+    "N815",   # mixedCase in external API models (OMDB response format)
 ]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D"]  # No docstrings required in tests
+"scripts/**/*.py" = ["D", "N806"]  # Relaxed docstring and naming rules for scripts
 
 # mypy configuration
 [tool.mypy]

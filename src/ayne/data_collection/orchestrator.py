@@ -8,12 +8,11 @@ Coordinates:
 """
 
 import asyncio
-from datetime import datetime, timezone
-from typing import Dict, Optional, Tuple
+from datetime import UTC, datetime
 
 import pandas as pd
 
-from ayne.core.exceptions import APIRateLimitExceeded, UserCancelledOperation
+from ayne.core.exceptions import APIRateLimitError, UserCancelledError
 from ayne.core.logging import get_logger
 from ayne.data_collection.omdb import OMDBClient
 from ayne.data_collection.refresh_strategy import (
@@ -40,8 +39,8 @@ class DataCollectionOrchestrator:
     def __init__(
         self,
         db: DuckDBClient,
-        tmdb_client: Optional[TMDBClient] = None,
-        omdb_client: Optional[OMDBClient] = None,
+        tmdb_client: TMDBClient | None = None,
+        omdb_client: OMDBClient | None = None,
     ):
         """Initialize orchestrator.
 
@@ -58,13 +57,13 @@ class DataCollectionOrchestrator:
 
     async def discover_and_store_movies(
         self,
-        max_movies: Optional[int] = None,
-        min_popularity: Optional[float] = None,
-        min_vote_count: Optional[int] = None,
-        min_release_year: Optional[int] = None,
-        max_release_year: Optional[int] = None,
-        allowed_statuses: Optional[list[str]] = None,
-        max_pages: Optional[int] = None,
+        max_movies: int | None = None,
+        min_popularity: float | None = None,
+        min_vote_count: int | None = None,
+        min_release_year: int | None = None,
+        max_release_year: int | None = None,
+        allowed_statuses: list[str] | None = None,
+        max_pages: int | None = None,
     ) -> int:
         """Discover new movies from TMDB and store in database.
 
@@ -110,7 +109,7 @@ class DataCollectionOrchestrator:
         movies_for_db = df_movies[["tmdb_id", "title", "release_date"]].copy()
 
         # Set last_tmdb_update to track discovery
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         movies_for_db["last_tmdb_update"] = now
 
         self.db.upsert_dataframe("movies", movies_for_db, key_columns=["tmdb_id"])
@@ -120,11 +119,11 @@ class DataCollectionOrchestrator:
 
     def get_movies_for_refresh(
         self,
-        limit: Optional[int] = None,
-        min_release_year: Optional[int] = None,
-        max_release_year: Optional[int] = None,
+        limit: int | None = None,
+        min_release_year: int | None = None,
+        max_release_year: int | None = None,
         include_frozen: bool = False,
-        data_source: Optional[str] = None,
+        data_source: str | None = None,
     ) -> pd.DataFrame:
         """Get movies that need data refresh based on age and last update.
 
@@ -175,9 +174,9 @@ class DataCollectionOrchestrator:
         fetch_tmdb: bool = True,
         fetch_omdb: bool = True,
         batch_size: int = 50,
-        omdb_max_movies: Optional[int] = None,
-        allowed_statuses: Optional[list[str]] = None,
-    ) -> Tuple[int, int, int]:
+        omdb_max_movies: int | None = None,
+        allowed_statuses: list[str] | None = None,
+    ) -> tuple[int, int, int]:
         """Refresh data for multiple movies based on their refresh needs.
 
         Args:
@@ -241,7 +240,7 @@ class DataCollectionOrchestrator:
                     self.db.upsert_dataframe("tmdb_movies", df_tmdb, key_columns=["tmdb_id"])
 
                     # Update timestamps and IMDb IDs in movies table
-                    now = datetime.now(timezone.utc).isoformat()
+                    now = datetime.now(UTC).isoformat()
                     for _, row in df_tmdb.iterrows():
                         tmdb_id = row["tmdb_id"]
                         imdb_id = row.get("imdb_id")
@@ -309,7 +308,7 @@ class DataCollectionOrchestrator:
                         self.db.upsert_dataframe("omdb_movies", df_omdb, key_columns=["imdb_id"])
 
                         # Update timestamps in movies table
-                        now = datetime.now(timezone.utc).isoformat()
+                        now = datetime.now(UTC).isoformat()
                         for imdb_id in df_omdb["imdb_id"]:
                             self.db.execute(
                                 "UPDATE movies SET last_omdb_update = ? WHERE imdb_id = ?",
@@ -365,7 +364,7 @@ class DataCollectionOrchestrator:
                 # Check if movie should be frozen
                 release_date = pd.to_datetime(movie["release_date"])
                 if release_date.tzinfo is None:
-                    release_date = release_date.replace(tzinfo=timezone.utc)
+                    release_date = release_date.replace(tzinfo=UTC)
 
                 last_tmdb = (
                     pd.to_datetime(movie["last_tmdb_update"])
@@ -373,7 +372,7 @@ class DataCollectionOrchestrator:
                     else None
                 )
                 if last_tmdb and last_tmdb.tzinfo is None:
-                    last_tmdb = last_tmdb.replace(tzinfo=timezone.utc)
+                    last_tmdb = last_tmdb.replace(tzinfo=UTC)
 
                 last_omdb = (
                     pd.to_datetime(movie["last_omdb_update"])
@@ -381,7 +380,7 @@ class DataCollectionOrchestrator:
                     else None
                 )
                 if last_omdb and last_omdb.tzinfo is None:
-                    last_omdb = last_omdb.replace(tzinfo=timezone.utc)
+                    last_omdb = last_omdb.replace(tzinfo=UTC)
 
                 # Get current counter value
                 counter_result = self.db.query(
@@ -408,16 +407,16 @@ class DataCollectionOrchestrator:
     async def run_full_collection(
         self,
         discover_movies: bool = False,
-        max_discover_movies: Optional[int] = None,
-        max_discover_pages: Optional[int] = None,
-        refresh_limit: Optional[int] = 100,
-        min_popularity: Optional[float] = None,
-        min_vote_count: Optional[int] = None,
-        min_release_year: Optional[int] = None,
-        allowed_statuses: Optional[list[str]] = None,
-        omdb_max_movies: Optional[int] = None,
+        max_discover_movies: int | None = None,
+        max_discover_pages: int | None = None,
+        refresh_limit: int | None = 100,
+        min_popularity: float | None = None,
+        min_vote_count: int | None = None,
+        min_release_year: int | None = None,
+        allowed_statuses: list[str] | None = None,
+        omdb_max_movies: int | None = None,
         include_frozen: bool = False,
-    ) -> Dict[str, int]:
+    ) -> dict[str, int]:
         """Run complete collection workflow: discover + refresh.
 
         Args:
@@ -469,10 +468,10 @@ class DataCollectionOrchestrator:
 
     async def enrich_tmdb_details(
         self,
-        limit: Optional[int] = None,
-        min_release_year: Optional[int] = None,
-        max_release_year: Optional[int] = None,
-        allowed_statuses: Optional[list[str]] = None,
+        limit: int | None = None,
+        min_release_year: int | None = None,
+        max_release_year: int | None = None,
+        allowed_statuses: list[str] | None = None,
     ) -> int:
         """Fetch detailed TMDB data for movies that only have basic discovery info.
 
@@ -536,7 +535,7 @@ class DataCollectionOrchestrator:
         self.db.upsert_dataframe("tmdb_movies", df_tmdb, key_columns=["tmdb_id"])
 
         # Update timestamps and IMDb IDs in movies table
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         for _, row in df_tmdb.iterrows():
             tmdb_id = row["tmdb_id"]
             imdb_id = row.get("imdb_id")
@@ -571,9 +570,9 @@ class DataCollectionOrchestrator:
 
     async def enrich_omdb_data(
         self,
-        limit: Optional[int] = None,
-        min_release_year: Optional[int] = None,
-        max_release_year: Optional[int] = None,
+        limit: int | None = None,
+        min_release_year: int | None = None,
+        max_release_year: int | None = None,
     ) -> int:
         """Fetch OMDB data for movies that have IMDb IDs but no OMDB data yet.
 
@@ -632,7 +631,7 @@ class DataCollectionOrchestrator:
             self.db.upsert_dataframe("omdb_movies", df_omdb, key_columns=["imdb_id"])
 
             # Update timestamps in movies table
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             for imdb_id in df_omdb["imdb_id"]:
                 self.db.execute(
                     "UPDATE movies SET last_omdb_update = ? WHERE imdb_id = ?",
@@ -656,7 +655,7 @@ class DataCollectionOrchestrator:
             logger.info(f"✅ Enriched {len(omdb_data)} movies with OMDB data")
             return len(omdb_data)
 
-        except UserCancelledOperation as e:
+        except UserCancelledError as e:
             # User cancelled operation - save partial data
             if e.items_processed > 0 and e.partial_data:
                 logger.info(
@@ -668,7 +667,7 @@ class DataCollectionOrchestrator:
                 self.db.upsert_dataframe("omdb_movies", df_omdb, key_columns=["imdb_id"])
 
                 # Update timestamps in movies table
-                now = datetime.now(timezone.utc).isoformat()
+                now = datetime.now(UTC).isoformat()
                 for imdb_id in df_omdb["imdb_id"]:
                     self.db.execute(
                         "UPDATE movies SET last_omdb_update = ? WHERE imdb_id = ?",
@@ -692,10 +691,10 @@ class DataCollectionOrchestrator:
             raise
         except asyncio.CancelledError:
             # Task was cancelled (Ctrl+C) - save partial data if available
-            # Note: partial_data comes from UserCancelledOperation in the client
+            # Note: partial_data comes from UserCancelledError in the client
             logger.info("Operation cancelled by user")
             raise
-        except APIRateLimitExceeded as e:
+        except APIRateLimitError as e:
             # OMDB daily quota exceeded - save what we got and re-raise
             if e.items_processed > 0 and e.partial_data:
                 logger.info(f"💾 Saving {len(e.partial_data)} movies fetched before quota limit...")
@@ -705,7 +704,7 @@ class DataCollectionOrchestrator:
                 self.db.upsert_dataframe("omdb_movies", df_omdb, key_columns=["imdb_id"])
 
                 # Update timestamps in movies table
-                now = datetime.now(timezone.utc).isoformat()
+                now = datetime.now(UTC).isoformat()
                 for imdb_id in df_omdb["imdb_id"]:
                     self.db.execute(
                         "UPDATE movies SET last_omdb_update = ? WHERE imdb_id = ?",
@@ -749,12 +748,9 @@ class DataCollectionOrchestrator:
         """
         # Simple heuristic: if we just created/updated the record, consider it changed
         # In future: could implement hash-based comparison or field-by-field comparison
-        if tmdb_was_updated or omdb_was_updated:
-            # For now, we'll be conservative and assume data changed
-            # TODO: Implement actual data comparison using hashes or key fields
-            return True
-
-        return False
+        # For now, we'll be conservative and assume data changed
+        # TODO: Implement actual data comparison using hashes or key fields
+        return tmdb_was_updated or omdb_was_updated
 
     async def close(self):
         """Cleanup resources."""

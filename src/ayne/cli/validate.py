@@ -99,14 +99,13 @@ def validate_tmdb(
         else:
             console.print("\n[yellow]⚠ Some validation checks failed[/yellow]")
 
-        if verbose:
+        if verbose and missing_titles > 0:
             # Show sample of issues
-            if missing_titles > 0:
-                console.print("\n[yellow]Sample movies with missing titles:[/yellow]")
-                sample = db.query(
-                    "SELECT tmdb_id, release_date FROM movies WHERE title IS NULL OR title = '' LIMIT 5"
-                )
-                console.print(sample.to_string(index=False))
+            console.print("\n[yellow]Sample movies with missing titles:[/yellow]")
+            sample = db.query(
+                "SELECT tmdb_id, release_date FROM movies WHERE title IS NULL OR title = '' LIMIT 5"
+            )
+            console.print(sample.to_string(index=False))
 
     except Exception as e:
         console.print(f"[red]✗ Error:[/red] {e}")

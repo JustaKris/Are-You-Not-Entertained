@@ -1,7 +1,6 @@
 """OMDB data enrichment CLI commands."""
 
 import asyncio
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -21,7 +20,7 @@ logger = get_logger(__name__)
 
 @app.command("update")
 def update_omdb(
-    max_movies: Optional[int] = typer.Option(
+    max_movies: int | None = typer.Option(
         None,
         "--max-movies",
         help="Maximum number of movies to enrich (uses config default)",
@@ -108,7 +107,7 @@ def update_omdb(
                     console.print("\n[yellow]No movies need OMDB enrichment[/yellow]")
                     return
 
-                tmdb_updated, omdb_updated, frozen = await orchestrator.refresh_movie_data(
+                _tmdb_updated, omdb_updated, _frozen = await orchestrator.refresh_movie_data(
                     movies_to_enrich,
                     fetch_tmdb=False,  # OMDB only
                     fetch_omdb=True,
@@ -225,7 +224,7 @@ def refresh_omdb(
                     console.print("\n[yellow]No movies need OMDB refresh[/yellow]")
                     return
 
-                tmdb_updated, omdb_updated, frozen = await orchestrator.refresh_movie_data(
+                _tmdb_updated, omdb_updated, _frozen = await orchestrator.refresh_movie_data(
                     movies_to_refresh,
                     fetch_tmdb=False,  # OMDB only
                     fetch_omdb=True,

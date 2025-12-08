@@ -1,7 +1,6 @@
 """Combined data collection workflows CLI commands."""
 
 import asyncio
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -27,7 +26,7 @@ def daily_refresh(
         "--tmdb-refresh",
         help="Number of TMDB records to refresh",
     ),
-    omdb_limit: Optional[int] = typer.Option(
+    omdb_limit: int | None = typer.Option(
         None,
         "--omdb-limit",
         help="Maximum OMDB enrichments (uses config default)",
@@ -37,7 +36,7 @@ def daily_refresh(
         "--discover",
         help="Also discover new movies from TMDB",
     ),
-    discover_limit: Optional[int] = typer.Option(
+    discover_limit: int | None = typer.Option(
         None,
         "--discover-limit",
         help="Limit for new movie discovery",
@@ -129,22 +128,22 @@ def daily_refresh(
 
 @app.command("full")
 def full_collection(
-    max_tmdb: Optional[int] = typer.Option(
+    max_tmdb: int | None = typer.Option(
         None,
         "--max-tmdb",
         help="Maximum TMDB movies to discover (None = unlimited)",
     ),
-    max_omdb: Optional[int] = typer.Option(
+    max_omdb: int | None = typer.Option(
         None,
         "--max-omdb",
         help="Maximum OMDB enrichments (uses config default)",
     ),
-    min_popularity: Optional[float] = typer.Option(
+    min_popularity: float | None = typer.Option(
         None,
         "--min-popularity",
         help="Minimum popularity filter (uses config default)",
     ),
-    min_year: Optional[int] = typer.Option(
+    min_year: int | None = typer.Option(
         None,
         "--min-year",
         help="Minimum release year (uses config default)",

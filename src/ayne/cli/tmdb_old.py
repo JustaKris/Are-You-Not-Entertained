@@ -1,7 +1,6 @@
 """TMDB data collection CLI commands."""
 
 import asyncio
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -26,27 +25,27 @@ def update_tmdb(
         "--full",
         help="Pull unlimited movies (ignores max-movies limit)",
     ),
-    max_movies: Optional[int] = typer.Option(
+    max_movies: int | None = typer.Option(
         None,
         "--max-movies",
         help="Maximum number of movies to discover (uses config default)",
     ),
-    min_popularity: Optional[float] = typer.Option(
+    min_popularity: float | None = typer.Option(
         None,
         "--min-popularity",
         help="Minimum popularity score (uses config default)",
     ),
-    min_votes: Optional[int] = typer.Option(
+    min_votes: int | None = typer.Option(
         None,
         "--min-votes",
         help="Minimum vote count (uses config default)",
     ),
-    min_year: Optional[int] = typer.Option(
+    min_year: int | None = typer.Option(
         None,
         "--min-year",
         help="Minimum release year (uses config default)",
     ),
-    max_pages: Optional[int] = typer.Option(
+    max_pages: int | None = typer.Option(
         None,
         "--max-pages",
         help="Maximum pages to fetch",
@@ -210,7 +209,7 @@ def refresh_tmdb(
                     console.print("\n[yellow]No movies need refresh[/yellow]")
                     return
 
-                tmdb_updated, omdb_updated, frozen = await orchestrator.refresh_movie_data(
+                tmdb_updated, _omdb_updated, frozen = await orchestrator.refresh_movie_data(
                     movies_to_refresh,
                     fetch_tmdb=True,
                     fetch_omdb=False,  # TMDB only

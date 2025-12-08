@@ -1,7 +1,7 @@
 """Normalizers for TMDB API responses."""
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 from .models import (
     TMDBDiscoverMovie,
@@ -13,10 +13,10 @@ from .models import (
 
 def utc_now() -> str:
     """Get current UTC timestamp."""
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
-def normalize_discover_results(movies: List[Dict]) -> List[Dict[str, Any]]:
+def normalize_discover_results(movies: list[dict]) -> list[dict[str, Any]]:
     """Normalize TMDB discover API response to storage format.
 
     Args:
@@ -49,7 +49,7 @@ def normalize_discover_results(movies: List[Dict]) -> List[Dict[str, Any]]:
     return normalized
 
 
-def normalize_movie_details(movie_data: Dict) -> Dict[str, Any]:
+def normalize_movie_details(movie_data: dict) -> dict[str, Any]:
     """Normalize TMDB movie details API response to storage format.
 
     Args:

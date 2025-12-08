@@ -12,7 +12,7 @@ Features:
 import json
 import logging
 import sys
-from typing import Any, Dict
+from typing import Any, ClassVar
 
 # ===============================================================
 # JSON FORMATTER
@@ -30,7 +30,7 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         """Convert log record into a JSON object."""
-        log_record: Dict[str, Any] = {
+        log_record: dict[str, Any] = {
             "timestamp": self.formatTime(record, self.datefmt),
             "level": record.levelname,
             "logger": record.name,
@@ -65,7 +65,7 @@ class ColoredFormatter(logging.Formatter):
     - No need for JSON noise
     """
 
-    COLORS = {
+    COLORS: ClassVar[dict[str, str]] = {
         "DEBUG": "\033[36m",  # Cyan
         "INFO": "\033[32m",  # Green
         "WARNING": "\033[33m",  # Yellow

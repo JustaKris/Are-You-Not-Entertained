@@ -9,7 +9,7 @@ It supports:
 """
 
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -55,32 +55,32 @@ class Settings(BaseSettings):
         description="Project root directory",
     )
 
-    data_dir: Optional[Path] = Field(
+    data_dir: Path | None = Field(
         default=None, description="Data directory (defaults to project_root/data)"
     )
 
-    data_raw_dir: Optional[Path] = Field(
+    data_raw_dir: Path | None = Field(
         default=None, description="Raw data directory (defaults to data_dir/raw)"
     )
 
-    data_processed_dir: Optional[Path] = Field(
+    data_processed_dir: Path | None = Field(
         default=None, description="Processed data directory (defaults to data_dir/processed)"
     )
 
-    data_artifacts_dir: Optional[Path] = Field(
+    data_artifacts_dir: Path | None = Field(
         default=None,
         description="Artifacts directory for model outputs (defaults to data_dir/artifacts)",
     )
 
-    data_db_dir: Optional[Path] = Field(
+    data_db_dir: Path | None = Field(
         default=None, description="Database directory (defaults to data_dir/db)"
     )
 
-    models_dir: Optional[Path] = Field(
+    models_dir: Path | None = Field(
         default=None, description="Models directory (defaults to project_root/models)"
     )
 
-    logs_dir: Optional[Path] = Field(
+    logs_dir: Path | None = Field(
         default=None, description="Logs directory (defaults to project_root/logs)"
     )
 
@@ -88,7 +88,7 @@ class Settings(BaseSettings):
     # Database Settings
     # ============================================================
 
-    duckdb_path: Optional[Path] = Field(
+    duckdb_path: Path | None = Field(
         default=None,
         description="DuckDB database file path (defaults to data_intermediate_dir/movies.duckdb)",
     )
@@ -102,13 +102,9 @@ class Settings(BaseSettings):
     # API Keys (Sensitive - loaded from .env)
     # ============================================================
 
-    tmdb_api_key: Optional[str] = Field(
-        default=None, description="The Movie Database (TMDB) API key"
-    )
+    tmdb_api_key: str | None = Field(default=None, description="The Movie Database (TMDB) API key")
 
-    omdb_api_key: Optional[str] = Field(
-        default=None, description="Open Movie Database (OMDB) API key"
-    )
+    omdb_api_key: str | None = Field(default=None, description="Open Movie Database (OMDB) API key")
 
     # ============================================================
     # API Configuration
@@ -137,7 +133,7 @@ class Settings(BaseSettings):
     # ============================================================
 
     # TMDB Collection Limits
-    tmdb_max_movies: Optional[int] = Field(
+    tmdb_max_movies: int | None = Field(
         default=None,
         description="Maximum number of movies to process per TMDB operation (collect/enrich/refresh). None = unlimited",
     )
@@ -161,7 +157,7 @@ class Settings(BaseSettings):
         default=1950, description="Minimum release year for movie collection"
     )
 
-    tmdb_max_release_year: Optional[int] = Field(
+    tmdb_max_release_year: int | None = Field(
         default=None, description="Maximum release year for movie collection (None = current year)"
     )
 
@@ -171,11 +167,11 @@ class Settings(BaseSettings):
     )
 
     # OMDB Filtering Settings
-    omdb_min_release_year: Optional[int] = Field(
+    omdb_min_release_year: int | None = Field(
         default=None, description="Minimum release year for OMDB enrichment (None = no limit)"
     )
 
-    omdb_max_release_year: Optional[int] = Field(
+    omdb_max_release_year: int | None = Field(
         default=None, description="Maximum release year for OMDB enrichment (None = no limit)"
     )
 
@@ -195,9 +191,9 @@ class Settings(BaseSettings):
     # Azure Deployment Settings
     # ============================================================
 
-    azure_subscription_id: Optional[str] = Field(default=None, description="Azure subscription ID")
+    azure_subscription_id: str | None = Field(default=None, description="Azure subscription ID")
 
-    azure_resource_group: Optional[str] = Field(default=None, description="Azure resource group")
+    azure_resource_group: str | None = Field(default=None, description="Azure resource group")
 
     # ============================================================
     # Pydantic Configuration

@@ -8,8 +8,9 @@ Features:
 """
 
 import asyncio
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -29,10 +30,10 @@ class TMDBClient:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         requests_per_second: float = 4.0,
         max_concurrent: int = 10,
-        output_dir: Optional[Path] = None,
+        output_dir: Path | None = None,
     ):
         """Initialize TMDB client.
 
@@ -62,7 +63,7 @@ class TMDBClient:
             f"concurrent: {max_concurrent}, output: {self.output_dir})"
         )
 
-    async def _request(self, endpoint: str, params: Optional[Dict] = None) -> Dict:
+    async def _request(self, endpoint: str, params: dict | None = None) -> dict:
         """Make async API request with rate limiting and retry logic.
 
         Args:
@@ -92,9 +93,9 @@ class TMDBClient:
         min_popularity: float = 10.0,
         min_vote_count: int = 50,
         min_release_year: int = 1950,
-        max_release_year: Optional[int] = None,
-        allowed_statuses: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+        max_release_year: int | None = None,
+        allowed_statuses: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """Fetch a single page of discovered movies with advanced filters.
 
         Args:
@@ -132,12 +133,12 @@ class TMDBClient:
     async def _discover_movies_for_year_range(
         self,
         min_release_year: int,
-        max_release_year: Optional[int],
+        max_release_year: int | None,
         min_popularity: float,
         min_vote_count: int,
-        allowed_statuses: Optional[List[str]],
-        max_pages: Optional[int],
-    ) -> List[Dict[str, Any]]:
+        allowed_statuses: list[str] | None,
+        max_pages: int | None,
+    ) -> list[dict[str, Any]]:
         """Discover movies for a specific year range, with automatic splitting if needed.
 
         This method recursively splits year ranges when the TMDB 500-page limit is hit,
@@ -156,7 +157,7 @@ class TMDBClient:
         """
         from datetime import datetime
 
-        TMDB_MAX_PAGES = 500
+        tmdb_max_pages = 500
 
         # Default max_release_year to current year if not specified
         if max_release_year is None:
@@ -183,14 +184,14 @@ class TMDBClient:
             response = await self._request(endpoint, params)
             total_pages = response.get("total_pages", 1)
 
-            if total_pages > TMDB_MAX_PAGES:
+            if total_pages > tmdb_max_pages:
                 logger.warning(
-                    f"Year {year_str} has {total_pages} pages (>{TMDB_MAX_PAGES}). "
-                    f"Only first {TMDB_MAX_PAGES} pages will be fetched. "
+                    f"Year {year_str} has {total_pages} pages (>{tmdb_max_pages}). "
+                    f"Only first {tmdb_max_pages} pages will be fetched. "
                     f"Consider using stricter filters (--min-popularity, --min-votes)."
                 )
 
-            pages_to_fetch = min(total_pages, max_pages or TMDB_MAX_PAGES, TMDB_MAX_PAGES)
+            pages_to_fetch = min(total_pages, max_pages or tmdb_max_pages, tmdb_max_pages)
         else:
             # Multi-year range - check if we need to split
             endpoint = "discover/movie"
@@ -209,12 +210,12 @@ class TMDBClient:
             total_pages = response.get("total_pages", 1)
 
             # If we exceed the limit and can split, do so recursively
-            if total_pages > TMDB_MAX_PAGES and min_release_year < max_release_year:
+            if total_pages > tmdb_max_pages and min_release_year < max_release_year:
                 mid_year = (min_release_year + max_release_year) // 2
 
                 logger.info(
                     f"Year range {min_release_year}-{max_release_year} has {total_pages} pages "
-                    f"(>{TMDB_MAX_PAGES}). Splitting into two ranges: "
+                    f"(>{tmdb_max_pages}). Splitting into two ranges: "
                     f"{min_release_year}-{mid_year} and {mid_year + 1}-{max_release_year}"
                 )
 
@@ -258,7 +259,7 @@ class TMDBClient:
                 return unique_movies
 
             # No split needed
-            pages_to_fetch = min(total_pages, max_pages or TMDB_MAX_PAGES, TMDB_MAX_PAGES)
+            pages_to_fetch = min(total_pages, max_pages or tmdb_max_pages, tmdb_max_pages)
 
         # Fetch all pages for this range
         all_movies = []
@@ -292,14 +293,14 @@ class TMDBClient:
 
     async def discover_movies(
         self,
-        max_movies: Optional[int] = None,
+        max_movies: int | None = None,
         min_popularity: float = 10.0,
         min_vote_count: int = 50,
         min_release_year: int = 1950,
-        max_release_year: Optional[int] = None,
-        allowed_statuses: Optional[List[str]] = None,
-        max_pages: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+        max_release_year: int | None = None,
+        allowed_statuses: list[str] | None = None,
+        max_pages: int | None = None,
+    ) -> list[dict[str, Any]]:
         """Discover movies with advanced filtering using TMDB discover endpoint.
 
         This method automatically handles the TMDB 500-page limit by recursively
@@ -347,7 +348,7 @@ class TMDBClient:
         logger.info(f"Total movies discovered: {len(all_movies)}")
         return all_movies
 
-    async def get_movie_details(self, tmdb_id: int) -> Optional[Dict[str, Any]]:
+    async def get_movie_details(self, tmdb_id: int) -> dict[str, Any] | None:
         """Fetch full movie details by TMDB ID.
 
         Args:
@@ -366,10 +367,10 @@ class TMDBClient:
 
     async def get_batch_movie_details(
         self,
-        tmdb_ids: List[int],
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-        allowed_statuses: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+        tmdb_ids: list[int],
+        progress_callback: Callable[[int, int], None] | None = None,
+        allowed_statuses: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """Fetch details for multiple movies concurrently with optional status filtering.
 
         Args:
@@ -389,7 +390,7 @@ class TMDBClient:
         completed = 0
         movies: list[dict[str, Any]] = []
 
-        async def fetch_with_progress(tmdb_id: int) -> Optional[Dict[str, Any]]:
+        async def fetch_with_progress(tmdb_id: int) -> dict[str, Any] | None:
             nonlocal completed
             result = await self.get_movie_details(tmdb_id)
             completed += 1
@@ -411,9 +412,9 @@ class TMDBClient:
             results = await asyncio.gather(*tasks, return_exceptions=True)
         except asyncio.CancelledError:
             # Asyncio task cancelled (from KeyboardInterrupt) - raise with partial data
-            from ayne.core.exceptions import UserCancelledOperation
+            from ayne.core.exceptions import UserCancelledError
 
-            raise UserCancelledOperation(
+            raise UserCancelledError(
                 operation_name="TMDB batch fetch",
                 items_processed=completed,
                 total_requested=total,

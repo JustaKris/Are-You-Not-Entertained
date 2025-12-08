@@ -77,13 +77,13 @@ def configure_dark_mode(palette: str = "bright") -> None:
     plotly_template = go.layout.Template(
         layout=go.Layout(
             paper_bgcolor="#1e1e1e",  # Outer background
-            plot_bgcolor="#2d2d2d",   # Plot area background
+            plot_bgcolor="#2d2d2d",  # Plot area background
             font={"color": "white", "size": 13, "family": "Arial, sans-serif"},
             title={
                 "font": {"size": 18, "color": "white"},
                 "x": 0.5,  # Center title
                 "xanchor": "center",
-                "pad": {"t": 20, "b": 10}  # Padding around title
+                "pad": {"t": 20, "b": 10},  # Padding around title
             },
             # Enhanced margins to prevent text cutoff
             margin={"l": 80, "r": 40, "t": 80, "b": 80},
@@ -113,12 +113,12 @@ def configure_dark_mode(palette: str = "bright") -> None:
                 "x": 1.02,  # Position to the right
                 "xanchor": "left",
                 "y": 1,
-                "yanchor": "top"
+                "yanchor": "top",
             },
             hoverlabel={
                 "bgcolor": "#2d2d2d",
                 "font": {"size": 13, "color": "white"},
-                "bordercolor": "#888888"
+                "bordercolor": "#888888",
             },
             # Annotation defaults for better readability
             annotationdefaults={
@@ -126,7 +126,7 @@ def configure_dark_mode(palette: str = "bright") -> None:
                 "bgcolor": "rgba(45, 45, 45, 0.8)",
                 "bordercolor": "#666666",
                 "borderwidth": 1,
-                "borderpad": 4
+                "borderpad": 4,
             },
             colorway=[
                 "#00d4ff",  # Cyan
@@ -145,11 +145,10 @@ def configure_dark_mode(palette: str = "bright") -> None:
 
     # Enable matplotlib inline for Jupyter
     # Note: This won't work in regular Python scripts
-    try:
-        get_ipython().run_line_magic("matplotlib", "inline")  # type: ignore[name-defined]
-    except (NameError, AttributeError):
-        # Not in Jupyter environment, skip magic command
-        pass
+    from contextlib import suppress
+
+    with suppress(NameError, AttributeError):
+        get_ipython().run_line_magic("matplotlib", "inline")  # type: ignore[name-defined]  # noqa: F821
 
 
 def get_dark_palette(n_colors: int = 6) -> list[str]:
@@ -199,7 +198,7 @@ def style_comparison_figure(
         Tuple of (fig, axes) for plotting.
 
     Example:
-        >>> fig, axes = style_comparison_figure('Model Metrics')
+        >>> fig, axes = style_comparison_figure("Model Metrics")
         >>> axes[0].bar(...)
         >>> plt.show()
     """

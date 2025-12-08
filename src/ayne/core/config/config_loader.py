@@ -6,14 +6,14 @@ and merging them with Pydantic settings.
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 
 from ayne.core.config.settings import Settings
 
 
-def load_yaml_config(path: Path) -> Dict[str, Any]:
+def load_yaml_config(path: Path) -> dict[str, Any]:
     """Load configuration from a YAML file.
 
     Args:
@@ -29,12 +29,12 @@ def load_yaml_config(path: Path) -> Dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Configuration file not found: {path}")
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         config = yaml.safe_load(f)
         return config or {}
 
 
-def get_config_path(environment: str, configs_dir: Optional[Path] = None) -> Path:
+def get_config_path(environment: str, configs_dir: Path | None = None) -> Path:
     """Get the path to the environment-specific config file.
 
     Args:
@@ -55,7 +55,7 @@ def get_config_path(environment: str, configs_dir: Optional[Path] = None) -> Pat
 
 
 @lru_cache(maxsize=1)
-def get_settings(environment: Optional[str] = None) -> Settings:
+def get_settings(environment: str | None = None) -> Settings:
     """Load and return the application settings.
 
     This function:
@@ -112,7 +112,7 @@ def get_settings(environment: Optional[str] = None) -> Settings:
 settings: Settings = get_settings()
 
 
-def reload_settings(environment: Optional[str] = None) -> Settings:
+def reload_settings(environment: str | None = None) -> Settings:
     """Reload settings (useful for testing or environment switches).
 
     Args:
