@@ -43,6 +43,7 @@ dependencies = [
     "matplotlib>=3.8,<4.0",
     "seaborn>=0.13,<0.15",
     "plotly>=6.0,<7.0", # Loose enough but avoids future breakage
+    "kaleido>=1.0,<2.0", # Static image export for Plotly (GitHub rendering)
     # --- Configuration / Serialization ---
     "pydantic>=2.0,<3.0", # Modern settings management
     "pydantic-settings>=2.0,<3.0", # Pydantic settings from env/files
