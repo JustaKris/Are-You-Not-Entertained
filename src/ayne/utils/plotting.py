@@ -4,6 +4,8 @@ Provides consistent dark-mode matplotlib styling and common visualization patter
 used across analysis notebooks.
 """
 
+from contextlib import suppress
+
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -143,10 +145,12 @@ def configure_dark_mode(palette: str = "bright") -> None:
     pio.templates["vscode_dark"] = plotly_template
     pio.templates.default = "vscode_dark"
 
+    # Emit both interactive (VS Code / Jupyter) and static PNG (GitHub) outputs.
+    # The PNG fallback requires the `kaleido` package.
+    pio.renderers.default = "plotly_mimetype+png"
+
     # Enable matplotlib inline for Jupyter
     # Note: This won't work in regular Python scripts
-    from contextlib import suppress
-
     with suppress(NameError, AttributeError):
         get_ipython().run_line_magic("matplotlib", "inline")  # type: ignore[name-defined]  # noqa: F821
 
