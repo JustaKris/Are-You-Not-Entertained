@@ -138,10 +138,26 @@ class Settings(BaseSettings):
         description="Maximum number of movies to process per TMDB operation (collect/enrich/refresh). None = unlimited",
     )
 
+    # The Numbers (box office) Collection Limits
+    numbers_max_movies: int = Field(
+        default=50,
+        description="Maximum number of movies to scrape from The Numbers per operation. Kept small and polite since this is HTML scraping, not an official API.",
+    )
+
+    numbers_requests_per_second: float = Field(
+        default=0.15,
+        description="Max requests/second to the-numbers.com (default: ~1 request per ~6.7s) - deliberately conservative to avoid being rate limited or banned.",
+    )
+
     # OMDB Collection Limits
     omdb_max_movies: int = Field(
         default=1000,
         description="Maximum number of movies to process per OMDB operation (collect/enrich/refresh). Default: 1000 due to API limits",
+    )
+
+    omdb_daily_request_limit: int = Field(
+        default=1000,
+        description="OMDB free tier daily request quota, used to compute remaining budget for 'ayne omdb status' and to cap batches before they get cut off mid-run",
     )
 
     # TMDB Filtering Settings

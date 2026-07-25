@@ -308,9 +308,9 @@ class DuckDBClient:
         if not ids:
             return
 
-        ids_str = ",".join(str(id) for id in ids)
-        sql = f"UPDATE {table_name} SET {timestamp_column} = ? WHERE {id_column} IN ({ids_str})"
-        self.execute(sql, [timestamp])
+        placeholders = ",".join("?" * len(ids))
+        sql = f"UPDATE {table_name} SET {timestamp_column} = ? WHERE {id_column} IN ({placeholders})"
+        self.execute(sql, [timestamp, *ids])
         logger.debug(f"Updated {len(ids)} records in {table_name}.{timestamp_column}")
 
     def get_collection_stats(self) -> pd.DataFrame:
@@ -354,3 +354,11 @@ class DuckDBClient:
             logger.info("DuckDB connection closed.")
         except Exception:
             pass
+
+    def __enter__(self) -> DuckDBClient:
+        """Support `with DuckDBClient(...) as db:` usage."""
+        return self
+
+    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
+        """Ensure the connection is always closed when leaving a `with` block."""
+        self.close()

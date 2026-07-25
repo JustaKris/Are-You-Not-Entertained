@@ -51,6 +51,7 @@ def init_database(
                 "omdb_movies",
                 "numbers_movies",
                 "movie_refresh_state",
+                "api_usage_daily",
             ]
             for table in tables:
                 console.print(f"  • {table}")
@@ -64,7 +65,7 @@ def init_database(
         db.create_tables_from_sql()
 
         # Verify tables
-        tables = ["movies", "tmdb_movies", "omdb_movies", "numbers_movies", "movie_refresh_state"]
+        tables = ["movies", "tmdb_movies", "omdb_movies", "numbers_movies", "movie_refresh_state", "api_usage_daily"]
         console.print("[bold]Verifying tables:[/bold]")
 
         table_display = Table(show_header=True, header_style="bold magenta")
