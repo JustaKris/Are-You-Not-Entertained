@@ -22,10 +22,9 @@ use_json_logging: false
 # =============================================================================
 # Database Configuration
 # =============================================================================
-database:
-  type: duckdb
-  path: data/db/movies.duckdb
-  read_only: false
+# Settings is flat, not nested - override the DB file location with duckdb_path
+# (defaults to data_dir/db/movies.duckdb if left unset).
+# duckdb_path: data/db/movies.duckdb
 
 # =============================================================================
 # TMDB (The Movie Database) Configuration
@@ -56,7 +55,7 @@ omdb_max_movies: 1000  # Max movies per operation (collect/enrich/refresh). OMDB
 
 # Filtering Settings
 omdb_min_release_year: 1950  # Earliest year (null = no limit)
-omdb_max_release_year: 2025  # Latest year (null = no limit)
+omdb_max_release_year: null  # Latest year (null = no limit; avoid hardcoding a year here, it goes stale)
 
 # =============================================================================
 # API Rate Limiting

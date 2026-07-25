@@ -53,8 +53,7 @@ dependencies = [
     # --- Web / API ---
     "fastapi>=0.110,<1.0",
     "uvicorn>=0.30,<1.0",
-    "httpx>=0.27,<1.0", # Modern async HTTP client
-    "requests>=2.31,<3.0", # For the_numbers scraper
+    "httpx>=0.27,<1.0", # Modern async HTTP client (TMDB, OMDB, The Numbers)
     # --- Database / ORM ---
     "sqlalchemy>=2.0,<3.0",
     "psycopg2-binary>=2.9,<3.0",
