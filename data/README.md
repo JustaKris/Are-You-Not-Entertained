@@ -20,7 +20,7 @@ data/
 
 - `movies` - Core movie information
 - `tmdb_movies` - TMDB API data
-- `omdb_movies` - OMDB API data  
+- `omdb_movies` - OMDB API data
 - `numbers_movies` - The Numbers financial data
 - `movie_refresh_state` - Data refresh tracking
 
@@ -29,7 +29,7 @@ data/
 ### In Notebooks
 
 ```python
-from src.data.query_utils import load_full_dataset
+from ayne.utils.query_utils import load_full_dataset
 
 # Load all movie data
 df = load_full_dataset()
@@ -37,8 +37,8 @@ df = load_full_dataset()
 
 ### See Also
 
-- **Complete Guide**: `../DATA_GUIDE.md`
-- **Query Utilities**: `../src/data/query_utils.py`
+- **Query Utilities**: `../docs/reference/database.md`, `../src/ayne/utils/query_utils.py`
+- **Other Data Utilities**: `../docs/guides/utilities-guide.md`
 - **Example Notebook**: `../notebooks/01_movies_data_full_imputation.ipynb`
 
 ## Important Notes

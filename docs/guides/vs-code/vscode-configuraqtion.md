@@ -171,7 +171,7 @@ code --install-extension tamasfe.even-better-toml
 **What each does**:
 
 | Extension | Purpose |
-|-----------|---------|
+| ----------- | --------- |
 | `ms-python.python` | Python language support, linting, debugging |
 | `ms-python.vscode-pylance` | Fast IntelliSense & type checking |
 | `DavidAnson.vscode-markdownlint` | Markdown linting with custom rules |
@@ -319,8 +319,7 @@ Install: DavidAnson.vscode-markdownlint
 
 ## Related Documentation
 
-- [Modern Utilities Guide](../copilot_artifacts/MODERN_UTILITIES_GUIDE.md) - I/O and serialization
-- [Package Structure](../copilot_artifacts/QUICK_START_NEW_PACKAGE.md) - Project organization
+- [Utilities Guide](../utilities-guide.md) - I/O and serialization
 - [Ruff documentation](https://docs.astral.sh/ruff/)
 - [Pylance repository](https://github.com/microsoft/pylance-release)
 

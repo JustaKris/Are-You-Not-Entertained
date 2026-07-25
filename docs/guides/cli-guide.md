@@ -744,7 +744,7 @@ ayne validate all --help
 If migrating from old scripts:
 
 | Old Script | New CLI Command |
-|------------|-----------------|
+| ------------ | ----------------- |
 | `python scripts/init_database.py` | `ayne db init` |
 | `python scripts/test_database.py` | `ayne db test` |
 | `python scripts/collect_optimized.py --discover` | `ayne tmdb update` |
