@@ -78,7 +78,9 @@ def get_remaining_quota(db: DuckDBClient, provider: str, daily_limit: int) -> in
     return max(daily_limit - used, 0)
 
 
-def get_usage_history(db: DuckDBClient, provider: str | None = None, days: int = 14) -> pd.DataFrame:
+def get_usage_history(
+    db: DuckDBClient, provider: str | None = None, days: int = 14
+) -> pd.DataFrame:
     """Return recent daily usage history, optionally filtered to one provider."""
     ensure_usage_table(db)
     if provider:

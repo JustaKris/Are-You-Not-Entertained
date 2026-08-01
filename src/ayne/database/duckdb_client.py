@@ -57,7 +57,7 @@ class DuckDBClient:
         try:
             # DuckDB connection. Use read_only flag if needed.
             self._conn = duckdb.connect(database=str(self.db_path), read_only=self.read_only)
-            logger.info("DuckDB connected at %s (read_only=%s)", self.db_path, self.read_only)
+            logger.debug("DuckDB connected at %s (read_only=%s)", self.db_path, self.read_only)
         except duckdb.IOException as e:
             error_msg = str(e)
 
@@ -309,7 +309,9 @@ class DuckDBClient:
             return
 
         placeholders = ",".join("?" * len(ids))
-        sql = f"UPDATE {table_name} SET {timestamp_column} = ? WHERE {id_column} IN ({placeholders})"
+        sql = (
+            f"UPDATE {table_name} SET {timestamp_column} = ? WHERE {id_column} IN ({placeholders})"
+        )
         self.execute(sql, [timestamp, *ids])
         logger.debug(f"Updated {len(ids)} records in {table_name}.{timestamp_column}")
 
@@ -351,7 +353,7 @@ class DuckDBClient:
         """Close the DuckDB connection."""
         try:
             self._conn.close()
-            logger.info("DuckDB connection closed.")
+            logger.debug("DuckDB connection closed.")
         except Exception:
             pass
 

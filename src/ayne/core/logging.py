@@ -14,6 +14,12 @@ import logging
 import sys
 from typing import Any, ClassVar
 
+# Tracks the (level, use_json) this process was last configured with, so that
+# importing several CLI submodules - each of which calls configure_logging()
+# at import time - doesn't reconfigure handlers or print a duplicate
+# "Logging configured" line once per module.
+_configured_state: tuple[str, bool] | None = None
+
 # ===============================================================
 # JSON FORMATTER
 # ===============================================================
@@ -121,8 +127,17 @@ def configure_logging(
 
     This function replaces any previous logging configuration and ensures
     the entire application uses a consistent log format.
+
+    Safe to call multiple times (e.g. once per CLI submodule import) with the
+    same arguments - subsequent calls are a no-op so logs aren't reconfigured
+    and the confirmation message isn't printed more than once per process.
     """
     level = level.upper()
+
+    global _configured_state
+    if _configured_state == (level, use_json):
+        return
+    _configured_state = (level, use_json)
 
     # Choose the correct formatter depending on environment
     if use_json:

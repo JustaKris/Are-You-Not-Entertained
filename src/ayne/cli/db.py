@@ -65,7 +65,14 @@ def init_database(
         db.create_tables_from_sql()
 
         # Verify tables
-        tables = ["movies", "tmdb_movies", "omdb_movies", "numbers_movies", "movie_refresh_state", "api_usage_daily"]
+        tables = [
+            "movies",
+            "tmdb_movies",
+            "omdb_movies",
+            "numbers_movies",
+            "movie_refresh_state",
+            "api_usage_daily",
+        ]
         console.print("[bold]Verifying tables:[/bold]")
 
         table_display = Table(show_header=True, header_style="bold magenta")

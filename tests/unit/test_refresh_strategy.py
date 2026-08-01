@@ -26,16 +26,12 @@ class TestHasMeaningfulChange:
     def test_small_float_difference_within_tolerance_is_not_a_change(self):
         before = {"vote_average": 7.501}
         after = {"vote_average": 7.502}
-        assert (
-            has_meaningful_change(before, after, ["vote_average"], float_tolerance=0.01) is False
-        )
+        assert has_meaningful_change(before, after, ["vote_average"], float_tolerance=0.01) is False
 
     def test_float_difference_beyond_tolerance_is_a_change(self):
         before = {"vote_average": 7.0}
         after = {"vote_average": 7.5}
-        assert (
-            has_meaningful_change(before, after, ["vote_average"], float_tolerance=0.01) is True
-        )
+        assert has_meaningful_change(before, after, ["vote_average"], float_tolerance=0.01) is True
 
     def test_none_to_value_is_a_change(self):
         before = {"status": None}

@@ -145,7 +145,7 @@ class Settings(BaseSettings):
     )
 
     numbers_requests_per_second: float = Field(
-        default=0.15,
+        default=1,
         description="Max requests/second to the-numbers.com (default: ~1 request per ~6.7s) - deliberately conservative to avoid being rate limited or banned.",
     )
 

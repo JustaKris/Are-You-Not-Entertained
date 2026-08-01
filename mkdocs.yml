@@ -67,6 +67,7 @@ nav:
   - CLI Guide: guides/cli-guide.md
   - Data Collection Quick Reference: guides/data-collection-quick-reference.md
   - Pre-Commit Guide: guides/pre-commit-guide.md
+  - Utilities Guide: guides/utilities-guide.md
 - Reference:
   - Architecture: reference/architecture.md
   - TMDB API Client: reference/tmdb-client.md
@@ -77,6 +78,7 @@ nav:
   - Data Collection Filtering: reference/data-collection-filtering.md
   - Rate Limiting: reference/rate-limiting.md
   - Data Orchestration: reference/orchestration.md
+  - Technical Decisions: reference/technical-decisions.md
 
 exclude_docs: |
   copilot_artifacts/
