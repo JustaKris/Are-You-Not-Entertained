@@ -14,12 +14,11 @@ import logging
 import sys
 from typing import Any, ClassVar
 
-# Tracks the (level, use_json) this process was last configured with, so that
+# Tracks the (level, use_json, include_uvicorn) this process was last configured with, so that
 # importing several CLI submodules - each of which calls configure_logging()
 # at import time - doesn't reconfigure handlers or print a duplicate
 # "Logging configured" line once per module.
-_configured_state: tuple[str, bool] | None = None
-
+_configured_state: tuple[str, bool, bool] | None = None
 # ===============================================================
 # JSON FORMATTER
 # ===============================================================
