@@ -938,8 +938,7 @@ class DataCollectionOrchestrator:
         numbers_data = await self.numbers_client.get_batch_financial_data(
             movie_inputs, progress_callback=progress_callback
         )
-        record_api_usage(self.db, "numbers", len(movie_inputs))
-
+        record_api_usage(self.db, "numbers", len(movie_inputs) * 4)
         if not numbers_data:
             logger.warning("No The Numbers data found for any of these movies")
             return 0
