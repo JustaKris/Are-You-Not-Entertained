@@ -18,7 +18,7 @@ from typing import Any, ClassVar
 # importing several CLI submodules - each of which calls configure_logging()
 # at import time - doesn't reconfigure handlers or print a duplicate
 # "Logging configured" line once per module.
-_configured_state: tuple[str, bool, bool] | None = None
+_configured_state: tuple[str, bool] | None = None
 # ===============================================================
 # JSON FORMATTER
 # ===============================================================
