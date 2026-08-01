@@ -71,7 +71,7 @@ def has_meaningful_change(
         if old_value is None or new_value is None:
             return True
 
-        if isinstance(old_value, int | float) and isinstance(new_value, int | float):
+        if isinstance(old_value, (int, float)) and isinstance(new_value, (int, float)):
             if abs(float(old_value) - float(new_value)) > float_tolerance:
                 return True
             continue
