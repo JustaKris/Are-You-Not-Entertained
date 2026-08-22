@@ -162,7 +162,7 @@ jobs:
         id: codecov
         if: matrix.python-version == '3.12'
         continue-on-error: true
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: ./reports/coverage/coverage.xml
           flags: unittests
