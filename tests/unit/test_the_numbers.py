@@ -115,13 +115,14 @@ class TestTheNumbersClient:
 
             client = TheNumbersClient(requests_per_second=1_000)
             client._client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-            movie = {"movie_id": 1, "title": "Missing Film", "release_year": 2024}
+            movie_title = "Missing Film"
+            movie = {"movie_id": 1, "title": movie_title, "release_year": 2024}
             try:
                 await client.get_batch_financial_data([movie])
                 first_count = client.last_request_count
                 await client.get_batch_financial_data([movie])
                 second_count = client.last_request_count
-                return first_count, second_count, len(candidate_urls(movie["title"], 2024))
+                return first_count, second_count, len(candidate_urls(movie_title, 2024))
             finally:
                 await client.close()
 

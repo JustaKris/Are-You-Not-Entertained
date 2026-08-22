@@ -21,8 +21,8 @@ def test_discovery_reports_page_progress_and_preserves_result_order() -> None:
         page = kwargs["page"]
         return [{"tmdb_id": page, "title": f"Movie {page}"}]
 
-    client._request = fake_request  # type: ignore[attr-defined]
-    client.discover_movies_page = fake_discover_movies_page  # type: ignore[method-assign]
+    client._request = fake_request  # type: ignore[attr-defined, assignment, method-assign]
+    client.discover_movies_page = fake_discover_movies_page  # type: ignore[assignment, method-assign]
     events: list[tuple[str, int | None, int | None]] = []
 
     movies = asyncio.run(
@@ -56,8 +56,8 @@ def test_discovery_reports_failed_pages_as_completed() -> None:
             raise RuntimeError("request failed")
         return [{"tmdb_id": 2, "title": "Movie 2"}]
 
-    client._request = fake_request  # type: ignore[attr-defined]
-    client.discover_movies_page = fake_discover_movies_page  # type: ignore[method-assign]
+    client._request = fake_request  # type: ignore[attr-defined, assignment, method-assign]
+    client.discover_movies_page = fake_discover_movies_page  # type: ignore[assignment, method-assign]
     events: list[tuple[str, int | None, int | None]] = []
 
     movies = asyncio.run(
@@ -88,8 +88,8 @@ def test_movie_cap_derives_a_global_page_budget() -> None:
         fetched_pages.append(kwargs["page"])
         return [{"tmdb_id": page, "title": f"Movie {page}"} for page in [kwargs["page"]]]
 
-    client._request = fake_request  # type: ignore[attr-defined]
-    client.discover_movies_page = fake_discover_movies_page  # type: ignore[method-assign]
+    client._request = fake_request  # type: ignore[attr-defined, assignment, method-assign]
+    client.discover_movies_page = fake_discover_movies_page  # type: ignore[assignment, method-assign]
 
     movies = asyncio.run(
         client.discover_movies(
@@ -119,8 +119,8 @@ def test_explicit_page_cap_is_global_across_split_ranges() -> None:
         )
         return [{"tmdb_id": len(fetched_ranges), "title": "Movie"}]
 
-    client._request = fake_request  # type: ignore[attr-defined]
-    client.discover_movies_page = fake_discover_movies_page  # type: ignore[method-assign]
+    client._request = fake_request  # type: ignore[attr-defined, assignment, method-assign]
+    client.discover_movies_page = fake_discover_movies_page  # type: ignore[assignment, method-assign]
 
     movies = asyncio.run(
         client.discover_movies(
