@@ -2,7 +2,7 @@
 
 > A modern data science project for movie box office analysis and prediction, built with production-grade Python practices.
 
-![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-yellow.svg)
 
@@ -26,18 +26,18 @@
 
 ## 🛠️ Tech Stack
 
-- **Python 3.12+** with modern async/await patterns
+- **Python 3.12 or 3.13** with modern async/await patterns
 - **DuckDB** for analytical database
 - **httpx** for async HTTP requests
 - **Pydantic** for configuration management
 - **pandas** for data manipulation
 - **Jupyter** for exploratory analysis
 
--## 📦 Installation
+## 📦 Installation
 
 ### Prerequisites
 
-- Python 3.12+
+- Python 3.12 or 3.13
 - [uv](https://docs.astral.sh/uv/) package manager (recommended)
 - API keys for TMDB and OMDB
 
@@ -53,8 +53,7 @@
 2. **Install dependencies with uv**
 
    ```bash
-   uv venv
-   uv pip install -e "."
+   uv sync --group dev
    ```
 
 3. **Configure environment**
@@ -69,9 +68,11 @@
 4. **Verify installation**
 
    ```bash
-   ayne --help
-   ayne version
+   uv run ayne --help
+   uv run ayne version
    ```
+
+The examples below use the installed `ayne` command for brevity. If the project environment is not activated, prefix commands with `uv run` (for example, `uv run ayne db init`).
 
 ## 🚀 Quick Start
 
@@ -96,7 +97,7 @@ Collect movie data with the CLI:
 
 ```bash
 # Discover new movies from TMDB (basic info, fast)
-ayne tmdb update --max-movies 1000 --min-year 2020 --max-year 2024
+ayne tmdb update --max-movies 1000 --min-year 2025 --max-year 2026
 
 # Wide year ranges work automatically (auto-splits if >500 pages)
 ayne tmdb update --min-year 1950 --max-year 2024  # Handles 500-page limit automatically
@@ -106,6 +107,9 @@ ayne tmdb enrich --limit 500 --min-year 2020
 
 # Enrich with OMDB data (ratings, box office, awards)
 ayne omdb enrich --max-movies 250 --min-year 2020
+
+# Enrich with box office/budget data from The Numbers (rate-limited scraper)
+ayne numbers enrich --max-movies 50 --min-year 2020
 
 # Daily updates: refresh recent releases only
 ayne tmdb refresh --min-year 2024 --limit 1000
@@ -125,6 +129,7 @@ ayne collect full --max-tmdb 5000 --max-omdb 1000
 - **`tmdb refresh`** - Update existing movies that need refresh
 - **`omdb enrich`** - Add OMDB data to movies with IMDb IDs
 - **`omdb refresh`** - Update existing OMDB data
+- **`numbers enrich`** - Add box office/budget data from The Numbers (conservatively rate-limited to avoid overloading their site)
 
 **Features**:
 
@@ -136,11 +141,58 @@ ayne collect full --max-tmdb 5000 --max-omdb 1000
 - Smart refresh decisions to minimize API calls
 - Dry-run mode for safe previews (`--dry-run`)
 
-**Typical Workflow:**
+### Starting From an Empty Database
 
-1. **Initial Population**: Discover movies in year ranges → Enrich with details → Add OMDB data
-2. **Daily Updates**: Refresh recent releases only (`--min-year 2024 --limit 50`)
-3. **Weekly/Monthly**: Broader refresh (`--limit 500` or `--min-year 2023`)
+If `data/db/movies.duckdb` doesn't exist yet or you're setting up a fresh environment:
+
+```bash
+# 1. Create the schema
+ayne db init
+
+# 2. Discover movies (populates the `movies` table with basic TMDB info)
+ayne tmdb update --min-year 1990 --max-year 2024
+
+# 3. Enrich with detailed TMDB data (budget, revenue, genres, IMDb ID)
+ayne tmdb enrich --limit 5000
+
+# 4. Enrich with OMDB data (ratings, awards) - requires imdb_id from step 3
+ayne omdb enrich --max-movies 5000
+
+# 5. (Optional, slow) Enrich with box office data from The Numbers
+ayne numbers enrich --max-movies 500
+
+# 6. Confirm everything landed correctly
+ayne db stats
+ayne validate all
+```
+
+### Daily Commands
+
+Keep recent releases current without re-scanning the whole catalog:
+
+```bash
+ayne tmdb refresh --min-year 2024 --limit 1000
+ayne omdb refresh --min-year 2024 --limit 300
+ayne numbers enrich --max-movies 50
+```
+
+Or run the equivalent orchestrated workflow in one step:
+
+```bash
+ayne collect daily --tmdb-refresh 50 --omdb-limit 30
+```
+
+### Weekly Commands
+
+Broader refresh across a wider year range, plus discovery of anything new:
+
+```bash
+ayne tmdb update --min-year 2020 --max-year 2024
+ayne tmdb refresh --min-year 2020 --limit 2000
+ayne omdb refresh --min-year 2020 --limit 1000
+ayne numbers enrich --max-movies 200
+ayne validate all
+```
 
 ### Working with the Database
 
@@ -317,10 +369,7 @@ print(settings.tmdb_api_key)      # API keys (from .env)
 
 ## 📚 Documentation
 
-- **[DATA_GUIDE.md](DATA_GUIDE.md)** - Comprehensive data structure guide
-- **[DATA_MODERNIZATION_SUMMARY.md](DATA_MODERNIZATION_SUMMARY.md)** - Recent architecture changes
-- **[REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md)** - Code refactoring details
-- **[data/README.md](data/README.md)** - Data directory quick reference
+Full documentation lives under [docs/](docs/) (built with MkDocs) - see [Architecture](docs/reference/architecture.md), [CLI Guide](docs/guides/cli-guide.md), and [Technical Decisions](docs/reference/technical-decisions.md) to start. Also see [data/README.md](data/README.md) for a data directory quick reference.
 
 ## 🎯 Roadmap
 
@@ -349,17 +398,17 @@ print(settings.tmdb_api_key)      # API keys (from .env)
 
 ## 🧪 Testing
 
-Run tests and validation:
+The project has a minimal but meaningful unit test suite (pure-function tests for refresh logic, parsing, and API usage tracking), run automatically in CI:
 
 ```bash
+# Run unit tests with coverage
+uv run pytest
+
 # Test database connection
 ayne db test
 
 # Validate data quality
 ayne validate all
-
-# Run unit tests (when available)
-uv run pytest tests/
 ```
 
 ## 📈 Performance

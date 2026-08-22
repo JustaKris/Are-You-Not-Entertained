@@ -1,0 +1,176 @@
+name: "CI / Python"
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "src/**/*.py"
+      - "scripts/**/*.py"
+      - "tests/**/*.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install lint dependencies
+        run: uv sync --locked --only-group lint
+
+      - name: Run ruff linting
+        id: ruff_lint
+        run: uv run --no-sync ruff check src/ scripts/ tests/
+
+      - name: Run ruff format check
+        id: ruff_format
+        run: uv run --no-sync ruff format --check src/ scripts/ tests/
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          {
+            echo "## Python lint"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Job | **${{ job.status }}** |"
+            echo "| Ruff lint | ${{ steps.ruff_lint.outcome }} |"
+            echo "| Ruff format | ${{ steps.ruff_format.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install type-check dependencies
+        run: uv sync --locked --only-group typecheck
+
+      - name: Run mypy
+        id: mypy
+        run: uv run --no-sync mypy
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          {
+            echo "## Python type check"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Job | **${{ job.status }}** |"
+            echo "| Mypy | ${{ steps.mypy.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  tests:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install test dependencies
+        run: uv sync --locked --no-default-groups --group test
+
+      - name: Run tests with coverage
+        id: pytest
+        run: |
+          mkdir -p reports
+          uv run --no-sync pytest --junitxml=reports/test-results.xml
+
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.12'
+        continue-on-error: true
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./reports/coverage/coverage.xml
+          flags: unittests
+          name: codecov-python-${{ matrix.python-version }}
+          fail_ci_if_error: false
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-py${{ matrix.python-version }}
+          path: reports/coverage/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-py${{ matrix.python-version }}
+          path: reports/test-results.xml
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          {
+            echo "## Python tests"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Job | **${{ job.status }}** |"
+            echo "| Python | ${{ matrix.python-version }} |"
+            echo "| Tests | ${{ steps.pytest.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

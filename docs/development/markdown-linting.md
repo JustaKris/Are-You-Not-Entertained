@@ -1,6 +1,6 @@
 # Markdown Linting
 
-Documentation quality is maintained through automated markdown linting using `pymarkdownlnt`.
+Documentation quality is maintained through automated Markdown linting using `pymarkdown` from the `pymarkdownlnt` package.
 
 ## Why Separate from Code Linting?
 
@@ -12,9 +12,9 @@ Markdown linting is **intentionally separated** from Python code linting for sev
 4. **Independent failures** - Docs issues shouldn't block code deployment
 5. **Clearer CI feedback** - Easy to identify doc vs code problems
 
-## About pymarkdownlnt
+## About pymarkdown
 
-**pymarkdownlnt** is the recommended modern markdown linter for Python projects:
+**pymarkdown** is the CLI provided by the `pymarkdownlnt` package:
 
 ✅ **Pure Python** - No Ruby/Node.js dependencies (unlike markdownlint)
 ✅ **Configurable** - Flexible rule configuration via pyproject.toml
@@ -25,8 +25,8 @@ Markdown linting is **intentionally separated** from Python code linting for sev
 ### Alternatives Considered
 
 | Tool | Pros | Cons | Verdict |
-|------|------|------|---------|
-| **pymarkdownlnt** | Pure Python, fast, configurable | Younger project | ✅ **Best for Python projects** |
+| ------ | ------ | ------ | --------- |
+| **pymarkdown** | Pure Python, fast, configurable | Younger project | ✅ **Best for Python projects** |
 | markdownlint-cli | Popular, mature, extensive rules | Requires Node.js | ❌ External dependency |
 | mdl (Ruby) | Well-established | Requires Ruby | ❌ External dependency |
 | remark-lint | Plugin ecosystem | Requires Node.js, complex setup | ❌ Too complex |
@@ -47,7 +47,7 @@ extensions.tables.enabled = true  # Enable tables
 ### Key Rules
 
 | Rule | Description | Status | Reason |
-|------|-------------|--------|--------|
+| ------ | ------------- | -------- | -------- |
 | MD013 | Line length | ❌ Disabled | Tables, code blocks, long URLs |
 | MD033 | Inline HTML | ❌ Disabled | Badges, centered images, styling |
 | MD036 | Emphasis as heading | ❌ Disabled | Common in step lists, examples |
@@ -60,18 +60,18 @@ extensions.tables.enabled = true  # Enable tables
 
 ```powershell
 # Scan all markdown files
-uv run pymarkdown --config pyproject.toml scan docs/ README.md
+uv run pymarkdown scan docs/ README.md
 
 # Scan specific directory
-uv run pymarkdown --config pyproject.toml scan docs/development/
+uv run pymarkdown scan docs/development/
 
 # Scan single file
-uv run pymarkdown --config pyproject.toml scan README.md
+uv run pymarkdown scan README.md
 ```
 
 ### Fix Issues
 
-pymarkdownlnt doesn't auto-fix issues. Fixes must be manual:
+`pymarkdown` doesn't auto-fix issues. Fixes must be manual:
 
 1. Run scan to identify issues
 2. Review error messages
@@ -126,32 +126,31 @@ Markdown linting runs as a **separate CI stage** from code linting.
 ### Pipeline Position
 
 ```text
-lint (Python) → test → markdown-lint → security
+lint/typecheck → tests → docs (Markdown + MkDocs) → security
 ```
 
 This allows:
 
 - ✅ Code linting to pass independently
-- ✅ Documentation fixes without blocking deployments
+- ✅ Documentation checks run as a dedicated workflow
 - ✅ Clear separation of concerns
 
 ### CI Configuration
 
-File: `.github/workflows/markdown-lint.yml`
+File: `.github/workflows/docs.yml`
 
 ```yaml
 - name: Run markdown linting
   run: |
-    uv run pymarkdown scan docs/ README.md
-  continue-on-error: true  # Won't block pipeline
+    uv run --no-sync pymarkdown scan docs/ README.md
 ```
 
 ### Failure Behavior
 
-- **Status**: `continue-on-error: true` (warnings only)
+- **Status**: Blocking check
 - **When**: Runs on pushes/PRs with doc changes
-- **Impact**: Non-blocking - won't prevent merges
-- **Visibility**: Shows warning in GitHub Actions
+- **Impact**: Prevents merges when Markdown linting fails
+- **Visibility**: Reports the result in GitHub Actions
 
 ## Best Practices
 
@@ -240,8 +239,8 @@ uv run pymarkdown --version
 # Check config
 uv run pymarkdown plugins list
 
-# Try with verbose output
-uv run pymarkdown scan docs/ --verbose
+# Try with debug logging
+uv run pymarkdown --log-level DEBUG scan docs/
 ```
 
 ### Too Many Errors

@@ -4,11 +4,13 @@ This module handles loading environment-specific configuration from YAML files
 and merging them with Pydantic settings.
 """
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import dotenv_values
 
 from ayne.core.config.settings import Settings
 
@@ -59,9 +61,13 @@ def get_settings(environment: str | None = None) -> Settings:
     """Load and return the application settings.
 
     This function:
-    1. Loads environment-specific YAML config (lowest priority - as defaults)
-    2. Loads environment variables (medium priority)
-    3. Loads .env file (highest priority)
+    1. Determines which fields have already been explicitly set via OS environment
+       variables or the `.env` file (these must always win).
+    2. Loads the environment-specific YAML config.
+    3. Passes only the YAML values for fields *not* already set via env/.env as
+       constructor kwargs to `Settings`, so pydantic-settings applies them with
+       the correct (highest, since they're init kwargs) priority - without ever
+       fighting with values `model_post_init` computes for unset path fields.
 
     Priority: ENV vars > .env > YAML > hardcoded defaults
 
@@ -76,36 +82,44 @@ def get_settings(environment: str | None = None) -> Settings:
         >>> settings = get_settings()
         >>> api_key = settings.tmdb_api_key
     """
-    # First, create settings from .env and env vars (this respects priority)
-    settings = Settings()
+    # Determine which keys are explicitly provided via OS env vars or .env file -
+    # those must take priority over YAML no matter what.
+    env_file_values = dotenv_values(".env")
+    explicit_keys = {k.lower() for k in env_file_values} | {k.lower() for k in os.environ}
 
-    # Now load YAML config for this environment
+    # Determine the target environment without fully constructing Settings yet,
+    # so we know which YAML file to load.
+    resolved_environment = (
+        environment
+        or os.environ.get("ENVIRONMENT")
+        or env_file_values.get("ENVIRONMENT")
+        or Settings.model_fields["environment"].default
+    )
+
+    yaml_overrides: dict[str, Any] = {}
     try:
-        config_path = get_config_path(settings.environment)
+        config_path = get_config_path(resolved_environment)
         if config_path.exists():
             yaml_config = load_yaml_config(config_path)
 
-            # For each field in YAML, only set it if it's still at its default value
-            # This way .env and env vars take priority
+            # Only pass through YAML values for fields that:
+            # - correspond to an actual Settings field, and
+            # - were NOT explicitly set via env vars / .env (those win instead)
             for field_name, yaml_value in yaml_config.items():
-                if hasattr(settings, field_name):
-                    # Get the current value
-                    current_value = getattr(settings, field_name)
-                    # Get the field's default value
-                    field_info = settings.model_fields.get(field_name)
-                    if field_info:
-                        # Check if current value is the default
-                        # If it is, use YAML value; if not, .env/env var has set it
-                        default_value = field_info.default
-                        if current_value == default_value:
-                            setattr(settings, field_name, yaml_value)
+                if field_name.lower() in explicit_keys:
+                    continue
+                if field_name in Settings.model_fields:
+                    yaml_overrides[field_name] = yaml_value
     except Exception as e:
-        # If YAML loading fails, continue with just .env settings
+        # If YAML loading fails, continue with just .env/env var settings
         import warnings
 
         warnings.warn(f"Could not load YAML config: {e}. Using .env and defaults.", stacklevel=2)
 
-    return settings
+    # Constructor kwargs have the highest precedence in pydantic-settings' source
+    # order, so these YAML-derived values will not be overridden by defaults, and
+    # `model_post_init` will see the fields already populated and skip recomputing them.
+    return Settings(**yaml_overrides)
 
 
 # Singleton instance for easy import

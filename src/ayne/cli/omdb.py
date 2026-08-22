@@ -4,11 +4,12 @@ import asyncio
 
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn, TextColumn
 
 from ayne.core.config import settings
 from ayne.core.exceptions import APIRateLimitError
 from ayne.core.logging import configure_logging, get_logger
+from ayne.data_collection.api_usage import get_remaining_quota
 from ayne.data_collection.orchestrator import DataCollectionOrchestrator
 from ayne.database.duckdb_client import DuckDBClient
 
@@ -69,9 +70,23 @@ def enrich_omdb(
     max_year = max_year or getattr(settings, "omdb_max_release_year", None)
 
     console.print("[bold]Configuration:[/bold]")
-    console.print(f"  Max Movies: {max_movies:,}")
+    console.print(f"  Max Movies: {max_movies:,} (cap - fewer will run if fewer need it)")
     console.print(f"  Min Year: {min_year or 'No limit'}")
     console.print(f"  Max Year: {max_year or 'No limit'}")
+
+    if not dry_run:
+        _quota_db = DuckDBClient()
+        try:
+            remaining = get_remaining_quota(
+                _quota_db,
+                "omdb",
+                settings.omdb_daily_request_limit,  # type: ignore
+            )
+            console.print(
+                f"  OMDB Quota Remaining Today: {remaining:,} / {settings.omdb_daily_request_limit:,}"  # type: ignore
+            )
+        finally:
+            _quota_db.close()
     console.print()
 
     logger.info(
@@ -127,19 +142,34 @@ def enrich_omdb(
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                MofNCompleteColumn(),
                 console=console,
             ) as progress:
-                task = progress.add_task(f"Enriching up to {max_movies:,} movies...", total=None)
+                task = progress.add_task("Enriching movies...", total=None)
+
+                def _on_progress(completed: int, total: int) -> None:
+                    progress.update(task, total=total, completed=completed)
 
                 enriched = await orchestrator.enrich_omdb_data(
                     limit=max_movies,
                     min_release_year=min_year,
                     max_release_year=max_year,
+                    progress_callback=_on_progress,
                 )
 
                 progress.update(task, completed=True)
 
             console.print(f"\n[green]✓[/green] Enriched {enriched:,} movies with OMDB data")
+
+            remaining = get_remaining_quota(
+                db,
+                "omdb",
+                settings.omdb_daily_request_limit,  # type: ignore
+            )
+            console.print(
+                f"[dim]OMDB quota remaining today: {remaining:,} / {settings.omdb_daily_request_limit:,}[/dim]"  # type: ignore
+            )
 
             # Show sample
             if enriched > 0:

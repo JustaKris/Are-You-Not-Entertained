@@ -1,66 +1,107 @@
 # Roadmap: Are You Not Entertained
 
-This document outlines the planned evolution of the project from a data collection tool into a full-stack data engineering, agentic AI, and MLOps showcase. Each phase is scoped to be independently useful and independently deployable, while building toward a cohesive end-to-end system.
+## Objective
 
-## Current State
+Turn the existing movie data collector into a reproducible, grounded AI application that demonstrates data engineering, agent design, API development, and Kubernetes delivery.
 
-The project currently handles asynchronous data collection from TMDB, OMDB, and The Numbers APIs, storing structured results in a local DuckDB database, with a CLI tool for triggering and managing collection runs. Predictive modeling and downstream analysis have not yet been built.
+The roadmap is dependency-aware, not strictly sequential. The chatbot and deployment tracks can start before the full PySpark and Airflow platform exists.
 
-## Phase 1 — Data Processing with PySpark
+## Starting Point
 
-**Goal:** Transform raw, collected API data into clean, structured, analysis-ready tables suitable for both querying and modeling.
+The project currently collects data asynchronously from TMDB, OMDB, and The Numbers, stores it in `data/db/movies.duckdb`, and provides CLI commands for collection, database management, and validation. The database schema is defined in `src/ayne/database/schema.sql`, with query helpers available for analysis.
 
-- Define a clear schema for cleaned movie, cast, and box office data
-- Implement PySpark jobs to deduplicate, normalize, and join data across the three source APIs
-- Handle missing values, inconsistent formatting, and mismatched identifiers between sources
-- Output cleaned tables in a format suitable for downstream querying (e.g., Parquet)
-- Document data quality decisions and known limitations
+## Recommended Order
 
-**Skills demonstrated:** distributed data processing, PySpark DataFrame API, data cleaning and normalization at scale, ETL design.
+### 1. Data foundation
 
-## Phase 2 — Pipeline Orchestration with Airflow
+Establish the contracts that allow every later component to evolve safely.
 
-**Goal:** Automate and orchestrate the full pipeline from raw collection through to cleaned output as a scheduled, monitored workflow.
+- Add numbered DuckDB migrations and a schema version table
+- Define the movie, ratings, and box-office data contract, including identifiers, types, and null behavior
+- Strengthen schema, relational-integrity, freshness, and domain-quality checks
+- Keep a small sanitized demo database or fixture in Git
+- Record dataset manifests with schema version, source commit, generation time, row counts, and input hashes
 
-- Define a DAG covering: API collection → raw storage → PySpark cleaning → cleaned storage
-- Add retry logic, failure alerting, and basic data validation checks between stages
-- Document the DAG structure and scheduling approach
+**Outcome:** A reproducible, inspectable data source for local development and tests.
 
-**Skills demonstrated:** workflow orchestration, pipeline reliability and monitoring, production data engineering practices.
+### 2. Grounded conversational agent
 
-## Phase 3 — Conversational Agent with LangGraph
+Build a useful vertical slice over the current DuckDB data. Replace the data source later without changing the agent contract.
 
-**Goal:** Build an agent capable of answering natural language questions about the movie dataset by reasoning over the cleaned data.
+- Create a read-only `MovieQueryService` with parameterized and bounded queries
+- Add tools for title lookup, movie details, comparisons, and aggregations
+- Build the LangGraph workflow and keep the model provider configurable
+- Return evidence fields and distinguish missing data from zero values or no matches
+- Add evaluation cases for factuality, ambiguity, empty results, and unsupported questions
+- Expose the agent through FastAPI with health and readiness endpoints
 
-- Design an agent graph with distinct tools (e.g., query database, run aggregation, compare titles, look up a specific film)
-- Implement grounding and guardrails to reduce hallucinated or incorrect answers, consistent with the approach used in the [Trump Rally Speeches RAG chatbot](https://github.com/JustaKris/Trump-Rally-Speeches-NLP-Chatbot)
-- Add evaluation cases covering a range of question types and edge cases
-- Expose the agent through a simple API (FastAPI)
+**Outcome:** A tested API that answers questions from the dataset without unrestricted SQL or unsupported claims.
 
-**Skills demonstrated:** agentic AI system design, LangGraph, tool-calling, grounding and hallucination mitigation, API development.
+### 3. Container and Kubernetes delivery
 
-## Phase 4 — Predictive Modeling
+Deploy the working API locally before targeting a hosted cluster.
 
-**Goal:** Build and evaluate models predicting box office performance based on the cleaned dataset.
+- Add a small, non-root Docker image with environment-based configuration
+- Define a read-only data strategy for DuckDB or Parquet
+- Add Kubernetes `Deployment`, `Service`, `ConfigMap`, and Secret examples
+- Configure resource limits, liveness/readiness probes, and structured logs
+- Run the service on `kind` or `minikube`, then test scaling and failure recovery
+- Document the single-replica constraint if the database file is local or writable
 
-- Feature engineering from cleaned data (cast, budget, release timing, genre, etc.)
-- Train and compare candidate models with appropriate evaluation metrics
-- Document model limitations and performance honestly, consistent with the project's overall approach to transparency
+**Outcome:** A repeatable local Kubernetes deployment of the grounded agent.
 
-**Skills demonstrated:** feature engineering, model selection and evaluation, applied machine learning.
+### 4. Clean data processing with PySpark
 
-## Phase 5 — Deployment with Docker and Kubernetes
+Add a scalable transformation path without breaking the current DuckDB workflow.
 
-**Goal:** Containerize and deploy the conversational agent as a production-style service.
+- Preserve raw API responses as immutable inputs
+- Deduplicate, normalize, join, and validate the source data
+- Publish cleaned movie, cast, and box-office tables as Parquet
+- Make the published tables conform to the data contract from Step 1
+- Point the query service at the cleaned output when it is stable
 
-- Containerize the FastAPI service with Docker
-- Write Kubernetes manifests (Deployment, Service, ConfigMap) for the service
-- Document the deployment process and configuration
+**Outcome:** A documented and reproducible batch-processing pipeline suitable for querying and modeling.
 
-**Skills demonstrated:** containerization, Kubernetes fundamentals, production deployment practices.
+### 5. Orchestration with Airflow
 
-## Guiding Principles
+Automate the data lifecycle after the collection and processing commands are independently reliable.
 
-- Each phase should be independently functional and documented before moving to the next.
-- Prioritize honest documentation of limitations over polish — this project favors transparency about what works and what doesn't.
-- Reuse patterns and practices already established in other projects in this portfolio where applicable, rather than reinventing them.
+- Define a DAG for collection, transformation, validation, and publishing
+- Add retries, task-level logging, freshness checks, and failure notifications
+- Publish the dataset manifest as an artifact of each successful run
+
+**Outcome:** A scheduled, observable pipeline with clear stage boundaries.
+
+### 6. Predictive modeling
+
+Use the cleaned contract for box-office prediction and honest model evaluation.
+
+- Engineer features from budget, release timing, genres, ratings, and cast data
+- Train and compare baseline and candidate models with appropriate metrics
+- Track experiments and model artifacts
+- Document leakage risks, missing-data effects, limitations, and intended use
+- Optionally expose predictions as a separate API or agent tool
+
+**Outcome:** A reproducible modeling workflow that builds on the same published data used by the agent.
+
+## Dependency Map
+
+```text
+Data foundation -> Grounded agent -> Docker -> Kubernetes
+Data foundation -> PySpark processing -> Airflow orchestration
+PySpark processing -> Predictive modeling
+```
+
+The first portfolio milestone is the path from **data foundation to grounded agent to local Kubernetes**. PySpark, Airflow, and predictive modeling can be added incrementally afterward.
+
+## Definition of Done
+
+Every milestone should include:
+
+- Working code and focused tests
+- A documented local run path
+- Explicit data and operational limitations
+- Reproducible configuration without committed secrets
+- A small validation or evaluation result that can be shown in an interview
+
+Prefer a smaller system that is demonstrably grounded, testable, and operable over a larger system whose behavior cannot be explained.

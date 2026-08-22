@@ -22,10 +22,9 @@ use_json_logging: true
 # =============================================================================
 # Database Configuration
 # =============================================================================
-database:
-  type: duckdb
-  path: data/db/movies.duckdb
-  read_only: false
+# Settings is flat, not nested - override the DB file location with duckdb_path
+# (defaults to data_dir/db/movies.duckdb if left unset).
+# duckdb_path: data/db/movies.duckdb
 
 # =============================================================================
 # TMDB (The Movie Database) Configuration

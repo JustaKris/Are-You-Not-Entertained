@@ -1,5 +1,6 @@
-"""The Numbers web scraping service."""
+"""The Numbers box office data collection service."""
 
-from .scraper import scrape_the_numbers
+from .client import TheNumbersClient, extract_financial_data
+from .slug import candidate_urls, slugify
 
-__all__ = ["scrape_the_numbers"]
+__all__ = ["TheNumbersClient", "candidate_urls", "extract_financial_data", "slugify"]

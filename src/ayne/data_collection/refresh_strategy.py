@@ -6,6 +6,7 @@ Determines when to refresh movie data based on:
 - Data frozen status
 """
 
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
@@ -13,6 +14,72 @@ from typing import Any
 from ayne.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+# Volatile fields worth comparing before/after a refresh to decide whether a
+# movie's data actually changed (as opposed to "we happened to re-fetch it").
+TMDB_VOLATILE_FIELDS: tuple[str, ...] = (
+    "budget",
+    "revenue",
+    "runtime",
+    "vote_count",
+    "vote_average",
+    "status",
+)
+
+OMDB_VOLATILE_FIELDS: tuple[str, ...] = (
+    "imdb_rating",
+    "imdb_votes",
+    "metascore",
+    "box_office",
+)
+
+
+def has_meaningful_change(
+    before: dict[str, Any] | None,
+    after: dict[str, Any],
+    fields: Sequence[str],
+    float_tolerance: float = 0.01,
+) -> bool:
+    """Determine whether any of `fields` differ meaningfully between two snapshots.
+
+    Used to decide whether a movie's data actually changed after a refresh, so
+    `consecutive_unchanged_refreshes` (and eventually freezing) reflects real
+    per-movie stability rather than a single batch-wide "something in this
+    batch changed" flag.
+
+    Args:
+        before: Previously stored field values, or None if there is no prior
+            record at all (always counts as a change - first time we've seen it)
+        after: Newly fetched field values
+        fields: Which keys to compare
+        float_tolerance: Absolute tolerance for numeric fields, to avoid
+            flagging floating point noise as a change
+
+    Returns:
+        True if this is a first-time fetch or any compared field differs
+    """
+    if before is None:
+        return True
+
+    for field in fields:
+        old_value = before.get(field)
+        new_value = after.get(field)
+
+        if old_value is None and new_value is None:
+            continue
+        if old_value is None or new_value is None:
+            return True
+
+        if isinstance(old_value, (int, float)) and isinstance(new_value, (int, float)):
+            if abs(float(old_value) - float(new_value)) > float_tolerance:
+                return True
+            continue
+
+        if old_value != new_value:
+            return True
+
+    return False
 
 
 class MovieAge(Enum):
@@ -413,8 +480,11 @@ def get_movies_due_for_refresh_query(
         m.last_omdb_update,
         m.last_numbers_update,
         m.data_frozen,
-        DATEDIFF('day', m.release_date, CURRENT_DATE) as days_since_release
+        DATEDIFF('day', m.release_date, CURRENT_DATE) as days_since_release,
+        COALESCE(t.popularity, 0) as popularity,
+        COALESCE(t.vote_count, 0) as vote_count
     FROM movies m
+    LEFT JOIN tmdb_movies t ON m.tmdb_id = t.tmdb_id
     WHERE 1=1
         {frozen_filter}
         AND (
@@ -423,6 +493,11 @@ def get_movies_due_for_refresh_query(
     ORDER BY
         -- Prioritize never-refreshed movies
         CASE WHEN m.last_full_refresh IS NULL THEN 0 ELSE 1 END,
+        -- Within the same tier, prioritize movies that are still popular/being
+        -- watched over obscure ones - popularity/vote_count are already fetched
+        -- from TMDB, so this costs nothing extra to use.
+        COALESCE(t.popularity, 0) DESC,
+        COALESCE(t.vote_count, 0) DESC,
         -- Then by release date (newest first)
         m.release_date DESC
     {limit_clause}

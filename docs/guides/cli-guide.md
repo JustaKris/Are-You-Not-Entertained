@@ -21,8 +21,10 @@ After installing the package, the `ayne` command becomes available:
 uv sync
 
 # Verify installation
-ayne --help
+uv run ayne --help
 ```
+
+The examples below assume the project environment is activated. Otherwise, prefix each command with `uv run` (for example, `uv run ayne db init`).
 
 ## Command Structure
 
@@ -744,7 +746,7 @@ ayne validate all --help
 If migrating from old scripts:
 
 | Old Script | New CLI Command |
-|------------|-----------------|
+| ------------ | ----------------- |
 | `python scripts/init_database.py` | `ayne db init` |
 | `python scripts/test_database.py` | `ayne db test` |
 | `python scripts/collect_optimized.py --discover` | `ayne tmdb update` |
@@ -769,5 +771,5 @@ Benefits of CLI:
 ## See Also
 
 - [Data Collection Workflow](../reference/data-collection-workflow.md)
-- [Configuration Guide](../../configs/README.md)
+- [Filtering and Configuration](../reference/data-collection-filtering.md)
 - [Database Schema](../reference/database.md)

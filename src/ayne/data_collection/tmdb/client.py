@@ -58,7 +58,7 @@ class TMDBClient:
             requests_per_second=requests_per_second, max_concurrent=max_concurrent
         )
 
-        logger.info(
+        logger.debug(
             f"TMDB client initialized (rate: {requests_per_second} req/s, "
             f"concurrent: {max_concurrent}, output: {self.output_dir})"
         )
@@ -382,7 +382,7 @@ class TMDBClient:
             List of normalized movie details
         """
         total = len(tmdb_ids)
-        logger.info(f"Fetching details for {total} movies")
+        logger.debug(f"Fetching details for {total} movies")
 
         completed = 0
 
@@ -402,7 +402,7 @@ class TMDBClient:
             if progress_callback:
                 progress_callback(completed, total)
             elif completed % 10 == 0 or completed == total:
-                logger.info(f"Progress: {completed}/{total} movies fetched")
+                logger.debug(f"Progress: {completed}/{total} movies fetched")
 
             return result
 
@@ -443,7 +443,7 @@ class TMDBClient:
                 f"Filtered out {filtered_count} movies due to release status not in {allowed_statuses}"
             )
 
-        logger.info(f"Successfully fetched {len(final_movies)}/{total} movies")
+        logger.debug(f"Successfully fetched {len(final_movies)}/{total} movies")
         return final_movies
 
     async def close(self):

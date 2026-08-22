@@ -6,7 +6,7 @@ Modern CLI built with Typer for data collection, validation, and database manage
 import typer
 from rich.console import Console
 
-from ayne.cli import collect, db, omdb, tmdb, validate
+from ayne.cli import collect, db, numbers, omdb, tmdb, validate
 from ayne.core.config import settings
 
 app = typer.Typer(
@@ -22,6 +22,7 @@ console = Console()
 app.add_typer(db.app, name="db", help="Database management commands")
 app.add_typer(tmdb.app, name="tmdb", help="TMDB data collection commands")
 app.add_typer(omdb.app, name="omdb", help="OMDB data enrichment commands")
+app.add_typer(numbers.app, name="numbers", help="The Numbers (box office) data enrichment commands")
 app.add_typer(collect.app, name="collect", help="Combined data collection workflows")
 app.add_typer(validate.app, name="validate", help="Data validation commands")
 
@@ -55,19 +56,29 @@ def config():
     console.print("\n[yellow]Database:[/yellow]")
     console.print(f"  DuckDB Path: {settings.duckdb_path}")
 
+    console.print("\n[yellow]API Rate Limiting (shared):[/yellow]")
+    console.print(f"  Rate Limit: {settings.api_rate_limit} req/sec")
+    console.print(f"  Timeout: {settings.api_timeout}s")
+
     console.print("\n[yellow]TMDB API:[/yellow]")
-    console.print(f"  Base URL: {settings.tmdb_base_url}")
-    console.print(f"  Rate Limit: {settings.tmdb_rate_limit_per_second} req/sec")
+    console.print(f"  Base URL: {settings.tmdb_api_base_url}")
     console.print(f"  Min Popularity: {settings.tmdb_min_popularity}")
     console.print(f"  Min Vote Count: {settings.tmdb_min_vote_count}")
     console.print(f"  Min Release Year: {settings.tmdb_min_release_year}")
+    console.print(f"  Max Release Year: {settings.tmdb_max_release_year or 'Current year'}")
     console.print(f"  Max Movies Per Run: {settings.tmdb_max_movies or 'Unlimited'}")
     console.print(f"  Allowed Statuses: {', '.join(settings.tmdb_allowed_release_statuses)}")
 
     console.print("\n[yellow]OMDB API:[/yellow]")
-    console.print(f"  Base URL: {settings.omdb_base_url}")
-    console.print(f"  Rate Limit: {settings.omdb_rate_limit_per_second} req/sec")
+    console.print(f"  Base URL: {settings.omdb_api_base_url}")
     console.print(f"  Max Movies Per Run: {settings.omdb_max_movies}")
+    console.print(f"  Daily Request Limit: {settings.omdb_daily_request_limit}")
+    console.print(f"  Min Release Year: {settings.omdb_min_release_year or 'No limit'}")
+    console.print(f"  Max Release Year: {settings.omdb_max_release_year or 'No limit'}")
+
+    console.print("\n[yellow]The Numbers (box office):[/yellow]")
+    console.print(f"  Max Movies Per Run: {settings.numbers_max_movies}")
+    console.print(f"  Rate Limit: {settings.numbers_requests_per_second} req/sec")
 
 
 if __name__ == "__main__":

@@ -88,17 +88,16 @@ CREATE INDEX IF NOT EXISTS idx_omdb_movies_imdb_rating ON omdb_movies (imdb_rati
 -- numbers_movies: The Numbers box office / budget table
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS numbers_movies (
-    movie_id INTEGER,
+    movie_id INTEGER PRIMARY KEY,
     domestic_box_office BIGINT,
     international_box_office BIGINT,
     worldwide_box_office BIGINT,
     release_year INTEGER,
     production_budget BIGINT,
     opening_weekend_box_office BIGINT,
+    source_url VARCHAR,
     last_updated_utc TIMESTAMP
 );
-
-CREATE INDEX IF NOT EXISTS idx_numbers_movies_movie_id ON numbers_movies (movie_id);
 
 -- ---------------------------------------------------------------------
 -- movie_refresh_state: controls refresh cadence
@@ -110,4 +109,16 @@ CREATE TABLE IF NOT EXISTS movie_refresh_state (
     freeze_after_days INTEGER DEFAULT 365,
     frozen BOOLEAN DEFAULT FALSE,
     last_checked TIMESTAMP
+);
+
+-- ---------------------------------------------------------------------
+-- api_usage_daily: persistent cross-run daily API request ledger
+-- Lets CLI commands know how much of a provider's daily quota (e.g. OMDB's
+-- 1,000/day free tier) has already been used today, across separate runs.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS api_usage_daily (
+    provider VARCHAR NOT NULL,
+    usage_date DATE NOT NULL,
+    requests_used INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (provider, usage_date)
 );

@@ -55,7 +55,7 @@ In pymarkdownlnt: ✅ Passes (same config)
 ## Commands You'll Use
 
 | Command | Shortcut | Purpose |
-|---------|----------|---------|
+| --------- | ---------- | --------- |
 | Format Document | Alt+Shift+F | Format active file |
 | Format Selection | Ctrl+K Ctrl+F | Format selected code |
 | Fix All Issues | Ctrl+. | Auto-fix problems |
@@ -83,7 +83,7 @@ uv run ruff check --fix .
 
 ```bash
 # Terminal
-uv run pymarkdownlnt scan docs/
+uv run pymarkdown scan docs/
 ```
 
 ### Run Linters
@@ -131,7 +131,7 @@ notebooks/             # Jupyter notebooks
 
 docs/                  # Documentation
 ├── reference/         # Architecture docs
-└── copilot_artifacts/ # Guides
+└── guides/             # How-to guides
 
 tests/                 # Unit tests
 scripts/               # Utility scripts
@@ -139,8 +139,8 @@ scripts/               # Utility scripts
 
 ## Next Steps
 
-- Read: [`MODERN_UTILITIES_GUIDE.md`](MODERN_UTILITIES_GUIDE.md) - I/O & serialization
-- Read: [`QUICK_START_NEW_PACKAGE.md`](QUICK_START_NEW_PACKAGE.md) - Package structure
+- Read: [Utilities Guide](../utilities-guide.md) - I/O & serialization
+- Read: [CLI Guide](../cli-guide.md) - Package/CLI structure
 - Run: `uv run pytest tests/` - Check tests pass
 - Create: Your first notebook in `notebooks/`
 
@@ -149,7 +149,7 @@ scripts/               # Utility scripts
 - **Python issues**: Check terminal output, check Pylance language server
 - **Formatting issues**: Run `uv run black --check src/` to see what would change
 - **Linting issues**: Run `uv run ruff check src/` to see detailed errors
-- **Markdown issues**: Run `uv run pymarkdownlnt scan docs/` to match VS Code
+- **Markdown issues**: Run `uv run pymarkdown scan docs/` to match VS Code
 
 ## Remember
 

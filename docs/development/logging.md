@@ -52,7 +52,7 @@ configure_logging(
 ### Log Levels
 
 | Level | When to Use |
-|-------|-------------|
+| ------- | ------------- |
 | `DEBUG` | Detailed diagnostic information (variable values, flow control) |
 | `INFO` | General operational messages (process started, completed, counts) |
 | `WARNING` | Potentially problematic situations (missing optional files, degraded performance) |
@@ -297,7 +297,7 @@ logger = get_logger(__name__)
 ### Key Differences
 
 | Feature | Old (`logger.py`) | New (`logging.py`) |
-|---------|-------------------|-------------------|
+| --------- | ------------------- | ------------------- |
 | Configuration | Per-module setup | Global configuration |
 | Format | Console only | JSON or colorized |
 | Filtering | Manual | Automatic for known libraries |
@@ -390,9 +390,9 @@ if __name__ == "__main__":
 
 ## Related Documentation
 
-- [Development Setup](setup.md) - Initial project setup
-- [Contributing](contributing.md) - Code contribution guidelines
-- [Debugging](../troubleshooting/debugging.md) - Debugging techniques
+- [Code Style](code-style.md) - Code contribution guidelines
+- [Testing](testing.md) - Test strategy and commands
+- [Security](security.md) - Security practices and checks
 
 ---
 

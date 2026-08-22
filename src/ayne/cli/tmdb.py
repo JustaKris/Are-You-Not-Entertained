@@ -4,7 +4,7 @@ import asyncio
 
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn, TextColumn
 
 from ayne.core.config import settings
 from ayne.core.logging import configure_logging, get_logger
@@ -222,9 +222,9 @@ def enrich_tmdb(
 
     console.print("[bold]Configuration:[/bold]")
     if enrich_limit is not None:
-        console.print(f"  Enrich Limit: {enrich_limit:,} movies")
+        console.print(f"  Max Movies: {enrich_limit:,} (cap - fewer will run if fewer need it)")
     else:
-        console.print("  Enrich Limit: No limit (all matching movies)")
+        console.print("  Max Movies: No limit (all matching movies)")
     console.print(f"  Min Year: {min_year or 'No limit'}")
     console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print()
@@ -280,19 +280,20 @@ def enrich_tmdb(
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                MofNCompleteColumn(),
                 console=console,
             ) as progress:
-                if enrich_limit is not None:
-                    task = progress.add_task(
-                        f"Enriching up to {enrich_limit:,} movies...", total=None
-                    )
-                else:
-                    task = progress.add_task("Enriching movies (no limit)...", total=None)
+                task = progress.add_task("Enriching movies...", total=None)
+
+                def _on_progress(completed: int, total: int) -> None:
+                    progress.update(task, total=total, completed=completed)
 
                 enriched = await orchestrator.enrich_tmdb_details(
                     limit=enrich_limit,
                     min_release_year=min_year,
                     max_release_year=max_year,
+                    progress_callback=_on_progress,
                 )
 
                 progress.update(task, completed=True)

@@ -66,7 +66,7 @@ class OMDBClient:
         # Quota exceeded flag (set when 401 detected)
         self._quota_exceeded = asyncio.Event()
 
-        logger.info(
+        logger.debug(
             f"OMDB client initialized (rate: {requests_per_second} req/s, "
             f"concurrent: {max_concurrent}, output: {self.output_dir})"
         )
@@ -160,7 +160,7 @@ class OMDBClient:
             logger.warning("No valid IMDb IDs provided")
             return []
 
-        logger.info(f"Fetching OMDB data for {total} movies")
+        logger.debug(f"Fetching OMDB data for {total} movies")
 
         completed = 0
         successful_fetches = 0
@@ -181,7 +181,7 @@ class OMDBClient:
                 if progress_callback:
                     progress_callback(completed, total)
                 elif completed % 10 == 0 or completed == total:
-                    logger.info(f"Progress: {completed}/{total} movies fetched")
+                    logger.debug(f"Progress: {completed}/{total} movies fetched")
 
                 return result
             except httpx.HTTPStatusError as e:
@@ -240,7 +240,7 @@ class OMDBClient:
                 partial_data=movies,  # Include the successfully fetched movies
             )
 
-        logger.info(f"Successfully fetched {len(movies)}/{total} movies")
+        logger.debug(f"Successfully fetched {len(movies)}/{total} movies")
         return movies
 
     async def close(self):

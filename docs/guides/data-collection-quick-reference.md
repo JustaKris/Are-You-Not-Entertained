@@ -228,7 +228,7 @@ Schedule with Task Scheduler to run daily.
 ## Command-Line Arguments Reference
 
 | Argument | Type | Default | Description |
-|----------|------|---------|-------------|
+| ---------- | ------ | --------- | ------------- |
 | `--discover` | flag | Off | Enable movie discovery |
 | `--max-movies` | int | Config | Maximum movies to discover |
 | `--max-pages` | int | None | Maximum pages per year range (auto-splits if needed) |

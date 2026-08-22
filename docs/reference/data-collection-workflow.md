@@ -183,7 +183,7 @@ class MovieAge:
 ### Refresh Intervals
 
 | Age Category | TMDB Refresh | OMDB Refresh | Rationale |
-|-------------|--------------|--------------|-----------|
+| ------------- | -------------- | -------------- | ----------- |
 | **Recent** (0-60 days) | Every 5 days | Every 5 days | Data changes frequently |
 | **Established** (60-180 days) | Every 15 days | Every 30 days | Moderate changes |
 | **Mature** (180-365 days) | Every 30 days | Every 90 days | Fewer changes |
