@@ -56,14 +56,26 @@ jobs:
       - name: Publish job summary
         if: always()
         run: |
+          status_icon() {
+            case "$1" in
+              success) echo "✅" ;;
+              failure) echo "❌" ;;
+              cancelled) echo "⏹️" ;;
+              skipped) echo "⏭️" ;;
+              *) echo "⚠️" ;;
+            esac
+          }
+          job_status="${{ job.status }}"
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           {
-            echo "## Python lint"
+            echo "## $(status_icon "$job_status") Python lint"
             echo ""
             echo "| Check | Result |"
             echo "| --- | --- |"
-            echo "| Job | **${{ job.status }}** |"
-            echo "| Ruff lint | ${{ steps.ruff_lint.outcome }} |"
-            echo "| Ruff format | ${{ steps.ruff_format.outcome }} |"
+            echo "| Job | $(status_icon "$job_status") **$job_status** |"
+            echo "| Ruff lint | $(status_icon '${{ steps.ruff_lint.outcome }}') **${{ steps.ruff_lint.outcome }}** |"
+            echo "| Ruff format | $(status_icon '${{ steps.ruff_format.outcome }}') **${{ steps.ruff_format.outcome }}** |"
+            echo "| Run details | [View workflow run]($run_url) |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   typecheck:
@@ -94,13 +106,25 @@ jobs:
       - name: Publish job summary
         if: always()
         run: |
+          status_icon() {
+            case "$1" in
+              success) echo "✅" ;;
+              failure) echo "❌" ;;
+              cancelled) echo "⏹️" ;;
+              skipped) echo "⏭️" ;;
+              *) echo "⚠️" ;;
+            esac
+          }
+          job_status="${{ job.status }}"
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           {
-            echo "## Python type check"
+            echo "## $(status_icon "$job_status") Python type check"
             echo ""
             echo "| Check | Result |"
             echo "| --- | --- |"
-            echo "| Job | **${{ job.status }}** |"
-            echo "| Mypy | ${{ steps.mypy.outcome }} |"
+            echo "| Job | $(status_icon "$job_status") **$job_status** |"
+            echo "| Mypy | $(status_icon '${{ steps.mypy.outcome }}') **${{ steps.mypy.outcome }}** |"
+            echo "| Run details | [View workflow run]($run_url) |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   tests:
@@ -135,6 +159,7 @@ jobs:
           uv run --no-sync pytest --junitxml=reports/test-results.xml
 
       - name: Upload coverage to Codecov
+        id: codecov
         if: matrix.python-version == '3.12'
         continue-on-error: true
         uses: codecov/codecov-action@v4
@@ -145,6 +170,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage artifacts
+        id: upload_coverage
         if: always()
         uses: actions/upload-artifact@v7
         with:
@@ -154,6 +180,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload test results
+        id: upload_test_results
         if: always()
         uses: actions/upload-artifact@v7
         with:
@@ -165,12 +192,42 @@ jobs:
       - name: Publish job summary
         if: always()
         run: |
+          status_icon() {
+            case "$1" in
+              success) echo "✅" ;;
+              failure) echo "❌" ;;
+              cancelled) echo "⏹️" ;;
+              skipped) echo "⏭️" ;;
+              *) echo "⚠️" ;;
+            esac
+          }
+          job_status="${{ job.status }}"
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          coverage_artifact_url="${{ steps.upload_coverage.outputs.artifact-url }}"
+          test_results_artifact_url="${{ steps.upload_test_results.outputs.artifact-url }}"
           {
-            echo "## Python tests"
+            echo "## $(status_icon "$job_status") Python tests"
             echo ""
             echo "| Check | Result |"
             echo "| --- | --- |"
-            echo "| Job | **${{ job.status }}** |"
+            echo "| Job | $(status_icon "$job_status") **$job_status** |"
             echo "| Python | ${{ matrix.python-version }} |"
-            echo "| Tests | ${{ steps.pytest.outcome }} |"
+            echo "| Tests | $(status_icon '${{ steps.pytest.outcome }}') **${{ steps.pytest.outcome }}** |"
+            if [ "${{ matrix.python-version }}" = "3.12" ]; then
+              echo "| Codecov upload | $(status_icon '${{ steps.codecov.outcome }}') **${{ steps.codecov.outcome }}** (non-blocking) |"
+              echo "| Codecov report | [View coverage dashboard](https://app.codecov.io/gh/${{ github.repository }}) |"
+            else
+              echo "| Codecov | Not uploaded for this matrix entry |"
+            fi
+            if [ -n "$coverage_artifact_url" ]; then
+              echo "| Coverage report | [Download artifact]($coverage_artifact_url) |"
+            else
+              echo "| Coverage report | [View workflow artifacts]($run_url#artifacts) |"
+            fi
+            if [ -n "$test_results_artifact_url" ]; then
+              echo "| Test results | [Download artifact]($test_results_artifact_url) |"
+            else
+              echo "| Test results | [View workflow artifacts]($run_url#artifacts) |"
+            fi
+            echo "| Run details | [View workflow run]($run_url) |"
           } >> "$GITHUB_STEP_SUMMARY"
