@@ -1,4 +1,4 @@
-# Are You Not Entertained?
+# 🎬 Are You Not Entertained?
 
 > A Python data engineering and analysis project for understanding movie performance.
 
@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-yellow.svg)
 
-## Overview
+## 🧭 Overview
 
 **Are You Not Entertained?** builds a movie performance dataset from TMDB, OMDB, and
 The Numbers. The project combines automated collection, a DuckDB database for efficient
@@ -16,7 +16,7 @@ The current milestone is the data foundation: collection, refresh, quota trackin
 validation, and analysis workflows are usable, while the agent, API, and deployment
 surfaces remain planned extensions.
 
-### Current Features
+### 🎯 Current Features
 
 - **Automated Data Collection**: Async provider clients with staged discovery, detail
   enrichment, refresh strategies, bounded retries, and provider-aware rate limiting
@@ -29,7 +29,7 @@ surfaces remain planned extensions.
 - **Reproducible Quality Checks**: Focused unit tests, Ruff, mypy, Bandit, pip-audit,
   pre-commit, and strict documentation builds
 
-### Coming Next
+### 🚧 Coming Next
 
 - **Grounded Movie Analysis Agent**: Read-only, bounded query tools that return evidence
   from the movie dataset through a configurable workflow
@@ -40,7 +40,7 @@ surfaces remain planned extensions.
 - **Predictive Modeling**: Feature engineering, model evaluation, and experiment tracking
   for box-office and movie-performance questions
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 - **Python 3.12 or 3.13** with modern async/await patterns
 - **uv** for fast, locked environment and dependency management
@@ -54,16 +54,16 @@ surfaces remain planned extensions.
   and documentation
 - **scikit-learn, XGBoost, and MLflow** as the declared foundation for planned modeling
 
-## Quick Start
+## 🚀 Quick Start
 
-### Prerequisites
+### 🧰 Prerequisites
 
 - Python 3.12 or 3.13
 - [uv](https://docs.astral.sh/uv/) for environment and dependency management
 - API keys for [TMDB](https://www.themoviedb.org/settings/api) and
   [OMDB](https://www.omdbapi.com/apikey.aspx)
 
-### Install
+### 📦 Install
 
 ```powershell
 git clone https://github.com/JustaKris/Are-You-Not-Entertained.git
@@ -87,7 +87,7 @@ uv run ayne version
 Commands below are shown as `uv run ayne ...` so they work without manually activating
 the virtual environment.
 
-## Database And Data Workflow
+## 🗄️ Database And Data Workflow
 
 The default database is `data/db/movies.duckdb`. Initialize it before collecting data:
 
@@ -97,7 +97,7 @@ uv run ayne db test
 uv run ayne db stats
 ```
 
-### Start With An Empty Database
+### 🌱 Start With An Empty Database
 
 Collection is intentionally staged. Discovery stores basic movie identities first;
 enrichment then fills source-specific details.
@@ -124,7 +124,7 @@ Use `--dry-run` before a larger collection, and keep limits aligned with the pro
 request quotas. TMDB year ranges are split automatically when a query would exceed its
 page limit. The [CLI Guide](docs/guides/cli-guide.md) documents every command and option.
 
-### Maintain Existing Data
+### 🔄 Maintain Existing Data
 
 For routine updates, refresh recent records or use the combined workflow:
 
@@ -134,7 +134,7 @@ uv run ayne omdb refresh --min-year 2024 --limit 100
 uv run ayne collect daily --tmdb-refresh 50 --omdb-limit 30
 ```
 
-### Query The Database
+### 🔎 Query The Database
 
 The query helpers join the source tables and return pandas DataFrames:
 
@@ -163,7 +163,7 @@ The main tables are `movies`, `tmdb_movies`, `omdb_movies`, `numbers_movies`, an
 `movie_refresh_state`/refresh tracking columns. See the [database reference](docs/reference/database.md)
 and [data directory guide](data/README.md) for storage details.
 
-### Notebooks And Processed Data
+### 📓 Notebooks And Processed Data
 
 Install the notebook dependency group and start Jupyter from the repository root:
 
@@ -176,7 +176,7 @@ Notebooks read from DuckDB through the same query helpers. Persist derived datas
 `data/processed/`, preferably as Parquet, and keep raw provider responses in
 `data/raw/` immutable. The repository ignores database, raw, and generated data files.
 
-## Development Workflow
+## 🧑‍💻 Development Workflow
 
 Install the complete development environment with `uv sync --group dev`. The canonical
 local checks are:
@@ -201,7 +201,7 @@ Python versions. The development guides explain the purpose and scope of each ch
 - [Pre-commit](docs/guides/pre-commit-guide.md)
 - [Git workflow](docs/guides/git-guide.md)
 
-## Project Structure
+## 🗂️ Project Structure
 
 ```text
 Are-You-Not-Entertained/
@@ -222,7 +222,7 @@ Are-You-Not-Entertained/
 └── docs/                  # MkDocs project documentation
 ```
 
-## Configuration
+## ⚙️ Configuration
 
 Runtime settings come from `.env` and the selected environment configuration. The
 available YAML examples are in `configs/`:
@@ -237,7 +237,7 @@ configs/
 Set the environment with `ENVIRONMENT=development` (or `staging` or `production`).
 Settings are defined in `ayne.core.config.settings`; do not commit `.env` or API keys.
 
-## Documentation
+## 📚 Documentation
 
 The [documentation site](docs/index.md) is built with MkDocs Material. Useful starting
 points are:
@@ -249,7 +249,7 @@ points are:
 - [Technical Decisions](docs/explanation/technical-decisions.md) for project trade-offs
 - [Database Monitoring](docs/guides/database-monitoring.md) for health checks
 
-## Roadmap
+## 🗺️ Roadmap
 
 The current phase is the data foundation. The next phase is analysis and modeling,
 including feature engineering, evaluation, and reproducible experiment tracking. Later
