@@ -399,7 +399,7 @@ await client.get_batch_movies(imdb_ids)
 ## Comparison: OMDB vs TMDB
 
 | Feature | TMDB | OMDB |
-|---------|------|------|
+| --------- | ------ | ------ |
 | **Primary Use** | Discovery & details | Ratings & awards |
 | **Rate Limit** | 4/sec (we use) | 2/sec (we use) |
 | **Free Tier** | 40,000/day | 1,000/day |

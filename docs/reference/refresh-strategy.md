@@ -25,7 +25,7 @@ class MovieAge(Enum):
 ### Age Boundaries
 
 | Category | Days Since Release | Example |
-|----------|-------------------|---------|
+| ---------- | ------------------- | --------- |
 | **Recent** | 0-60 | Movie released 2 months ago |
 | **Established** | 61-180 | Movie released 4 months ago |
 | **Mature** | 181-365 | Movie released 10 months ago |
@@ -66,7 +66,7 @@ class MovieAge(Enum):
 ### TMDB Refresh Intervals
 
 | Age Category | Refresh Every | Reasoning |
-|-------------|---------------|-----------|
+| ------------- | --------------- | ----------- |
 | Recent | **5 days** | Budget/revenue updates, vote counts changing |
 | Established | **15 days** | Vote average stabilizing, genres/companies set |
 | Mature | **30 days** | Data mostly stable, occasional corrections |
@@ -75,7 +75,7 @@ class MovieAge(Enum):
 ### OMDB Refresh Intervals
 
 | Age Category | Refresh Every | Reasoning |
-|-------------|---------------|-----------|
+| ------------- | --------------- | ----------- |
 | Recent | **5 days** | IMDb ratings volatile, RT/Metacritic scores changing |
 | Established | **30 days** | Awards accumulating, ratings stabilizing |
 | Mature | **90 days** | Most awards decided, ratings stable |
@@ -86,7 +86,7 @@ class MovieAge(Enum):
 Currently not implemented, but planned:
 
 | Age Category | Refresh Every |
-|-------------|---------------|
+| ------------- | --------------- |
 | Recent | 5 days |
 | Established | 30 days |
 | Mature | 90 days |
