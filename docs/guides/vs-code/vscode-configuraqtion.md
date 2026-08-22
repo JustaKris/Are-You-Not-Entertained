@@ -21,7 +21,7 @@ Two separate linting systems were not aligned:
 ```
 pyproject.toml (project standard)
            ↗                ↖
-        ✅ pymarkdownlnt      ❌ VS Code Markdown Linter
+        ✅ pymarkdown         ❌ VS Code Markdown Linter
            (passes)           (fails)
 ```
 
@@ -138,7 +138,7 @@ Edit file in VS Code
          ↓
 VS Code markdown linter (strict) ❌ Shows 10 warnings
          ↓
-You run: pymarkdownlnt scan ✅ Passes (0 issues)
+You run: pymarkdown scan ✅ Passes (0 issues)
          ↓
 Confusion! 😕
 ```
@@ -148,9 +148,9 @@ Confusion! 😕
 ```
 Edit file in VS Code
          ↓
-VS Code markdown linter (same as pymarkdownlnt) ✅ 0 warnings
+VS Code markdown linter (same as pymarkdown) ✅ 0 warnings
          ↓
-You run: pymarkdownlnt scan ✅ Passes (0 issues)
+You run: pymarkdown scan ✅ Passes (0 issues)
          ↓
 Perfect alignment! ✨
 ```
@@ -201,7 +201,7 @@ Run command in VS Code:
 
 ```bash
 # Terminal
-uv run pymarkdownlnt scan docs/
+uv run pymarkdown scan docs/
 
 # VS Code should show 0 warnings
 ```

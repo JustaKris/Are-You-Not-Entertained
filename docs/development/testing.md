@@ -224,7 +224,7 @@ class TestS3Download:
 ### Current Coverage by Module
 
 | Module | Coverage | Status | Priority |
-|--------|----------|--------|----------|
+| -------- | ---------- | -------- | ---------- |
 | `utils.calendar` | 100% | ✅ Complete | - |
 | `utils.exceptions` | 100% | ✅ Complete | - |
 | `utils.types` | 100% | ✅ Complete | - |

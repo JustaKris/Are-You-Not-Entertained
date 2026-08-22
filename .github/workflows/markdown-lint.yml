@@ -11,11 +11,17 @@ on:
       - "pyproject.toml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   markdown-lint:
     name: Lint Markdown
     runs-on: ubuntu-latest
-    continue-on-error: true  # Documentation issues shouldn't block deployment
 
     steps:
       - name: Checkout code
@@ -35,19 +41,24 @@ jobs:
       - name: Install dependencies
         run: |
           echo "Installing dependencies with uv..."
-          uv sync --group dev
+          uv sync --locked --group dev
 
       - name: Run markdown linting
+        id: markdown_lint
+        continue-on-error: true
         run: |
           echo "Running markdown linting on documentation..."
-          uv run pymarkdownlnt scan docs/ README.md
+          uv run pymarkdown scan docs/ README.md
 
-      - name: Summary
-        if: success()
-        run: echo "✅ All markdown files are well-formatted!"
-
-      - name: Failure summary
-        if: failure()
+      - name: Publish job summary
+        if: always()
         run: |
-          echo "⚠️  Markdown formatting issues found. Please review the output above."
-          echo "📖 See docs/development/markdown-linting.md for guidance."
+          {
+            echo "## Markdown lint"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Job | **${{ job.status }}** |"
+            echo "| Markdown lint | ${{ steps.markdown_lint.outcome }} (advisory) |"
+            echo "| Guidance | [Markdown linting guide](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/development/markdown-linting.md) |"
+          } >> "$GITHUB_STEP_SUMMARY"

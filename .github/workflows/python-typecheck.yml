@@ -12,6 +12,13 @@ on:
       - "pyproject.toml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   typecheck:
     name: Type Check
@@ -19,8 +26,6 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.12", "3.13"]
-    continue-on-error: true  # Allow type checking to fail without blocking pipeline
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -39,17 +44,23 @@ jobs:
       - name: Install dependencies
         run: |
           echo "Installing dependencies with uv..."
-          uv sync --group dev
+          uv sync --locked --group dev
 
       - name: Run type checking with mypy
+        id: mypy
         run: |
           echo "Running type checking with mypy on Python ${{ matrix.python-version }}..."
           uv run mypy src/ scripts/ tests/ --ignore-missing-imports
 
-      - name: Summary
-        if: success()
-        run: echo "✅ Type checking passed on Python ${{ matrix.python-version }}!"
-
-      - name: Failure summary
-        if: failure()
-        run: echo "⚠️  Type checking issues found on Python ${{ matrix.python-version }}. Please review the output above."
+      - name: Publish job summary
+        if: always()
+        run: |
+          {
+            echo "## Python type check"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Job | **${{ job.status }}** |"
+            echo "| Python | ${{ matrix.python-version }} |"
+            echo "| Mypy | ${{ steps.mypy.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

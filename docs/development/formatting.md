@@ -344,14 +344,14 @@ require("conform").setup({
 
 ## Pre-commit Hooks
 
-Automatically format code before commits.
+Use the lightweight pre-commit hook for fast checks before commits.
 
 ### Setup
 
-Install pre-commit:
+Install the development dependencies and hooks:
 
 ```powershell
-uv pip install pre-commit
+uv sync --group dev
 uv run pre-commit install
 ```
 
@@ -359,23 +359,21 @@ Configuration in `.pre-commit-config.yaml`:
 
 ```yaml
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.8
-    hooks:
-      # Run linter
-      - id: ruff
-        args: [--fix]
-
-      # Run formatter
-      - id: ruff-format
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+        rev: v5.0.0
     hooks:
-      - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-      - id: check-added-large-files
+            - id: check-toml
+            - id: check-merge-conflict
+            - id: detect-private-key
+
+    - repo: https://github.com/astral-sh/ruff-pre-commit
+        rev: v0.14.5
+        hooks:
+            - id: ruff
+                args: [--fix]
+            - id: ruff-format
 ```
 
 ### Usage

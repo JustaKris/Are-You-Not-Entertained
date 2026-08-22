@@ -12,6 +12,13 @@ on:
       - "pyproject.toml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint
@@ -38,24 +45,30 @@ jobs:
       - name: Install dependencies
         run: |
           echo "Installing dependencies with uv..."
-          uv sync --group dev
+          uv sync --locked --group dev
 
       - name: Run ruff linting
+        id: ruff_lint
         run: |
           echo "Running ruff linting..."
           uv run ruff check src/ scripts/ tests/
 
       - name: Run ruff format check
+        id: ruff_format
         run: |
           echo "Running ruff format check..."
           uv run ruff format --check src/ scripts/ tests/
 
-      - name: Summary
-        if: success()
+      - name: Publish job summary
+        if: always()
         run: |
-          echo "✅ Python linting passed on Python ${{ matrix.python-version }}!"
-
-      - name: Failure summary
-        if: failure()
-        run: |
-          echo "❌ Python linting issues found on Python ${{ matrix.python-version }}. Please review the output above."
+          {
+            echo "## Python lint"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Job | **${{ job.status }}** |"
+            echo "| Python | ${{ matrix.python-version }} |"
+            echo "| Ruff lint | ${{ steps.ruff_lint.outcome }} |"
+            echo "| Ruff format | ${{ steps.ruff_format.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

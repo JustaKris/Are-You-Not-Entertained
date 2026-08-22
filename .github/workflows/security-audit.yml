@@ -22,11 +22,17 @@ on:
     - cron: '0 9 * * 1'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   security:
     name: Security Audit
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -46,33 +52,43 @@ jobs:
       - name: Install dependencies
         run: |
           echo "Installing dependencies with uv..."
-          uv sync --group dev
+          uv sync --locked --group dev
 
       - name: Run bandit security scan
+        id: bandit
         run: |
           echo "Running bandit security scan (code vulnerabilities)..."
-          uv run bandit -r src/ -c pyproject.toml -f json -o bandit-report.json || true
-          uv run bandit -r src/ -c pyproject.toml
+          uv run bandit -r src/ -c pyproject.toml -f json -o bandit-report.json
 
       - name: Check for known vulnerabilities
+        id: pip_audit
+        if: always()
+        continue-on-error: true
         run: |
           echo "Checking for known vulnerabilities with pip-audit..."
-          uv run pip-audit --desc --skip-editable || true
+          uv run pip-audit --skip-editable --format=json --output=pip-audit.json
 
       - name: Upload security reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: security-reports
-          path: bandit-report.json
+          path: |
+            bandit-report.json
+            pip-audit.json
           retention-days: 30
+          if-no-files-found: warn
 
-      - name: Summary
-        if: success()
+      - name: Publish job summary
+        if: always()
         run: |
-          echo "✅ Security audit passed!"
-
-      - name: Failure summary
-        if: failure()
-        run: |
-          echo "⚠️  Security issues found. Please review the output above."
+          {
+            echo "## Security audit"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Job | **${{ job.status }}** |"
+            echo "| Bandit | ${{ steps.bandit.outcome }} |"
+            echo "| pip-audit | ${{ steps.pip_audit.outcome }} (advisory) |"
+            echo "| Reports | security-reports artifact |"
+          } >> "$GITHUB_STEP_SUMMARY"

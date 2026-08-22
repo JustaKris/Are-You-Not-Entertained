@@ -83,7 +83,7 @@ uv run ruff check --fix .
 
 ```bash
 # Terminal
-uv run pymarkdownlnt scan docs/
+uv run pymarkdown scan docs/
 ```
 
 ### Run Linters
@@ -149,7 +149,7 @@ scripts/               # Utility scripts
 - **Python issues**: Check terminal output, check Pylance language server
 - **Formatting issues**: Run `uv run black --check src/` to see what would change
 - **Linting issues**: Run `uv run ruff check src/` to see detailed errors
-- **Markdown issues**: Run `uv run pymarkdownlnt scan docs/` to match VS Code
+- **Markdown issues**: Run `uv run pymarkdown scan docs/` to match VS Code
 
 ## Remember
 

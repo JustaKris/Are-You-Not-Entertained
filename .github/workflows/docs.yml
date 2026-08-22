@@ -20,11 +20,8 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   build:
@@ -49,9 +46,10 @@ jobs:
       - name: Install documentation dependencies
         run: |
           echo "Installing documentation dependencies with uv..."
-          uv sync --group docs
+          uv sync --locked --group docs
 
       - name: Build MkDocs documentation
+        id: mkdocs
         run: |
           echo "Building MkDocs documentation..."
           uv run mkdocs build -d public
@@ -63,10 +61,18 @@ jobs:
         with:
           path: ./public
 
-      - name: Summary
-        if: success()
+      - name: Publish build summary
+        if: always()
         run: |
-          echo "✅ Documentation built successfully!"
+          {
+            echo "## Documentation build"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Job | **${{ job.status }}** |"
+            echo "| MkDocs build | ${{ steps.mkdocs.outcome }} |"
+            echo "| Site artifact | Uploaded for preview/deployment |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     name: Deploy
@@ -74,6 +80,9 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     continue-on-error: true
+    permissions:
+      pages: write
+      id-token: write
 
     steps:
       - name: Deploy to GitHub Pages
@@ -99,3 +108,16 @@ jobs:
           echo "3. Save and re-run this workflow"
           echo ""
           echo "Documentation build succeeded - check artifacts for HTML files"
+
+      - name: Publish deployment summary
+        if: always()
+        run: |
+          {
+            echo "## Documentation deployment"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Job | **${{ job.status }}** |"
+            echo "| Deployment | ${{ steps.deployment.outcome }} |"
+            echo "| URL | ${{ steps.deployment.outputs.page_url || 'Not available' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -354,29 +354,12 @@ uv run ruff check --select I --fix src/ scripts/ tests/
 
 ## Pre-commit Hooks
 
-Automatically lint before commits:
-
-```yaml
-# .pre-commit-config.yaml
-repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.8
-    hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.1
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-all]
-```
-
-Install hooks:
+The local hook runs Ruff plus a few fast repository checks before commits. CI runs mypy, Bandit, and the full test suite:
 
 ```powershell
+uv sync --group dev
 uv run pre-commit install
+uv run pre-commit run --all-files
 ```
 
 ## Best Practices

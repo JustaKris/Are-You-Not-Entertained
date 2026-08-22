@@ -2,24 +2,23 @@
 
 ## Overview
 
-This project uses [pre-commit](https://pre-commit.com/) to automatically run code quality checks before every commit. This ensures code consistency, catches errors early, and maintains high code quality standards.
+This project uses [pre-commit](https://pre-commit.com/) for fast, deterministic checks before every commit. The hook is a convenience layer; GitHub Actions remains authoritative for tests, type checking, security scans, and documentation checks.
 
 ## What Are Pre-commit Hooks?
 
 Pre-commit hooks are automated checks that run before you commit code. They:
 
-- **Prevent bad commits**: Catch issues before they enter the codebase
-- **Enforce standards**: Automatically format code and check for errors
-- **Save time**: Find problems immediately instead of in CI/CD
-- **Improve quality**: Maintain consistent code style across the team
+- **Catch simple mistakes early**: Validate files and detect secrets before they enter the repository
+- **Keep Python consistent**: Run Ruff linting and formatting on changed Python files
+- **Stay quick**: Leave slower checks to CI, where they run in a clean environment
 
 ## Installation
 
 ### First-Time Setup
 
 ```powershell
-# 1. Sync dependencies (includes pre-commit)
-uv sync
+# 1. Sync the development dependencies (includes pre-commit)
+uv sync --group dev
 
 # 2. Install the git hooks
 uv run pre-commit install
@@ -33,53 +32,41 @@ uv run pre-commit run --all-files
 After installation, pre-commit will run automatically on every `git commit`. You'll see output like:
 
 ```
-trailing whitespace...................................Passed
 end of file fixer....................................Passed
 check yaml..........................................Passed
-ruff.................................................Passed
-mypy.................................................Passed
+ruff................................................Passed
+ruff-format.........................................Passed
 ```
 
 ## Configured Hooks
 
-Our pre-commit configuration includes:
+The local hook configuration includes:
 
-### General File Checks
+### File Checks
 
-- **trailing-whitespace**: Remove trailing spaces (except in markdown)
-- **end-of-file-fixer**: Ensure files end with a newline
-- **check-yaml**: Validate YAML syntax
-- **check-json**: Validate JSON syntax
+- **end-of-file-fixer**: Ensure tracked files end with a newline
 - **check-toml**: Validate TOML syntax
-- **check-added-large-files**: Prevent files >1MB from being committed
+- **check-yaml**: Validate YAML syntax
 - **check-merge-conflict**: Detect merge conflict markers
 - **detect-private-key**: Prevent committing private keys
 
 ### Python Checks
 
-- **check-ast**: Validate Python syntax
-- **check-builtin-literals**: Require literal syntax (e.g., `[]` not `list()`)
-- **debug-statements**: Prevent debug statements like `breakpoint()`
+- **ruff**: Lint Python files and apply safe fixes
+- **ruff-format**: Format Python files
 
-### Linting and Formatting
+The hooks do not rewrite line endings, YAML formatting, notebook outputs, or Markdown. Those changes should be deliberate and reviewable.
 
-- **ruff**: Fast Python linter (replaces flake8, isort, etc.)
-- **ruff-format**: Python code formatter
-- **mypy**: Static type checking
-- **bandit**: Security vulnerability scanning
+## What CI Handles
 
-### Markdown and YAML
+GitHub Actions runs the slower or broader checks in a clean environment:
 
-- **markdownlint**: Markdown file formatting
-- **pretty-format-yaml**: YAML formatting
+- Full test suite on Python 3.12 and 3.13, with coverage and JUnit artifacts
+- Mypy type checking on Python 3.12 and 3.13
+- Bandit code scanning and an advisory pip-audit report
+- Markdown linting and MkDocs documentation builds
 
-### Notebook Cleaning
-
-- **nbstripout**: Remove notebook outputs before commit
-
-### Security
-
-- **detect-secrets**: Scan for accidentally committed secrets
+Each workflow publishes a summary in the GitHub Actions job page. Security and Markdown reports are uploaded as artifacts when available.
 
 ## Usage
 
@@ -112,7 +99,7 @@ uv run pre-commit run --all-files
 
 # Run specific hook
 uv run pre-commit run ruff --all-files
-uv run pre-commit run mypy --all-files
+uv run pre-commit run ruff-format --all-files
 ```
 
 ### Skip Hooks (Use Sparingly)
@@ -148,17 +135,19 @@ uv run pre-commit install
 - Working on a large refactoring where you want to commit in stages
 - Running formatters/linters manually before committing
 - Troubleshooting hook issues
-- Temporarily bypassing slow hooks during rapid iteration
+- Temporarily bypassing hooks during rapid iteration
 
 **Note**: Even with hooks disabled, it's best practice to run formatters and linters manually before committing:
 
 ```powershell
-# Run all formatters and linters manually
-uv run ruff format src tests
-uv run ruff check --fix src tests
-uv run mypy src
-uv run bandit -r src -c pyproject.toml
-uv run pymarkdownlnt scan docs
+# Run the same code checks locally
+uv run ruff format src/ scripts/ tests/
+uv run ruff check src/ scripts/ tests/
+
+# Run the broader CI checks locally when needed
+uv run mypy src/ scripts/ tests/ --ignore-missing-imports
+uv run bandit -r src/ -c pyproject.toml
+uv run pymarkdown scan docs/ README.md
 ```
 
 ## Common Issues
@@ -174,19 +163,6 @@ uv run pymarkdownlnt scan docs
 3. Stage the fixes: `git add .`
 4. Commit again
 
-### Mypy Type Errors
-
-**Problem**: `mypy` reports type errors.
-
-**Solution**:
-```powershell
-# Run mypy to see full output
-uv run mypy src
-
-# Fix type annotations
-# Add type hints, use type: ignore if needed
-```
-
 ### Ruff Formatting Issues
 
 **Problem**: Code doesn't match `ruff` style.
@@ -198,17 +174,7 @@ uv run ruff check --fix src
 uv run ruff format src
 ```
 
-### Large Files
-
-**Problem**: Trying to commit files >1MB.
-
-**Solution**:
-
-- Add to `.gitignore` if it shouldn't be committed
-- Use Git LFS for large files
-- Or adjust the limit in `.pre-commit-config.yaml`
-
-### Slow Hook Runs
+### Slow First Run
 
 **Problem**: Hooks take a long time.
 
@@ -216,7 +182,7 @@ uv run ruff format src
 
 - Pre-commit caches environments, first run is slower
 - Run `pre-commit gc` to clean up old environments
-- Consider disabling heavy hooks locally (edit `.pre-commit-config.yaml`)
+- The first run downloads isolated hook environments; later runs reuse them
 
 ## Configuration
 
@@ -231,33 +197,17 @@ uv run pre-commit autoupdate
 
 ### Disable Specific Hooks
 
-Edit `.pre-commit-config.yaml` and comment out unwanted hooks:
-
-```yaml
-# - repo: https://github.com/pre-commit/mirrors-mypy
-#   rev: v1.13.0
-#   hooks:
-#     - id: mypy
-```
-
-### Adjust Hook Settings
-
-Example - change file size limit:
-
-```yaml
-- id: check-added-large-files
-  args: ['--maxkb=2000']  # Change from 1000 to 2000
-```
+Edit `.pre-commit-config.yaml` only when the local hook policy changes, then validate it with `uv run pre-commit validate-config`.
 
 ## Integration with VS Code
 
 Pre-commit works alongside VS Code extensions:
 
-1. **Pre-commit runs on git commit**: Catches everything before commit
+1. **Pre-commit runs on git commit**: Catches fast, local issues before commit
 2. **VS Code extensions run on save**: Immediate feedback while coding
 3. **CI/CD runs on push**: Final verification
 
-This multi-layered approach ensures code quality at every step.
+This layered approach keeps local feedback fast while CI provides the complete quality gate.
 
 ## Best Practices
 
@@ -279,17 +229,15 @@ This multi-layered approach ensures code quality at every step.
 
 ## CI/CD Integration
 
-Pre-commit hooks match our GitHub Actions workflows:
+Pre-commit overlaps with the fast checks in GitHub Actions; the workflows also run broader checks:
 
 | Hook | CI/CD Workflow |
-|------|----------------|
-| ruff | `.github/workflows/python-lint.yml` |
-| mypy | `.github/workflows/python-typecheck.yml` |
-| pytest | `.github/workflows/python-tests.yml` |
-| bandit | `.github/workflows/security-audit.yml` |
-| markdownlint | `.github/workflows/markdown-lint.yml` |
+| ------ | ---------------- |
+| Ruff | `.github/workflows/python-lint.yml` |
+| File checks | `.github/workflows/python-lint.yml` and other workflows |
+| Mypy, pytest, Bandit, pip-audit, Markdown, and docs | Their dedicated workflows |
 
-Running pre-commit locally ensures CI/CD passes.
+Running pre-commit locally catches common issues early, but it does not replace CI.
 
 ## Troubleshooting
 
