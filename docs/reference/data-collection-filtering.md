@@ -278,7 +278,7 @@ python scripts/collect_optimized.py \
 ### Command-Line Arguments
 
 | Argument | Type | Description |
-|----------|------|-------------|
+| ---------- | ------ | ------------- |
 | `--discover` | flag | Enable movie discovery (off by default) |
 | `--max-movies` | int | Maximum movies to discover |
 | `--max-pages` | int | Maximum pages per year range during discovery |
@@ -503,5 +503,5 @@ python scripts/collect_optimized.py \
 
 - [Data Collection Workflow](data-collection-workflow.md)
 - [TMDB Client Reference](tmdb-client.md)
-- [Configuration Guide](../guides/configuration.md)
+- [CLI Guide](../guides/cli-guide.md)
 - [Refresh Strategy](refresh-strategy.md)

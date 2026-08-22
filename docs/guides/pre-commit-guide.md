@@ -233,9 +233,11 @@ Pre-commit overlaps with the fast checks in GitHub Actions; the workflows also r
 
 | Hook | CI/CD Workflow |
 | ------ | ---------------- |
-| Ruff | `.github/workflows/python-lint.yml` |
-| File checks | `.github/workflows/python-lint.yml` and other workflows |
-| Mypy, pytest, Bandit, pip-audit, Markdown, and docs | Their dedicated workflows |
+| Ruff | `.github/workflows/ci.yml` |
+| File checks | `.github/workflows/ci.yml` and `.github/workflows/docs.yml` |
+| Mypy and pytest | `.github/workflows/ci.yml` |
+| Bandit and pip-audit | `.github/workflows/security-audit.yml` |
+| Markdown and docs | `.github/workflows/docs.yml` |
 
 Running pre-commit locally catches common issues early, but it does not replace CI.
 

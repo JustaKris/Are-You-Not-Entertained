@@ -19,14 +19,10 @@ uv run pytest tests/unit/test_config.py::TestAnalysisConfig::test_valid_config
 
 ```text
 tests/
-├── conftest.py              # Shared fixtures and configuration
-├── unit/                    # Fast, isolated unit tests
-│   ├── test_calendar.py
-│   ├── test_config.py
-│   ├── test_directory.py
-│   └── test_exceptions.py
-└── integration/             # End-to-end integration tests
-    └── test_config_integration.py
+└── unit/                    # Fast, isolated unit tests
+    ├── test_api_usage.py
+    ├── test_refresh_strategy.py
+    └── test_the_numbers.py
 ```
 
 ## Running Tests
@@ -59,8 +55,8 @@ uv run pytest -m slow
 # Skip slow tests
 uv run pytest -m "not slow"
 
-# Run tests for specific component
-uv run pytest -m config
+# Run unit tests
+uv run pytest -m unit
 ```
 
 ### Coverage Reports
@@ -83,7 +79,7 @@ start reports/coverage/html/index.html
 
 - **Overall**: 80% minimum for production
 - **Critical modules**: 90%+ (config, io, models)
-- **Current baseline**: 10%
+- **Current baseline**: 20%
 
 ## Test Fixtures
 
@@ -155,7 +151,7 @@ class TestIOFunctions:
 ### Integration Test Example
 
 ```python
-from ayne.config.schema import Settings
+from ayne.core.config.settings import Settings
 from ayne.utils.directory import DirectoryManager
 
 class TestConfigurationIntegration:
@@ -268,21 +264,15 @@ Tests run automatically in GitHub Actions:
 ```yaml
 - name: Run all tests with coverage
   run: |
-    uv run pytest tests/ -v \
-      --cov=src \
-      --cov-report=term-missing \
-      --cov-report=html:reports/coverage/html \
-      --cov-report=xml:reports/coverage/coverage.xml \
-      --cov-fail-under=10 \
-      --tb=short
+        uv run --no-sync pytest --junitxml=reports/test-results.xml
 
 - name: Upload coverage reports
   uses: codecov/codecov-action@v4
   with:
-    file: ./reports/coverage/coverage.xml
+    files: ./reports/coverage/coverage.xml
 ```
 
-See `.github/workflows/python-tests.yml` for the complete test workflow.
+See `.github/workflows/ci.yml` for the complete test workflow.
 
 ## Test Configuration
 
@@ -293,18 +283,23 @@ Configuration in `pyproject.toml`:
 ```toml
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = "test_*.py"
+python_files = ["test_*.py", "*_test.py"]
 python_classes = "Test*"
 python_functions = "test_*"
 addopts = [
-    "-v",
-    "--strict-markers",
+    "--verbose",
+    "--cov=src",
     "--cov-report=term-missing",
+    "--cov-report=html:reports/coverage/html",
+    "--cov-report=xml:reports/coverage/coverage.xml",
+    "--cov-fail-under=20",
+    "--strict-markers",
 ]
 markers = [
-    "slow: marks tests as slow",
-    "integration: integration tests",
-    "unit: unit tests",
+    "unit: Unit tests for individual functions",
+    "integration: Integration tests for API endpoints",
+    "slow: Tests that take longer to run",
+    "requires_model: Tests that require ML model loading",
 ]
 ```
 
@@ -315,8 +310,8 @@ markers = [
 **Issue**: `ModuleNotFoundError: No module named 'ayne'`
 
 ```powershell
-# Install package in editable mode
-uv pip install -e .
+# Install runtime and test dependencies
+uv sync --group test
 ```
 
 **Issue**: Tests pass locally but fail in CI
@@ -329,7 +324,7 @@ uv pip install -e .
 
 ```powershell
 # Clean and regenerate
-Remove-Item -Recurse -Force .coverage, reports/coverage/
+Remove-Item -Recurse -Force reports/coverage/
 uv run pytest --cov=src --cov-report=html
 ```
 
@@ -340,7 +335,7 @@ uv run pytest --cov=src --cov-report=html
 Remove-Item -Recurse -Force .pytest_cache
 
 # Remove coverage data
-Remove-Item -Recurse -Force .coverage, reports/coverage/
+Remove-Item -Recurse -Force reports/coverage/
 
 # Remove Python cache
 Get-ChildItem -Recurse -Filter "__pycache__" | Remove-Item -Recurse -Force
@@ -351,7 +346,7 @@ Get-ChildItem -Recurse -Filter "__pycache__" | Remove-Item -Recurse -Force
 - **[Linting Guide](linting.md)** - Code quality checks
 - **[Formatting Guide](formatting.md)** - Code formatting standards
 - **[Code Style](code-style.md)** - General style guidelines
-- **GitHub Actions Workflows** - See `.github/workflows/python-tests.yml` for automated testing
+- **GitHub Actions Workflows** - See `.github/workflows/ci.yml` for automated testing
 
 ## Next Steps
 

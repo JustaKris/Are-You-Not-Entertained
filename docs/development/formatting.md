@@ -12,7 +12,7 @@ uv run ruff format src/ scripts/ tests/
 uv run ruff format --check src/ scripts/ tests/
 
 # Format specific files
-uv run ruff format src/ayne/config/schema.py
+uv run ruff format src/ayne/core/config/settings.py
 ```
 
 ## Ruff Formatter
@@ -49,7 +49,6 @@ Settings in `pyproject.toml`:
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-fix = true
 
 [tool.ruff.format]
 quote-style = "double"
@@ -263,11 +262,11 @@ import pandas as pd
 import numpy as np
 from pydantic import BaseModel
 
-from ayne.config.schema import Settings
+from ayne.core.config.settings import Settings
 from ayne.utils.io import load_dataframe
 
 # Bad - mixed order
-from ayne.config.schema import Settings
+from ayne.core.config.settings import Settings
 import pandas as pd
 import os
 from pydantic import BaseModel

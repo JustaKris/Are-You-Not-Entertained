@@ -55,6 +55,7 @@ markdown_extensions:
 
 nav:
 - Home: index.md
+- Roadmap: ROADMAP.md
 - Development:
   - Code Style: development/code-style.md
   - Formatting: development/formatting.md
@@ -66,8 +67,13 @@ nav:
 - Guides:
   - CLI Guide: guides/cli-guide.md
   - Data Collection Quick Reference: guides/data-collection-quick-reference.md
+  - Data Collection CLI Reference: guides/data-collection-quick-reference-cli.md
+  - Database Monitoring: guides/database-monitoring.md
   - Pre-Commit Guide: guides/pre-commit-guide.md
   - Utilities Guide: guides/utilities-guide.md
+  - VS Code:
+    - Quickstart: guides/vs-code/vscode-quickstart.md
+    - Configuration: guides/vs-code/vscode-configuraqtion.md
 - Reference:
   - Architecture: reference/architecture.md
   - TMDB API Client: reference/tmdb-client.md

@@ -21,8 +21,10 @@ After installing the package, the `ayne` command becomes available:
 uv sync
 
 # Verify installation
-ayne --help
+uv run ayne --help
 ```
+
+The examples below assume the project environment is activated. Otherwise, prefix each command with `uv run` (for example, `uv run ayne db init`).
 
 ## Command Structure
 
@@ -769,5 +771,5 @@ Benefits of CLI:
 ## See Also
 
 - [Data Collection Workflow](../reference/data-collection-workflow.md)
-- [Configuration Guide](../../configs/README.md)
+- [Filtering and Configuration](../reference/data-collection-filtering.md)
 - [Database Schema](../reference/database.md)

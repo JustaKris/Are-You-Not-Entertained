@@ -12,10 +12,10 @@ uv run ruff check src/ scripts/ tests/
 uv run ruff check --fix src/ scripts/ tests/
 
 # Type checking
-uv run mypy src/ scripts/ tests/ --ignore-missing-imports
+uv run mypy
 
 # Security scan
-uv run bandit -r src/
+uv run bandit -r src/ -c pyproject.toml
 ```
 
 ## Ruff Linter
@@ -29,7 +29,7 @@ Ruff is an extremely fast Python linter written in Rust, combining the functiona
 uv run ruff check src/
 
 # Lint specific files
-uv run ruff check src/ayne/config/schema.py
+uv run ruff check src/ayne/core/config/settings.py
 
 # Show detailed output
 uv run ruff check src/ --output-format=full
@@ -46,7 +46,7 @@ Ruff implements rules from multiple linters:
 - **pyflakes (F)** - Logical errors and undefined names
 - **isort (I)** - Import sorting
 - **pydocstyle (D)** - Docstring conventions
-- **pylint (PL)** - Advanced code analysis
+- **Ruff-specific (RUF)** - Ruff-specific checks
 - **And many more** - See [Ruff rules](https://docs.astral.sh/ruff/rules/)
 
 ### Configuration
@@ -57,10 +57,9 @@ Settings in `pyproject.toml`:
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-fix = true
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "B", "C4", "D"]
+select = ["E", "W", "F", "I", "B", "C4", "D", "UP", "N", "SIM", "RUF"]
 ignore = [
     "E501",   # Line too long (handled by formatter)
     "B008",   # Function call in argument defaults
@@ -82,11 +81,8 @@ Static type checking catches bugs before runtime.
 # Type check source code
 uv run mypy src/
 
-# Include scripts and tests
-uv run mypy src/ scripts/ tests/
-
-# Ignore missing imports
-uv run mypy src/ --ignore-missing-imports
+# The repository file list is configured in pyproject.toml
+uv run mypy
 
 # Show error codes
 uv run mypy src/ --show-error-codes
@@ -98,17 +94,16 @@ Settings in `pyproject.toml`:
 
 ```toml
 [tool.mypy]
+files = ["src", "scripts", "tests"]
 python_version = "3.12"
-warn_return_any = true
+warn_return_any = false
 warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-no_implicit_optional = true
-
-[[tool.mypy.overrides]]
-module = "tests.*"
 disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+no_implicit_optional = false
+strict_optional = false
+ignore_missing_imports = true
 ```
 
 ### Type Hint Guidelines
@@ -150,7 +145,7 @@ Bandit finds common security issues in Python code.
 
 ```powershell
 # Scan source code
-uv run bandit -r src/
+uv run bandit -r src/ -c pyproject.toml
 
 # Exclude test files
 uv run bandit -r src/ -x tests/
@@ -168,10 +163,14 @@ Settings in `pyproject.toml`:
 
 ```toml
 [tool.bandit]
-exclude_dirs = ["tests", "scripts"]
-skips = [
-    "B101",  # assert_used (OK in tests)
+exclude_dirs = [
+  ".venv",
+  "venv",
+  "tests",
+  "scripts",
+  "notebooks",
 ]
+skips = ["B101", "B104", "B108", "B110", "B608"]
 ```
 
 ### Common Security Issues
@@ -226,8 +225,8 @@ import numpy as np
 from pydantic import BaseModel
 
 # Local
-from ayne.config.schema import Settings
-from ayne.utils.calendar import get_days_in_month
+from ayne.core.config.settings import Settings
+from ayne.utils.query_utils import load_full_dataset
 ```
 
 ## Running All Checks
@@ -242,10 +241,10 @@ uv run ruff check src/ scripts/ tests/
 uv run ruff format --check src/ scripts/ tests/
 
 # Type check
-uv run mypy src/ scripts/ tests/ --ignore-missing-imports
+uv run mypy
 
 # Security scan
-uv run bandit -r src/
+uv run bandit -r src/ -c pyproject.toml
 ```
 
 ### Combined Script
@@ -259,11 +258,11 @@ uv run ruff check src/ scripts/ tests/
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host "`nRunning type checker..." -ForegroundColor Cyan
-uv run mypy src/ scripts/ tests/ --ignore-missing-imports
+uv run mypy
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host "`nRunning security scanner..." -ForegroundColor Cyan
-uv run bandit -r src/ -ll
+uv run bandit -r src/ -c pyproject.toml
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host "`nAll checks passed!" -ForegroundColor Green
@@ -280,14 +279,14 @@ Linting runs automatically in GitHub Actions:
 
 - name: Run type checking
   run: |
-    uv run mypy src/ scripts/ tests/ --ignore-missing-imports
+    uv run mypy
 
 - name: Run security scan
   run: |
-    uv run bandit -r src/
+    uv run bandit -r src/ -c pyproject.toml
 ```
 
-See `.github/workflows/python-lint.yml`, `.github/workflows/python-typecheck.yml`, and `.github/workflows/security-audit.yml` for complete workflows.
+  See `.github/workflows/ci.yml` and `.github/workflows/security-audit.yml` for complete workflows.
 
 ## IDE Integration
 
@@ -302,17 +301,15 @@ Settings in `.vscode/settings.json`:
 
 ```json
 {
+  "ruff.nativeServer": "on",
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.ruff": "explicit",
-      "source.organizeImports.ruff": "explicit"
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
     }
-  },
-  "ruff.lint.enable": true,
-  "ruff.format.enable": true,
-  "python.linting.enabled": true,
-  "python.linting.mypyEnabled": true
+  }
 }
 ```
 
@@ -328,7 +325,7 @@ Settings in `.vscode/settings.json`:
 
 ```powershell
 # Install dev dependencies
-uv sync
+uv sync --group dev
 
 # Verify installation
 uv run ruff --version
@@ -341,8 +338,8 @@ uv run ruff --version
 uv pip install types-boto3
 uv pip install pandas-stubs
 
-# Or ignore missing imports
-uv run mypy src/ --ignore-missing-imports
+# Missing third-party stubs are ignored by the repository mypy configuration.
+uv run mypy
 ```
 
 ### Import Order Conflicts

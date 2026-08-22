@@ -33,8 +33,7 @@ exclude: |
     dist/|
     .*\.egg-info/|
     uv\.lock|
-    reports/|
-    uv\.lock
+    reports/
   )$
 
 fail_fast: false

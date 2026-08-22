@@ -13,7 +13,12 @@ Main modules:
 - web: Web interface (coming soon)
 """
 
-__version__ = "0.1.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("ayne")
+except PackageNotFoundError:
+    __version__ = "0.4.0"
 
 # Convenient top-level imports for common use cases
 from ayne.core.config import settings

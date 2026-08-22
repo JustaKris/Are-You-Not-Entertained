@@ -2,7 +2,7 @@
 
 > A modern data science project for movie box office analysis and prediction, built with production-grade Python practices.
 
-![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-yellow.svg)
 
@@ -26,18 +26,18 @@
 
 ## 🛠️ Tech Stack
 
-- **Python 3.12+** with modern async/await patterns
+- **Python 3.12 or 3.13** with modern async/await patterns
 - **DuckDB** for analytical database
 - **httpx** for async HTTP requests
 - **Pydantic** for configuration management
 - **pandas** for data manipulation
 - **Jupyter** for exploratory analysis
 
--## 📦 Installation
+## 📦 Installation
 
 ### Prerequisites
 
-- Python 3.12+
+- Python 3.12 or 3.13
 - [uv](https://docs.astral.sh/uv/) package manager (recommended)
 - API keys for TMDB and OMDB
 
@@ -53,8 +53,7 @@
 2. **Install dependencies with uv**
 
    ```bash
-   uv venv
-   uv pip install -e "."
+   uv sync --group dev
    ```
 
 3. **Configure environment**
@@ -69,9 +68,11 @@
 4. **Verify installation**
 
    ```bash
-   ayne --help
-   ayne version
+   uv run ayne --help
+   uv run ayne version
    ```
+
+The examples below use the installed `ayne` command for brevity. If the project environment is not activated, prefix commands with `uv run` (for example, `uv run ayne db init`).
 
 ## 🚀 Quick Start
 

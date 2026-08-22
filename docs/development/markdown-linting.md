@@ -126,32 +126,31 @@ Markdown linting runs as a **separate CI stage** from code linting.
 ### Pipeline Position
 
 ```text
-lint (Python) → test → markdown-lint → security
+lint/typecheck → tests → docs (Markdown + MkDocs) → security
 ```
 
 This allows:
 
 - ✅ Code linting to pass independently
-- ✅ Documentation fixes without blocking deployments
+- ✅ Documentation checks run as a dedicated workflow
 - ✅ Clear separation of concerns
 
 ### CI Configuration
 
-File: `.github/workflows/markdown-lint.yml`
+File: `.github/workflows/docs.yml`
 
 ```yaml
 - name: Run markdown linting
   run: |
-    uv run pymarkdown scan docs/ README.md
-  continue-on-error: true  # Won't block pipeline
+    uv run --no-sync pymarkdown scan docs/ README.md
 ```
 
 ### Failure Behavior
 
-- **Status**: `continue-on-error: true` (warnings only)
+- **Status**: Blocking check
 - **When**: Runs on pushes/PRs with doc changes
-- **Impact**: Non-blocking - won't prevent merges
-- **Visibility**: Shows warning in GitHub Actions
+- **Impact**: Prevents merges when Markdown linting fails
+- **Visibility**: Reports the result in GitHub Actions
 
 ## Best Practices
 
