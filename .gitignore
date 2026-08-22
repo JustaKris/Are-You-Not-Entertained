@@ -180,8 +180,7 @@ config/config.yaml
 tmdb_movie_data.csv
 commands.sh
 
-# Local DuckDB databases and timestamped backups are environment data.
-# data/db/*.duckdb
+# Track the canonical development snapshot; keep backups and transient files local.
 data/db/*/*.duckdb
 data/db/*.duckdb.wal
 data/db/**/*.duckdb.wal

@@ -218,7 +218,9 @@ uv run jupyter lab notebooks/
 
 Notebooks read from DuckDB through the same query helpers. Persist derived datasets in
 `data/processed/`, preferably as Parquet, and keep raw provider responses in
-`data/raw/` immutable. The repository ignores database, raw, and generated data files.
+`data/raw/` immutable. The repository tracks the canonical `data/db/movies.duckdb`
+snapshot; raw, processed, and generated data files, database backups, and transient WAL
+files remain local.
 
 ## 🧑‍💻 Development Workflow
 

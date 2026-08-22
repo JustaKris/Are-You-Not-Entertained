@@ -145,9 +145,10 @@ ayne db backup
 ```
 
 The default destination is `data/db/archive/` with a UTC timestamp in the filename. Use
-`--output` to provide an explicit backup file path. Live databases and backups are local
-environment data and are ignored by Git; use `data/fixtures/demo.sql` for the committed
-sanitized database source.
+`--output` to provide an explicit backup file path. The canonical `data/db/movies.duckdb`
+snapshot is tracked by Git; timestamped backups and transient WAL files are local-only.
+Use `data/fixtures/demo.sql` for the committed sanitized database source used by tests
+and demos.
 
 ### Record A Dataset Manifest
 

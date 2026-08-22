@@ -39,8 +39,9 @@ uv run ayne db backup
 
 Backups are written to `data/db/archive/` as UTC-named DuckDB files. The command
 checkpoints and closes the database before copying, and refuses to overwrite an existing
-backup. Live databases and backups are ignored by Git; `data/fixtures/demo.sql` is the
-reviewable, portable database fixture for the repository.
+backup. The canonical `data/db/movies.duckdb` snapshot is tracked in Git; timestamped
+backups and transient WAL files remain local-only. `data/fixtures/demo.sql` is the
+reviewable, portable database fixture for tests and demos.
 
 Writable connections apply the numbered migrations in
 `src/ayne/database/migrations/` automatically. The migration ledger is stored in
@@ -83,8 +84,9 @@ helpers.
   efficient analytical reads.
 - Do not put API keys or credentials in data files, notebooks, logs, or reports.
 - Review the repository's ignore rules before adding large generated files. The raw and
-  processed data directories are ignored by default; the local DuckDB file may be
-  intentionally retained for development and should be treated as environment data.
-- Keep live DuckDB files and timestamped backups outside Git. Commit sanitized SQL fixtures
-  and selected manifests when they describe a release or analysis result.
+  processed data directories are ignored by default; the canonical DuckDB snapshot is
+  intentionally retained for development.
+- Keep timestamped DuckDB backups and transient WAL files outside Git. Commit the canonical
+  snapshot, sanitized SQL fixtures, and selected manifests when they describe a meaningful
+  dataset state.
 - Regenerate derived outputs from the database or raw inputs when practical.
