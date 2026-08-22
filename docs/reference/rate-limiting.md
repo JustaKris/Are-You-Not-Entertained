@@ -1,53 +1,78 @@
-# Rate Limiting
+# Rate Limiting And Retries
 
-> **Status**: Template - Content to be filled in
+AYNE applies request pacing and bounded concurrency inside each asynchronous provider
+client. The limiter prevents a client from issuing requests too quickly and uses a
+semaphore to bound in-flight requests.
 
-Token bucket algorithm implementation for API rate limiting.
+## Provider Defaults
 
-## Overview
+| Client | Requests per second | Maximum concurrent requests |
+| --- | ---: | ---: |
+| TMDB | `4.0` | `10` |
+| OMDB | `2.0` | `5` |
+| The Numbers | `settings.numbers_requests_per_second` (default `1`) | `1` |
 
-Shared rate limiter used by all API clients to prevent exceeding API quotas.
+The The Numbers defaults are intentionally conservative because the client scrapes
+public HTML pages and has no official API. Its CLI also limits the number of movies per
+run through `numbers_max_movies`.
 
-## Token Bucket Algorithm
+## Request Limiter
 
-- **Tokens**: Represent allowed requests
-- **Bucket capacity**: Maximum burst size
-- **Refill rate**: Tokens added per second
-- **Semaphore**: Controls concurrent requests
-
-## Implementation
+`AsyncRateLimiter` combines a minimum delay between requests with an `asyncio.Semaphore`:
 
 ```python
 from ayne.data_collection.rate_limiter import AsyncRateLimiter
 
-# Create rate limiter
-limiter = AsyncRateLimiter(
-    requests_per_second=4.0,
-    max_concurrent=10
-)
+limiter = AsyncRateLimiter(requests_per_second=2.0, max_concurrent=5)
 
-# Use in async context
 async with limiter:
-    # Make API request
     response = await client.get(url)
 ```
 
-## Configuration
+The limiter is normally created and owned by the provider client. It is not a shared
+global limiter across all providers. Configure a custom rate when constructing a client
+in a controlled integration or test.
 
-Default settings by API:
+## Retry Behavior
 
-- **TMDB**: 4 req/s, 10 concurrent
-- **OMDB**: 2 req/s, 5 concurrent
+Provider clients use `retry_with_backoff` for transient HTTP and network failures. The
+delay doubles from the base delay and is capped by the configured maximum. HTTP 429
+responses are retried with the same backoff. HTTP 401 responses are treated as quota or
+credential failures and are raised immediately.
 
-## Retry Logic
+The default retry counts are three attempts for TMDB and OMDB and two attempts for The
+Numbers. A retry does not bypass the rate limiter; each attempt must acquire it.
 
-Exponential backoff for failed requests:
+```python
+from ayne.data_collection.rate_limiter import retry_with_backoff
 
-- Retry count: 3 attempts
-- Backoff: 1s, 2s, 4s
-- Handles: Network errors, timeouts, rate limit responses
+result = await retry_with_backoff(
+    make_request,
+    retry_count=3,
+    base_delay=1.0,
+    max_delay=10.0,
+)
+```
 
-## Related Components
+## Quota Tracking
 
-- [TMDB Client](tmdb-client.md)
-- [OMDB Client](omdb-client.md)
+Rate limiting controls request frequency. It does not by itself track a provider's
+daily quota. AYNE records requests in `api_usage_daily`; OMDB enrichment checks the
+remaining configured daily budget before starting a batch. See the
+[filtering reference](data-collection-filtering.md) for command-level quota controls.
+
+## Operational Guidance
+
+- Keep provider defaults unless you have verified the provider's current terms.
+- Use `--max-movies`, `--limit`, or the combined workflow limits to bound a run.
+- Use `--dry-run` to inspect candidate counts without making provider requests.
+- Treat repeated 401 or 429 responses as a configuration or quota problem rather than
+  increasing retry counts.
+- Keep The Numbers runs small and avoid parallel scraping.
+
+## Related Documentation
+
+- [TMDB Client](tmdb-client.md) - Discovery and detail requests
+- [OMDB Client](omdb-client.md) - Enrichment and quota behavior
+- [Data Collection Workflow](../guides/data-collection-workflow.md) - End-to-end flow
+- [Security](../development/security.md) - Secret and provider-data handling

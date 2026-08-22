@@ -1,106 +1,84 @@
-# Security Guide
+# Security
 
-Security practices and vulnerability scanning for the Are You Not Entertained (AYNE) project.
+Security checks are part of the repository's normal development workflow. They cover
+Python source analysis, known dependency vulnerabilities, secret handling, and GitHub
+repository protections.
 
-## Overview
+## Local Checks
 
-Security best practices include:
-
-- **Static security scanning** with Bandit
-- **Dependency vulnerability scanning** with pip-audit
-- **Secret scanning** via GitHub
-- **Secure coding practices**
-- **CI/CD security gates**
-
-## Bandit Security Scanning
-
-### Running Locally
+Run Bandit with the repository configuration:
 
 ```powershell
-# Scan source code
-uv run bandit -r src/
-
-# Generate JSON report for CI
-uv run bandit -r src/ -f json -o bandit-report.json
-
-# Show only high severity
-uv run bandit -r src/ -ll
+uv sync --group security
+uv run bandit -r src/ -c pyproject.toml
 ```
 
-### Common Issues & Fixes
-
-**SQL Injection (B608):**
-
-Our Athena queries use f-strings safely because year/month are validated integers from Pydantic models and table names come from configuration.
-
-```python
-# Add nosec when inputs are validated
-query = f"""SELECT * FROM {table} WHERE year='{year}'""".strip()  # nosec B608
-```
-
-**Assert in Production (B101):**
-
-Replace asserts with proper exceptions:
-
-```python
-# Bad
-assert isinstance(df, pd.DataFrame)
-
-# Good
-if not isinstance(df, pd.DataFrame):
-    raise TypeError("Expected DataFrame")
-```
-
-**Hardcoded Secrets (B105-B107):**
-
-Use environment variables:
-
-```python
-# Bad
-password = "example_value"
-
-# Good
-import os
-password = os.getenv("DB_PASSWORD")
-```
-
-## Dependency Scanning
+To create a machine-readable report for local inspection:
 
 ```powershell
-# Scan for vulnerabilities
-uv run pip-audit
-
-# Update dependencies
-uv lock --upgrade
+uv run bandit -r src/ -c pyproject.toml -f json -o bandit-report.json
 ```
 
-## Secret Scanning
+Run the dependency audit separately:
 
-GitHub provides built-in secret scanning for public repositories. For private repositories, enable it in Settings → Security & Analysis → Secret scanning.
-
-If a secret is detected:
-
-1. Remove the secret from code
-2. Rewrite git history if needed
-3. Force push with `--force-with-lease`
-4. Rotate the exposed secret immediately
-
-## CI/CD Integration
-
-Security scans run automatically in GitHub Actions:
-
-```yaml
-- name: Run bandit security scan
-  run: |
-    uv run bandit -r src/ -f json -o bandit-report.json --skip B104,B108 || true
-    uv run bandit -r src/ --skip B104,B108
-
-- name: Check for known vulnerabilities
-  run: |
-    uv run pip-audit --desc --skip-editable || true
+```powershell
+uv run pip-audit --skip-editable
 ```
+
+`pip-audit` reports known vulnerabilities in resolved dependencies. It is advisory in
+CI because upstream fixes and transitive dependency constraints can require review
+before changing the lockfile. Bandit is the blocking source scan.
+
+## CI Workflow
+
+`.github/workflows/security-audit.yml` runs on relevant pull requests and pushes, every
+Monday, and on demand. It:
+
+- Runs Bandit against `src/` using `pyproject.toml`.
+- Runs `pip-audit --skip-editable` and keeps it advisory.
+- Uploads JSON reports as the `security-reports` artifact.
+
+CodeQL and dependency review are separate GitHub workflows. Dependabot proposes updates
+to supported dependencies; review those changes together with `uv.lock`.
+
+## Secrets
+
+Keep API keys and credentials in `.env` or the environment. Never commit them to source,
+notebooks, logs, test fixtures, or generated reports. The local pre-commit hook includes
+`detect-private-key`, and `.env` is ignored by Git.
+
+If a secret is exposed:
+
+1. Revoke or rotate it immediately with the provider.
+2. Remove it from the working tree and any generated artifacts.
+3. Determine whether it entered Git history and clean the history using the repository's
+   approved process.
+4. Check logs, CI artifacts, and forks for further exposure.
+
+Removing a value from the latest commit does not invalidate a credential that was
+already exposed.
+
+## Secure Coding Practices
+
+- Validate collection filters and limits before using them in provider requests or SQL.
+- Use parameterized SQL for values supplied at runtime; keep table and column names on
+  controlled allowlists when they cannot be parameterized.
+- Do not log API keys, authorization headers, database credentials, or complete provider
+  responses when they may contain sensitive data.
+- Keep provider requests bounded, rate-limited, and respectful of each service's terms.
+- Treat downloaded HTML, JSON, and notebook data as untrusted input.
+- Prefer explicit exceptions and useful error context without including secrets.
+
+## Handling Findings
+
+Do not suppress a Bandit finding without understanding the data flow. When an exception
+is justified, keep the narrowest possible suppression next to the affected statement
+and explain the validation or boundary that makes it safe. Dependency findings should
+be checked against the resolved package version in `uv.lock` before upgrading or
+adding an exclusion.
 
 ## Related Documentation
 
-- **[Linting Guide](linting.md)** - Code quality checks
-- **GitHub Actions Workflows** - See `.github/workflows/security-audit.yml` for automated security scanning
+- [Code Quality](code-quality.md) - Ruff, mypy, Markdown, and CI checks
+- [Pre-commit Guide](../guides/pre-commit-guide.md) - Local secret and file checks
+- [Logging](logging.md) - Structured logs and sensitive-data guidance

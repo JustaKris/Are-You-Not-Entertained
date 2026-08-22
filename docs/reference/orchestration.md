@@ -1,23 +1,27 @@
 # Data Collection Orchestration
 
-> **Status**: Template - Content to be filled in
+`DataCollectionOrchestrator` coordinates database writes, asynchronous provider clients,
+refresh decisions, and per-provider usage tracking. It lives in
+`src/ayne/data_collection/orchestrator.py` and is used by the Typer CLI.
 
-High-level orchestration of data collection workflow across multiple APIs.
+## Workflow Responsibilities
 
-## Overview
+The orchestrator supports these stages:
 
-The `DataCollectionOrchestrator` coordinates:
+1. Discover basic movie records from TMDB and upsert them into `movies`.
+2. Enrich discovered records with TMDB detail data and populate IMDb IDs.
+3. Enrich records with OMDB data when an IMDb ID is available.
+4. Refresh existing records according to age-based intervals.
+5. Track meaningful changes and freeze stable archived movies.
+6. Record provider requests in `api_usage_daily`.
 
-1. Movie discovery (TMDB)
-2. Detail fetching (TMDB)
-3. Ratings enrichment (OMDB)
-4. Box office data (The Numbers)
-5. Database updates
-6. Refresh logic
+The Numbers scraper is available through the same orchestrator, but its enrichment is a
+separate operation because it scrapes public HTML pages rather than using the combined
+TMDB/OMDB workflow.
 
-## Workflow
+## Complete Collection
 
-### Full Collection
+`run_full_collection` can discover new records and then refresh existing records:
 
 ```python
 from ayne.data_collection.orchestrator import DataCollectionOrchestrator
@@ -26,54 +30,127 @@ from ayne.database.duckdb_client import DuckDBClient
 db = DuckDBClient()
 orchestrator = DataCollectionOrchestrator(db)
 
-# Run complete workflow
-stats = await orchestrator.run_full_collection(
-    discover_start_year=2024,
-    discover_end_year=2024,
-    refresh_limit=100
-)
-
-# Returns statistics
-# {
-#     "discovered": 150,
-#     "tmdb_updated": 100,
-#     "omdb_updated": 95,
-#     "frozen": 5
-# }
+try:
+    stats = await orchestrator.run_full_collection(
+        discover_movies=True,
+        max_discover_movies=1_000,
+        max_discover_pages=10,
+        min_vote_count=200,
+        min_release_year=2020,
+        refresh_limit=100,
+        omdb_max_movies=500,
+    )
+finally:
+    await orchestrator.close()
+    db.close()
 ```
 
-### Discovery Only
+The result has four counters: `discovered`, `tmdb_updated`, `omdb_updated`, and
+`frozen`. Set `discover_movies=False` to run refresh work without discovery. The CLI's
+`ayne collect daily` command uses this mode by default; `--discover` enables discovery.
+
+## Individual Stages
+
+### Discovery
 
 ```python
-count = await orchestrator.discover_and_store_movies(
-    start_year=2024,
-    min_vote_count=200
+discovered = await orchestrator.discover_and_store_movies(
+    max_movies=500,
+    min_popularity=15.0,
+    min_vote_count=100,
+    min_release_year=2010,
+    max_pages=10,
 )
 ```
 
-### Refresh Only
+Discovery stores basic identity fields and the latest TMDB update timestamp. Detail
+enrichment is intentionally separate so a run can control the expensive follow-up work.
+
+### TMDB Detail Enrichment
 
 ```python
-# Get movies needing refresh
-movies_df = orchestrator.get_movies_for_refresh(limit=100)
+tmdb_count = await orchestrator.enrich_tmdb_details(
+    limit=500,
+    min_release_year=2020,
+    max_release_year=2024,
+)
+```
 
-# Refresh them
-tmdb_updated, omdb_updated, frozen = await orchestrator.refresh_movie_data(
-    movies_df,
+This stage fills `tmdb_movies` and copies IMDb IDs into `movies` for the OMDB stage.
+
+### OMDB Enrichment
+
+```python
+omdb_count = await orchestrator.enrich_omdb_data(
+    limit=500,
+    min_release_year=2020,
+    max_release_year=2024,
+)
+```
+
+The requested limit is reduced to the remaining recorded OMDB quota before requests are
+made. Movies without IMDb IDs are skipped.
+
+### The Numbers Enrichment
+
+```python
+numbers_count = await orchestrator.enrich_numbers_data(
+    limit=25,
+    min_release_year=2020,
+    max_release_year=2024,
+)
+```
+
+The Numbers client uses a single concurrent request and a deliberately conservative rate
+because it consumes public web pages. Use `uv run ayne numbers enrich` for the normal
+CLI entry point.
+
+## Refresh Planning
+
+`get_movies_for_refresh` returns the rows eligible for a refresh. It can filter by year,
+source, and limit:
+
+```python
+movies = orchestrator.get_movies_for_refresh(
+    limit=100,
+    min_release_year=2020,
+    data_source="omdb",
+    include_frozen=False,
+)
+
+tmdb_count, omdb_count, frozen_count = await orchestrator.refresh_movie_data(
+    movies,
     fetch_tmdb=True,
-    fetch_omdb=True
+    fetch_omdb=True,
+    omdb_max_movies=500,
 )
 ```
 
-## Integration
+The refresh strategy uses movie age and the last source update timestamps. It compares
+volatile fields before and after each successful fetch, increments unchanged-refresh
+counts per movie, and freezes stable archived movies after the configured threshold.
+See the [refresh strategy reference](refresh-strategy.md) for the intervals and freeze
+criteria.
 
-Used by scripts:
+## Failure And Cleanup Behavior
 
-- `scripts/collect_optimized.py`: Main collection script
+Provider clients use bounded retries with exponential backoff for transient HTTP and
+network failures. A batch can partially succeed; records already written remain in the
+database and a later run can retry the remaining work. OMDB quota exhaustion is handled
+as an expected stop condition rather than a reason to discard completed work.
 
-## Related Components
+Always close the orchestrator and database in a `finally` block. `close()` closes the
+TMDB, OMDB, and The Numbers HTTP clients.
 
-- [TMDB Client](tmdb-client.md)
-- [OMDB Client](omdb-client.md)
-- [Refresh Strategy](refresh-strategy.md)
-- [Database](database.md)
+## CLI Entry Points
+
+```powershell
+uv run ayne tmdb update --max-movies 1000
+uv run ayne tmdb enrich --max-movies 500
+uv run ayne omdb enrich --max-movies 500
+uv run ayne numbers enrich --max-movies 25
+uv run ayne collect daily --discover --discover-limit 500
+```
+
+Use the [CLI Guide](../guides/cli-guide.md) for all command options and the
+[filtering reference](data-collection-filtering.md) for environment-specific defaults.

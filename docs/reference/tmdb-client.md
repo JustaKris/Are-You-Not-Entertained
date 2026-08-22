@@ -7,7 +7,7 @@ The TMDB (The Movie Database) API client provides async/await functionality for 
 The TMDB client is designed for batch data collection with the following features:
 
 - **Async/await** using `httpx.AsyncClient` for concurrent requests
-- **Rate limiting** via token bucket algorithm (default: 4 requests/second)
+- **Request pacing** with a minimum delay and concurrency semaphore (default: 4 requests/second)
 - **Automatic retries** with exponential backoff for failed requests
 - **Concurrent request management** with configurable max concurrent requests
 - **Normalized data** returned in consistent format
@@ -137,14 +137,11 @@ movies = await client.get_batch_movie_details(
 )
 ```
 
-## Rate Limiting Implementation
+## Request Limiting Implementation
 
-### Token Bucket Algorithm
-
-- **Tokens**: Represent allowed requests
-- **Refill rate**: Tokens added per second (requests_per_second)
-- **Bucket capacity**: Maximum burst size
-- **Semaphore**: Controls concurrent request limit
+The client uses `AsyncRateLimiter` to enforce a minimum delay between requests and a
+semaphore to cap concurrent requests. The default is 4 requests per second and 10
+concurrent requests; both values can be overridden when constructing the client.
 
 ### Configuration
 
@@ -246,6 +243,6 @@ For complete TMDB API documentation, see: [TMDB API Docs](https://developers.the
 
 ## Related Components
 
-- [Rate Limiting](rate-limiting.md) - Token bucket implementation
+- [Rate Limiting](rate-limiting.md) - Request pacing and retry behavior
 - [Data Orchestration](orchestration.md) - High-level collection workflow
 - [Refresh Strategy](refresh-strategy.md) - Intelligent refresh logic

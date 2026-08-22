@@ -149,7 +149,7 @@ async with httpx.AsyncClient() as client:
 
 All three async clients in this project (TMDB, OMDB, The Numbers) use httpx, sharing a
 common `AsyncRateLimiter` + `retry_with_backoff` implementation (see
-[rate-limiting.md](rate-limiting.md)).
+[rate-limiting.md](../reference/rate-limiting.md)).
 
 ---
 
@@ -279,7 +279,7 @@ logger.info("Movie processed", extra={"movie_id": 12345, "processing_time_ms": 2
 `uv` is 10-100x faster than pip, has better dependency resolution, is compatible with
 pip/poetry/requirements.txt, and uses a single `pyproject.toml` (PEP 621).
 
-```bash
+```powershell
 uv sync                       # Install dependencies
 uv add duckdb                 # Add a package
 uv add --group dev pytest     # Add a dev dependency

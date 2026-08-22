@@ -8,14 +8,14 @@ theme:
   name: material
   palette:
   - scheme: default
-    primary: indigo
-    accent: indigo
+    primary: red
+    accent: amber
     toggle:
       icon: material/brightness-7
       name: Switch to dark mode
   - scheme: slate
-    primary: indigo
-    accent: indigo
+    primary: red
+    accent: amber
     toggle:
       icon: material/brightness-4
       name: Switch to light mode
@@ -27,6 +27,9 @@ theme:
   - search.suggest
   - search.highlight
   - content.code.copy
+
+extra_css:
+- stylesheets/extra.css
 
 plugins:
 - search
@@ -56,35 +59,32 @@ markdown_extensions:
 nav:
 - Home: index.md
 - Roadmap: ROADMAP.md
-- Development:
-  - Code Style: development/code-style.md
-  - Formatting: development/formatting.md
-  - Linting: development/linting.md
-  - Testing: development/testing.md
-  - Security: development/security.md
-  - Logging: development/logging.md
-  - Markdown Linting: development/markdown-linting.md
 - Guides:
   - CLI Guide: guides/cli-guide.md
-  - Data Collection Quick Reference: guides/data-collection-quick-reference.md
-  - Data Collection CLI Reference: guides/data-collection-quick-reference-cli.md
+  - Data Collection Workflow: guides/data-collection-workflow.md
+  - Git Workflow: guides/git-guide.md
   - Database Monitoring: guides/database-monitoring.md
   - Pre-Commit Guide: guides/pre-commit-guide.md
   - Utilities Guide: guides/utilities-guide.md
   - VS Code:
     - Quickstart: guides/vs-code/vscode-quickstart.md
-    - Configuration: guides/vs-code/vscode-configuraqtion.md
+    - Configuration: guides/vs-code/vscode-configuration.md
+- Development:
+  - Code Quality: development/code-quality.md
+  - Testing: development/testing.md
+  - Security: development/security.md
+  - Logging: development/logging.md
+- Explanation:
+  - Architecture: explanation/architecture.md
+  - Technical Decisions: explanation/technical-decisions.md
 - Reference:
-  - Architecture: reference/architecture.md
   - TMDB API Client: reference/tmdb-client.md
   - OMDB API Client: reference/omdb-client.md
   - Database: reference/database.md
   - Refresh Strategy: reference/refresh-strategy.md
-  - Data Collection Workflow: reference/data-collection-workflow.md
   - Data Collection Filtering: reference/data-collection-filtering.md
   - Rate Limiting: reference/rate-limiting.md
   - Data Orchestration: reference/orchestration.md
-  - Technical Decisions: reference/technical-decisions.md
 
 exclude_docs: |
   copilot_artifacts/

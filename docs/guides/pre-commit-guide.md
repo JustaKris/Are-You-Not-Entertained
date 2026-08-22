@@ -55,7 +55,9 @@ The local hook configuration includes:
 - **ruff**: Lint Python files and apply safe fixes
 - **ruff-format**: Format Python files
 
-The hooks do not rewrite line endings, YAML formatting, notebook outputs, or Markdown. Those changes should be deliberate and reviewable.
+The hooks do not rewrite line endings, YAML formatting, notebook outputs, or Markdown
+content. The end-of-file fixer may normalize a final newline; other documentation
+changes should be deliberate and reviewable.
 
 ## What CI Handles
 
@@ -145,7 +147,7 @@ uv run ruff format src/ scripts/ tests/
 uv run ruff check src/ scripts/ tests/
 
 # Run the broader CI checks locally when needed
-uv run mypy src/ scripts/ tests/ --ignore-missing-imports
+uv run mypy
 uv run bandit -r src/ -c pyproject.toml
 uv run pymarkdown scan docs/ README.md
 ```

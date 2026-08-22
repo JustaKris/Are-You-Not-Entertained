@@ -217,4 +217,4 @@ metadata = {
 ## See Also
 
 - [Database reference](../reference/database.md) — query utilities and schema
-- [Data collection workflow](../reference/data-collection-workflow.md)
+- [Data collection workflow](data-collection-workflow.md)
