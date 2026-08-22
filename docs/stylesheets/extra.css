@@ -43,6 +43,15 @@ body {
   font-family: "Trebuchet MS", "Segoe UI", sans-serif;
 }
 
+.md-grid {
+  max-width: 78rem;
+}
+
+.md-typeset {
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
 .md-header {
   background: linear-gradient(105deg, var(--ayne-crimson-deep), var(--ayne-crimson));
 }
@@ -60,7 +69,7 @@ body {
 
 .md-typeset h1 {
   color: var(--ayne-crimson);
-  font-size: 2.75rem;
+  font-size: 2.3rem;
   font-weight: 700;
 }
 
@@ -70,7 +79,12 @@ body {
 
 .md-typeset h2 {
   border-bottom: 1px solid color-mix(in srgb, var(--md-default-fg-color) 16%, transparent);
+  font-size: 1.5rem;
   padding-bottom: 0.35rem;
+}
+
+.md-typeset h3 {
+  font-size: 1.2rem;
 }
 
 .md-typeset a {
@@ -120,7 +134,7 @@ body {
 
 .ayne-lede {
   font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   line-height: 1.45;
   margin: 0;
   max-width: 46rem;
@@ -128,7 +142,7 @@ body {
 
 .ayne-detail {
   color: var(--ayne-ink-muted);
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.65;
   margin: 1.25rem 0 0;
   max-width: 42rem;
@@ -190,13 +204,13 @@ body {
   }
 
   .md-typeset h1.ayne-hero-title {
-    font-size: 2.65rem;
+    font-size: 2.3rem;
     margin-left: -0.2rem;
     margin-right: -0.2rem;
     padding: 2.3rem 1.4rem 0.7rem;
   }
 
   .ayne-lede {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
   }
 }

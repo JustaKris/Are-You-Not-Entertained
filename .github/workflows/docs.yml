@@ -63,7 +63,7 @@ jobs:
 
       - name: Upload artifact
         id: upload_pages
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./public
 
@@ -91,7 +91,6 @@ jobs:
             echo "| Markdown lint | $(status_icon '${{ steps.markdown_lint.outcome }}') **${{ steps.markdown_lint.outcome }}** |"
             echo "| MkDocs build | $(status_icon '${{ steps.mkdocs.outcome }}') **${{ steps.mkdocs.outcome }}** |"
             echo "| Site artifact | $(status_icon "$artifact_status") **$artifact_status** ([view workflow artifacts]($run_url#artifacts)) |"
-            echo "| Run details | [View workflow run]($run_url) |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
@@ -138,7 +137,6 @@ jobs:
           elif [ "$deployment_status" = "skipped" ]; then
             summary_status="skipped"
           fi
-          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           page_url="${{ steps.deployment.outputs.page_url }}"
           {
             echo "## $(status_icon "$summary_status") Documentation deployment"
@@ -153,5 +151,4 @@ jobs:
             else
               echo "| Live documentation | Not available because deployment did not run |"
             fi
-            echo "| Run details | [View workflow run]($run_url) |"
           } >> "$GITHUB_STEP_SUMMARY"
