@@ -3,18 +3,22 @@
 import asyncio
 
 import typer
-from rich.console import Console
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn, TextColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from ayne.cli.progress import (
+    DeterminateBarColumn,
+    DeterminateMofNCompleteColumn,
+    update_collection_progress,
+)
 from ayne.core.config import settings
 from ayne.core.exceptions import APIRateLimitError
-from ayne.core.logging import configure_logging, get_logger
+from ayne.core.logging import configure_logging, get_logger, logging_console
 from ayne.data_collection.api_usage import get_remaining_quota
 from ayne.data_collection.orchestrator import DataCollectionOrchestrator
 from ayne.database.duckdb_client import DuckDBClient
 
 app = typer.Typer(help="OMDB data enrichment")
-console = Console()
+console = logging_console
 
 configure_logging(level=settings.log_level, use_json=settings.use_json_logging)  # type: ignore
 logger = get_logger(__name__)
@@ -70,7 +74,11 @@ def enrich_omdb(
     max_year = max_year or getattr(settings, "omdb_max_release_year", None)
 
     console.print("[bold]Configuration:[/bold]")
-    console.print(f"  Max Movies: {max_movies:,} (cap - fewer will run if fewer need it)")
+    console.print(
+        f"  Max Movies: {max_movies:,} (cap - fewer will run if fewer need it)"
+        if max_movies is not None
+        else "  Max Movies: Unlimited (still bounded by today's quota)"
+    )
     console.print(f"  Min Year: {min_year or 'No limit'}")
     console.print(f"  Max Year: {max_year or 'No limit'}")
 
@@ -142,8 +150,8 @@ def enrich_omdb(
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                MofNCompleteColumn(),
+                DeterminateBarColumn(),
+                DeterminateMofNCompleteColumn(),
                 console=console,
             ) as progress:
                 task = progress.add_task("Enriching movies...", total=None)
@@ -157,8 +165,6 @@ def enrich_omdb(
                     max_release_year=max_year,
                     progress_callback=_on_progress,
                 )
-
-                progress.update(task, completed=True)
 
             console.print(f"\n[green]✓[/green] Enriched {enriched:,} movies with OMDB data")
 
@@ -192,7 +198,11 @@ def enrich_omdb(
 
                 with suppress(Exception):
                     # If updating progress fails for any reason, ignore to avoid masking the rate limit handling
-                    progress.update(task, completed=True)
+                    progress.update(
+                        task,
+                        total=e.total_requested,
+                        completed=e.items_processed,
+                    )
 
             console.print("\n[yellow]⚠ OMDB Daily Limit Reached[/yellow]\n")
             console.print(
@@ -285,14 +295,10 @@ def refresh_omdb(
     max_year = max_year or getattr(settings, "omdb_max_release_year", None)
 
     console.print("[bold]Configuration:[/bold]")
-    console.print(f"  Refresh Limit: {f'{limit:,} movies' if limit else 'Unlimited'}")
+    console.print(f"  Refresh Limit: {f'{limit:,} movies' if limit is not None else 'Unlimited'}")
     console.print(f"  Min Year: {min_year or 'No limit'}")
     console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print()
-
-    logger.info(
-        f"OMDB refresh: limit={limit}, min_year={min_year}, max_year={max_year}, dry_run={dry_run}"
-    )
 
     logger.info(
         f"OMDB refresh: limit={limit}, min_year={min_year}, max_year={max_year}, dry_run={dry_run}"
@@ -333,6 +339,8 @@ def refresh_omdb(
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
+                DeterminateBarColumn(),
+                DeterminateMofNCompleteColumn(),
                 console=console,
             ) as progress:
                 if limit is not None:
@@ -349,18 +357,19 @@ def refresh_omdb(
                 )
 
                 if movies_to_refresh.empty:
-                    progress.update(task, completed=True)
                     console.print("\n[yellow]No movies need OMDB refresh[/yellow]")
                     return
+
+                def _on_progress(stage: str, completed: int | None, total: int | None) -> None:
+                    update_collection_progress(progress, task, stage, completed, total)
 
                 _tmdb_updated, omdb_updated, _frozen = await orchestrator.refresh_movie_data(
                     movies_to_refresh,
                     fetch_tmdb=False,  # OMDB only
                     fetch_omdb=True,
                     omdb_max_movies=limit,
+                    progress_callback=_on_progress,
                 )
-
-                progress.update(task, completed=True)
 
             console.print(f"\n[green]✓[/green] Refreshed {omdb_updated:,} movies")
 

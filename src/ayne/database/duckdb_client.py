@@ -1,15 +1,4 @@
-"""duckdb_client.py
-----------------
-A small DuckDB wrapper providing:
-- connection management
-- executing queries and statements
-- importing/appending Parquet into tables
-- create_tables(schema_path) which runs schema.sql
-- upsert_dataframe(table_name, df, key_columns) which safely
-  upserts rows using a temp table pattern.
-
-Place this file in: src/data/duckdb_client.py
-"""
+"""DuckDB access for the AYNE application and analysis workflows."""
 
 from __future__ import annotations
 
@@ -39,12 +28,18 @@ class DuckDBClient:
         db.close()
     """
 
-    def __init__(self, db_path: str | Path | None = None, read_only: bool = False):
+    def __init__(
+        self,
+        db_path: str | Path | None = None,
+        read_only: bool = False,
+        auto_migrate: bool = True,
+    ):
         """Initialize DuckDB client with specified database path.
 
         Args:
             db_path: Path to DuckDB database file (defaults to settings.duckdb_path)
             read_only: Whether to open database in read-only mode
+            auto_migrate: Whether writable connections should apply pending migrations
 
         Raises:
             DatabaseLockedError: If database file is locked by another process
@@ -55,8 +50,11 @@ class DuckDBClient:
         self.read_only = read_only
 
         try:
-            # DuckDB connection. Use read_only flag if needed.
             self._conn = duckdb.connect(database=str(self.db_path), read_only=self.read_only)
+            if not self.read_only and auto_migrate:
+                from ayne.database.migrations import apply_migrations
+
+                apply_migrations(self._conn)
             logger.debug("DuckDB connected at %s (read_only=%s)", self.db_path, self.read_only)
         except duckdb.IOException as e:
             error_msg = str(e)
@@ -99,22 +97,6 @@ class DuckDBClient:
         df = rel.df()
         logger.debug("Query returned %d rows", len(df))
         return df
-
-    # ----------------------
-    # Schema management
-    # ----------------------
-    def create_tables_from_sql(self, schema_path: Path | str | None = None) -> None:
-        """Execute a schema SQL file (schema.sql) to create all tables."""
-        schema_path = Path(schema_path) if schema_path else (Path(__file__).parent / "schema.sql")
-        if not schema_path.exists():
-            logger.error("Schema file not found: %s", schema_path)
-            raise FileNotFoundError(f"Schema file not found: {schema_path}")
-
-        sql_text = schema_path.read_text()
-        # DuckDB allows multiple statements separated by ';'
-        logger.info("Creating tables from schema: %s", schema_path)
-        self.execute(sql_text)
-        logger.info("Schema applied successfully.")
 
     # ----------------------
     # Parquet helpers
@@ -183,6 +165,13 @@ class DuckDBClient:
         # Normalise key column list
         if isinstance(key_columns, str):
             key_columns = [key_columns]
+        key_columns = list(key_columns)
+        if not key_columns:
+            raise ValueError("At least one key column is required for an upsert")
+
+        missing_keys = set(key_columns) - set(df.columns)
+        if missing_keys:
+            raise ValueError(f"DataFrame is missing key columns: {sorted(missing_keys)}")
 
         # Deduplicate incoming data by key columns (keep last occurrence)
         original_len = len(df)
@@ -194,45 +183,72 @@ class DuckDBClient:
 
         # Use a deterministic staging name
         staging_view = "__staging_upsert"
+        target_table = self._quote_identifier(table_name)
+        quoted_columns = [self._quote_identifier(column) for column in df.columns]
+        columns_str = ", ".join(quoted_columns)
+        key_predicate = " AND ".join(
+            f"target.{self._quote_identifier(column)} = staging.{self._quote_identifier(column)}"
+            for column in key_columns
+        )
 
         # Register DataFrame as a DuckDB view
         logger.debug(
             "Registering staging DataFrame as view %s for upsert into %s", staging_view, table_name
         )
+        logger.info("Upserting into %s (update existing keys -> insert new rows)", table_name)
+
         self._conn.register(staging_view, df)
+        try:
+            self.execute("BEGIN TRANSACTION")
 
-        # Build WHERE clause: (col1 = staging.col1 OR col1 IN (SELECT col1 FROM staging))
-        # We'll delete rows matching any of the key combinations present in staging.
-        # Use EXISTS with correlated subquery for safety.
-        key_pred = " AND ".join([f"main.{col} = staging.{col}" for col in key_columns])
+            update_columns = [column for column in df.columns if column not in key_columns]
+            if update_columns:
+                assignments = ", ".join(
+                    f"{self._quote_identifier(column)} = staging.{self._quote_identifier(column)}"
+                    for column in update_columns
+                )
+                self.execute(
+                    f"""
+                    UPDATE {target_table} AS target
+                    SET {assignments}
+                    FROM {staging_view} AS staging
+                    WHERE {key_predicate}
+                    """
+                )
 
-        delete_sql = f"""
-        DELETE FROM {table_name} AS main
-        WHERE EXISTS (
-            SELECT 1 FROM {staging_view} AS staging WHERE {key_pred}
-        )
-        """
+            self.execute(
+                f"""
+                INSERT INTO {target_table} ({columns_str})
+                SELECT {columns_str}
+                FROM {staging_view} AS staging
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM {target_table} AS target
+                    WHERE {key_predicate}
+                )
+                """
+            )
+            self.execute("COMMIT")
+        except Exception:
+            from contextlib import suppress
 
-        # Build column list for INSERT - only insert columns present in DataFrame
-        columns = list(df.columns)
-        columns_str = ", ".join(columns)
-        insert_sql = (
-            f"INSERT INTO {table_name} ({columns_str}) SELECT {columns_str} FROM {staging_view}"
-        )
-        logger.info("Upserting into %s (delete existing keys -> insert new rows)", table_name)
+            with suppress(Exception):
+                self.execute("ROLLBACK")
+            raise
+        finally:
+            from contextlib import suppress
 
-        # Execute delete then insert
-        self.execute(delete_sql)
-        self.execute(insert_sql)
-
-        # Unregister staging view
-        from contextlib import suppress
-
-        with suppress(Exception):
-            # older DuckDB versions may not require/allow unregister; ignore safely
-            self._conn.unregister(staging_view)
+            with suppress(Exception):
+                self._conn.unregister(staging_view)
 
         logger.info("Upsert complete: %s rows upserted into %s", len(df), table_name)
+
+    @staticmethod
+    def _quote_identifier(identifier: str) -> str:
+        """Quote a trusted SQL identifier after validating its simple name shape."""
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", identifier):
+            raise ValueError(f"Invalid SQL identifier: {identifier}")
+        return f'"{identifier}"'
 
     def upsert_records(
         self, table_name: str, records: Sequence[dict[str, Any]], key_columns: Sequence[str]

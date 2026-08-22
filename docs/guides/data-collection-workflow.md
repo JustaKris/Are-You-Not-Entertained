@@ -27,6 +27,7 @@ Create the local schema before collecting data:
 ```powershell
 uv run ayne db init
 uv run ayne db test
+uv run ayne validate database
 ```
 
 The database contains the `movies` identity table, source tables for TMDB, OMDB, and
@@ -36,7 +37,7 @@ The Numbers, `movie_refresh_state`, and the `api_usage_daily` quota ledger. See 
 ## 2. Discover Movies
 
 TMDB discovery stores basic identity fields in `movies`. Popularity, vote count, year,
-status, and page limits are controlled through the environment configuration or the
+status, and work limits are controlled through the environment configuration or the
 discovery command:
 
 ```powershell
@@ -46,6 +47,9 @@ uv run ayne tmdb update --min-popularity 20 --min-votes 100 --max-pages 10 --dry
 
 Discovery is intentionally separate from detail enrichment. This makes it possible to
 inspect or cap the candidate set before requesting more detailed data.
+`--max-movies` caps retained records and derives a page budget when `--max-pages` is not
+provided. `--max-pages` is a global fetched-page budget across recursively split ranges;
+TMDB's 500-page ceiling still applies to each individual query.
 
 ## 3. Fetch TMDB Details
 
@@ -81,7 +85,10 @@ deliberately conservative rate and stores financial data in `numbers_movies`:
 uv run ayne numbers enrich --max-movies 25 --min-year 2020
 ```
 
-Keep this operation small and avoid parallel scraping. The
+It only fills movies without a `numbers_movies` row; existing rows are not refreshed by
+this command yet. A movie can require several bounded title/year candidate requests, so
+missing pages and partial batches are normal. Keep this operation small and avoid
+parallel scraping. The
 [rate-limiting reference](../reference/rate-limiting.md) covers the provider-specific defaults.
 
 ## Refreshing Existing Data
@@ -94,15 +101,22 @@ uv run ayne collect daily
 uv run ayne collect daily --tmdb-refresh 200 --omdb-limit 500
 ```
 
+The command displays a live Rich progress bar while TMDB and OMDB requests are running.
+Planning and candidate-selection stages appear as status text; request stages show
+completed and total counts. A run already in progress must be restarted to use this
+display because command behavior is loaded when the process starts.
+
 Enable discovery when a run should also find new movies:
 
 ```powershell
-uv run ayne collect daily --discover --discover-limit 500
-uv run ayne collect full --max-tmdb 5000 --max-omdb 1000 --min-year 2020
+uv run ayne collect daily --discover --discover-limit 500 --discover-pages 25
+uv run ayne collect full --max-tmdb 5000 --discover-pages 250 --max-omdb 1000 --min-year 2020
 ```
 
 Use `--include-frozen` only for an intentional force refresh. The normal workflow
-excludes stable archived movies.
+excludes stable archived movies. Global freezing requires both TMDB and OMDB timestamps
+and three consecutive unchanged refresh cycles; The Numbers is optional and does not
+block that gate.
 
 ## Refresh Cadence
 
@@ -141,7 +155,10 @@ uv run ayne db init
 uv run ayne tmdb update --max-movies 100 --max-pages 2
 uv run ayne tmdb enrich --max-movies 100
 uv run ayne omdb enrich --max-movies 50
+uv run ayne numbers enrich --max-movies 25
 uv run ayne db stats
+uv run ayne validate database
+uv run ayne db manifest
 ```
 
 Use `--dry-run` before increasing limits, inspect `ayne db stats` between stages, and

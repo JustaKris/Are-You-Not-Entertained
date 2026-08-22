@@ -100,7 +100,7 @@ async def retry_with_backoff(
 
     Raises:
         Last exception if all retries fail
-        httpx.HTTPStatusError: Immediately if 401 (quota exceeded, not retryable)
+        httpx.HTTPStatusError: Immediately for non-transient client errors such as 401 or 404
     """
     last_exception = None
 
@@ -113,13 +113,20 @@ async def retry_with_backoff(
                 # Don't log warnings for our internal quota checks
                 raise
 
-            # Check if it's a 401 Unauthorized (API quota exceeded)
-            # Don't retry these - they won't succeed until quota resets
-            if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 401:
-                logger.warning(
-                    "API quota exceeded (401 Unauthorized) - daily limit reached, not retrying"
-                )
-                raise  # Propagate immediately, don't retry
+            if isinstance(e, httpx.HTTPStatusError):
+                status_code = e.response.status_code
+
+                # Authentication/quota failures and other client errors will
+                # not become valid by retrying. Only 429 and server errors are
+                # transient HTTP failures for this helper.
+                if status_code == 401:
+                    logger.warning(
+                        "Authentication or quota failure (401 Unauthorized) - not retrying"
+                    )
+                    raise
+                if status_code < 500 and status_code not in (408, 429):
+                    logger.debug(f"Non-retryable HTTP {status_code} response - not retrying")
+                    raise
 
             last_exception = e
 
@@ -134,7 +141,7 @@ async def retry_with_backoff(
             elif attempt < retry_count - 1:
                 wait_time = min(base_delay * (2**attempt), max_delay)
                 logger.warning(
-                    f"Request failed: {e}, retrying in {wait_time:.1f}s "
+                    f"Request failed with {type(e).__name__}, retrying in {wait_time:.1f}s "
                     f"(attempt {attempt + 1}/{retry_count})"
                 )
                 await asyncio.sleep(wait_time)

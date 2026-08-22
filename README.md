@@ -21,7 +21,9 @@ surfaces remain planned extensions.
 - **Automated Data Collection**: Async provider clients with staged discovery, detail
   enrichment, refresh strategies, bounded retries, and provider-aware rate limiting
 - **Database-Centric Architecture**: DuckDB source tables for movie identity, TMDB, OMDB,
-  The Numbers, refresh state, and persistent daily API usage
+  The Numbers, refresh state, persistent daily API usage, and numbered schema migrations
+- **Data Contracts And Quality**: Enforced identifiers and numeric ranges, relational
+  integrity checks, freshness warnings, and reproducible dataset manifests
 - **Modern Python Practices**: Type hints, Pydantic settings, structured logging, a
   `src/ayne` package layout, and a Typer/Rich command-line interface
 - **Analysis Ready**: Query helpers that join source tables into pandas DataFrames for
@@ -33,8 +35,6 @@ surfaces remain planned extensions.
 
 - **Grounded Movie Analysis Agent**: Read-only, bounded query tools that return evidence
   from the movie dataset through a configurable workflow
-- **Data Contracts And Quality**: Versioned schemas, stronger freshness and domain checks,
-  and dataset manifests for reproducible releases
 - **API And Local Kubernetes Delivery**: A small FastAPI service with health checks,
   container packaging, and a documented local deployment path
 - **Predictive Modeling**: Feature engineering, model evaluation, and experiment tracking
@@ -94,8 +94,18 @@ The default database is `data/db/movies.duckdb`. Initialize it before collecting
 ```powershell
 uv run ayne db init
 uv run ayne db test
+uv run ayne validate database
 uv run ayne db stats
 ```
+
+Before rebuilding or performing destructive database maintenance, create a timestamped
+local backup:
+
+```powershell
+uv run ayne db backup
+```
+
+Backups are stored under `data/db/archive/` and are intentionally not tracked in Git.
 
 ### 🌱 Start With An Empty Database
 
@@ -112,17 +122,51 @@ uv run ayne tmdb enrich --limit 1000
 # Add ratings, awards, and other OMDB data
 uv run ayne omdb enrich --max-movies 1000
 
-# Optionally add The Numbers financial data
-uv run ayne numbers enrich --max-movies 250
+# Optionally add The Numbers financial data (small, sequential scrape)
+uv run ayne numbers enrich --max-movies 50
 
 # Check database and source-level data quality
 uv run ayne db stats
+uv run ayne validate database
 uv run ayne validate all
 ```
 
-Use `--dry-run` before a larger collection, and keep limits aligned with the providers'
-request quotas. TMDB year ranges are split automatically when a query would exceed its
-page limit. The [CLI Guide](docs/guides/cli-guide.md) documents every command and option.
+Create the small committed demo database without API keys or network access:
+
+```powershell
+uv run ayne db seed-demo --output data/db/demo.duckdb
+```
+
+After a collection run, record its reproducibility metadata:
+
+```powershell
+uv run ayne db manifest
+```
+
+Use `--dry-run` before a larger collection. Limits are provider-specific: TMDB has no
+documented daily quota, but discovery still uses request pacing, retries, and the
+500-page-per-query safety ceiling; OMDB has a real daily quota and a persistent usage
+ledger; The Numbers is public HTML and is intentionally small and sequential. TMDB's
+`--max-movies` caps retained discovery records and derives a page budget when
+`--max-pages` is not supplied. Year ranges are split automatically when a query would
+otherwise exceed TMDB's page ceiling. The [CLI Guide](docs/guides/cli-guide.md)
+documents every command and option.
+
+The Numbers is optional and separate from the TMDB/OMDB workflow. It fills movies that
+do not yet have a `numbers_movies` row, using the configured `numbers_requests_per_second`
+rate (1 request/second by default):
+
+```powershell
+# Preview the next small batch without network requests
+uv run ayne numbers enrich --max-movies 10 --dry-run
+
+# Add financial data for recent releases
+uv run ayne numbers enrich --min-year 2020 --max-year 2026 --max-movies 250
+```
+
+A missing The Numbers page is a normal partial result. Existing rows are not refreshed
+automatically by this command yet; use TMDB and OMDB refresh commands for the required
+provider refresh cycle.
 
 ### 🔄 Maintain Existing Data
 
@@ -174,7 +218,9 @@ uv run jupyter lab notebooks/
 
 Notebooks read from DuckDB through the same query helpers. Persist derived datasets in
 `data/processed/`, preferably as Parquet, and keep raw provider responses in
-`data/raw/` immutable. The repository ignores database, raw, and generated data files.
+`data/raw/` immutable. The repository tracks the canonical `data/db/movies.duckdb`
+snapshot; raw, processed, and generated data files, database backups, and transient WAL
+files remain local.
 
 ## 🧑‍💻 Development Workflow
 
@@ -216,6 +262,8 @@ Are-You-Not-Entertained/
 │   └── web/               # Web extension point
 ├── tests/unit/            # Focused tests for collection and refresh behavior
 ├── data/                  # Database, raw, processed, and generated artifacts
+│   ├── fixtures/           # Sanitized demo fixture
+│   └── manifests/          # Dataset reproducibility records
 ├── notebooks/             # Exploratory analysis and modeling notebooks
 ├── scripts/               # Maintenance and audit utilities
 ├── configs/               # Development, staging, and production settings

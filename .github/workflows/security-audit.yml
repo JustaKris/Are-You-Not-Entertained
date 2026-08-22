@@ -112,5 +112,4 @@ jobs:
             else
               echo "| Reports | [View workflow artifacts]($run_url#artifacts) |"
             fi
-            echo "| Run details | [View workflow run]($run_url) |"
           } >> "$GITHUB_STEP_SUMMARY"

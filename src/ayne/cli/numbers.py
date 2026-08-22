@@ -4,17 +4,17 @@ import asyncio
 from typing import cast
 
 import typer
-from rich.console import Console
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn, TextColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from ayne.cli.progress import DeterminateBarColumn, DeterminateMofNCompleteColumn
 from ayne.core.config import Settings
 from ayne.core.config import settings as _settings
-from ayne.core.logging import configure_logging, get_logger
+from ayne.core.logging import configure_logging, get_logger, logging_console
 from ayne.data_collection.orchestrator import DataCollectionOrchestrator
 from ayne.database.duckdb_client import DuckDBClient
 
 app = typer.Typer(help="The Numbers (box office) data enrichment")
-console = Console()
+console = logging_console
 
 settings = cast(Settings, _settings)
 configure_logging(level=settings.log_level, use_json=settings.use_json_logging)  # type: ignore
@@ -26,7 +26,7 @@ def enrich_numbers(
     max_movies: int | None = typer.Option(
         None,
         "--max-movies",
-        help="Maximum number of movies to enrich (uses config default, kept small and polite by design)",
+        help="Maximum missing movie records to scrape (uses config default; kept small and polite)",
     ),
     min_year: int | None = typer.Option(
         None,
@@ -44,12 +44,15 @@ def enrich_numbers(
         help="Show what would be done without making changes",
     ),
 ):
-    """Enrich movies with box office/budget data scraped from The Numbers.
+    """Add missing box office/budget data scraped from The Numbers.
 
     The Numbers has no public API, so this fetches the same public movie
-    pages a browser would, at a deliberately slow, polite rate
-    (settings.numbers_requests_per_second, ~1 request per ~6.7s by default)
+    pages a browser would, at a deliberately slow, polite rate configured by
+    settings.numbers_requests_per_second
     to avoid being rate limited or banned.
+
+    This command fills movies without a numbers_movies row. Existing rows are
+    not refreshed automatically yet.
 
     Examples:
         ayne numbers enrich --max-movies 50
@@ -66,7 +69,11 @@ def enrich_numbers(
 
     console.print("[bold]Configuration:[/bold]")
     console.print(f"  Max Movies: {max_movies:,} (cap - fewer will run if fewer need it)")
-    console.print(f"  Rate Limit: {settings.numbers_requests_per_second} req/sec")
+    request_interval = 1 / settings.numbers_requests_per_second
+    console.print(
+        f"  Rate Limit: {settings.numbers_requests_per_second:g} req/sec "
+        f"(~{request_interval:.1f}s between requests)"
+    )
     console.print(f"  Min Year: {min_year or 'No limit'}")
     console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print("[bold]====================================[/bold]")
@@ -118,12 +125,12 @@ def enrich_numbers(
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                MofNCompleteColumn(),
+                DeterminateBarColumn(),
+                DeterminateMofNCompleteColumn(),
                 console=console,
             ) as progress:
                 task = progress.add_task(
-                    f"Scraping from The Numbers (~{settings.numbers_requests_per_second} req/sec, "
+                    f"Scraping from The Numbers (~{settings.numbers_requests_per_second:g} req/sec, "
                     "this can take a while)...",
                     total=None,
                 )
@@ -137,8 +144,6 @@ def enrich_numbers(
                     max_release_year=max_year,
                     progress_callback=_on_progress,
                 )
-
-                progress.update(task, completed=True)
 
             console.print(f"\n[green]✓[/green] Enriched {enriched:,} movies with The Numbers data")
 

@@ -53,7 +53,6 @@ jobs:
             esac
           }
           job_status="${{ job.status }}"
-          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           code_scanning_url="${{ github.server_url }}/${{ github.repository }}/security/code-scanning"
           {
             echo "## $(status_icon "$job_status") CodeQL analysis"
@@ -64,5 +63,4 @@ jobs:
             echo "| CodeQL initialization | $(status_icon '${{ steps.codeql_init.outcome }}') **${{ steps.codeql_init.outcome }}** |"
             echo "| CodeQL analysis | $(status_icon '${{ steps.codeql_analyze.outcome }}') **${{ steps.codeql_analyze.outcome }}** |"
             echo "| Findings | [Open code scanning results]($code_scanning_url) |"
-            echo "| Run details | [View workflow run]($run_url) |"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -87,6 +87,17 @@ class TestShouldFreezeMovie:
             is True
         )
 
+    def test_old_movie_missing_omdb_data_is_not_frozen(self):
+        assert (
+            should_freeze_movie(
+                self._old_release_date(),
+                last_tmdb_update=datetime.now(UTC),
+                last_omdb_update=None,
+                consecutive_unchanged_cycles=RefreshThresholds.FREEZE_STABLE_CYCLES,
+            )
+            is False
+        )
+
     def test_old_movie_not_yet_stable_is_not_frozen(self):
         assert (
             should_freeze_movie(

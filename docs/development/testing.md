@@ -26,8 +26,8 @@ uv run pytest tests/unit/test_api_usage.py::test_get_remaining_quota
 uv run pytest --cov-report=term-missing
 ```
 
-The default coverage floor is 20 percent. The latest local validation covered 34 tests
-at about 21.7 percent, so the floor is currently a guardrail rather than a claim of
+The default coverage floor is 20 percent. The latest local validation covered 41 tests
+at about 27.8 percent, so the floor is currently a guardrail rather than a claim of
 comprehensive application coverage.
 
 ## Current Test Scope
@@ -36,12 +36,15 @@ comprehensive application coverage.
 tests/
 └── unit/
     ├── test_api_usage.py
+    ├── test_database_foundation.py
     ├── test_refresh_strategy.py
     └── test_the_numbers.py
 ```
 
 - `test_api_usage.py` checks the persistent daily provider-usage ledger with a temporary
   DuckDB database.
+- `test_database_foundation.py` checks migration idempotence, relational constraints,
+  contract validation, the sanitized demo fixture, and manifest registration/hashing.
 - `test_refresh_strategy.py` checks meaningful-change detection and mature-movie freeze
   decisions without I/O or network calls.
 - `test_the_numbers.py` checks title slug generation, candidate URLs, money parsing, and

@@ -11,14 +11,16 @@ Features:
 
 import json
 import logging
-import sys
 from typing import Any, ClassVar
+
+from rich.console import Console
 
 # Tracks the (level, use_json, include_uvicorn) this process was last configured with, so that
 # importing several CLI submodules - each of which calls configure_logging()
 # at import time - doesn't reconfigure handlers or print a duplicate
 # "Logging configured" line once per module.
 _configured_state: tuple[str, bool] | None = None
+logging_console = Console()
 # ===============================================================
 # JSON FORMATTER
 # ===============================================================
@@ -107,6 +109,26 @@ class ChromaDBTelemetryFilter(logging.Filter):
         return "Failed to send telemetry event" not in record.getMessage()
 
 
+class ConsoleLogHandler(logging.Handler):
+    """Write log records through Rich so live displays redraw cleanly."""
+
+    def __init__(self, console: Console):
+        """Initialize the handler with the console used by CLI displays."""
+        super().__init__()
+        self.console = console
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            self.console.print(
+                self.format(record),
+                markup=False,
+                highlight=False,
+                soft_wrap=True,
+            )
+        except Exception:
+            self.handleError(record)
+
+
 # ===============================================================
 # CORE CONFIGURATION FUNCTION
 # ===============================================================
@@ -151,7 +173,7 @@ def configure_logging(
     root.setLevel(level)
     root.handlers.clear()
 
-    handler = logging.StreamHandler(sys.stdout)
+    handler = ConsoleLogHandler(logging_console)
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
