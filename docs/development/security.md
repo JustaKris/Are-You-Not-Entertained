@@ -38,8 +38,13 @@ Monday, and on demand. It:
 - Runs `pip-audit --skip-editable` and keeps it advisory.
 - Uploads JSON reports as the `security-reports` artifact.
 
-CodeQL and dependency review are separate GitHub workflows. Dependabot proposes updates
-to supported dependencies; review those changes together with `uv.lock`.
+CodeQL and dependency review are separate GitHub workflows. The dependency review
+workflow requires the repository's **Dependency graph** to be enabled under **Settings >
+Code security and analysis**. Without that repository setting, GitHub reports that
+dependency review is unsupported and the check fails before it can inspect a pull request.
+
+Dependabot uses the `uv` ecosystem so dependency updates include both `pyproject.toml`
+and `uv.lock`. Review those files together, especially for grouped updates.
 
 ## Secrets
 
