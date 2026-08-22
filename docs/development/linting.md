@@ -56,7 +56,7 @@ Settings in `pyproject.toml`:
 ```toml
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 fix = true
 
 [tool.ruff.lint]
@@ -98,7 +98,7 @@ Settings in `pyproject.toml`:
 
 ```toml
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

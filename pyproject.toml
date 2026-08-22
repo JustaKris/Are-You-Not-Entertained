@@ -1,10 +1,10 @@
 [project]
 name = "ayne"
-version = "0.1.0"
+version = "0.4.0"
 description = "End-to-end machine learning pipeline for movie & TV performance analysis and box-office prediction. Includes data ingestion, preprocessing, model training, experiment tracking, and simple web delivery."
-license = { text = "MIT" }
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.12,<3.15"
 keywords = [
     "machine-learning",
     "data-science",
@@ -24,7 +24,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Framework :: FastAPI",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -66,7 +65,7 @@ dependencies = [
     "pyarrow>=16.1,<17.0",
     "duckdb>=1.4.2",
     # --- CLI ---
-    "typer[all]>=0.12,<1.0",  # Modern CLI with rich support
+    "typer>=0.20,<1.0",  # Modern CLI with rich support
     "rich>=13.0,<14.0",  # Beautiful terminal formatting
 ]
 
@@ -114,7 +113,7 @@ docs = [
 ayne = "ayne.cli.main:app"
 
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel>=0.45.1"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -128,7 +127,7 @@ namespaces = false
 # Ruff configuration
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 fix = true
 exclude = [
     ".git",
@@ -188,7 +187,7 @@ convention = "google"
 
 # mypy configuration
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false

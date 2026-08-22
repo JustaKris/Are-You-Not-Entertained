@@ -48,7 +48,7 @@ Settings in `pyproject.toml`:
 ```toml
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 fix = true
 
 [tool.ruff.format]

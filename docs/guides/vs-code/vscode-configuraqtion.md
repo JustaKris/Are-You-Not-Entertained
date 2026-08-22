@@ -223,7 +223,7 @@ line-length = 100
 
 [tool.black]
 line-length = 100
-target-version = ['py311', 'py312']
+target-version = ['py312', 'py313']
 ```
 
 VS Code automatically reads `pyproject.toml` via Pylance/Python extension, so you don't need special config for Python!
