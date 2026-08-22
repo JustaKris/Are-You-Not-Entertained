@@ -1,0 +1,18 @@
+{
+  "database_path": "data/db/movies.duckdb",
+  "generated_at": "2026-08-22T17:19:08Z",
+  "input_hashes": {},
+  "manifest_id": "32680473da8e4f9ab6dee0ce3855e46f",
+  "manifest_sha256": "98ae09bb76b77550c46736e5b55001f95179a8e0e659059f571cecce6b34f1c8",
+  "manifest_version": 1,
+  "row_counts": {
+    "api_usage_daily": 3,
+    "movie_refresh_state": 0,
+    "movies": 33425,
+    "numbers_movies": 567,
+    "omdb_movies": 11281,
+    "tmdb_movies": 33425
+  },
+  "schema_version": 4,
+  "source_commit": "6339abe2c41e9930ba67fdbf0de70a64fba8f08b"
+}

@@ -179,16 +179,23 @@ config.py
 config/config.yaml
 tmdb_movie_data.csv
 commands.sh
-# *.duckdb
-*.duckdb.wal
+
+# Local DuckDB databases and timestamped backups are environment data.
+data/db/*.duckdb
+data/db/*/*.duckdb
+data/db/*.duckdb.wal
+data/db/**/*.duckdb.wal
+!data/db/.gitkeep
 
 # Data directories (keep structure, ignore content)
 data/raw/*
 data/processed/*
 data/interim/*
+data/artifacts/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/interim/.gitkeep
+!data/artifacts/.gitkeep
 
 # Model artifacts
 models/*.pkl

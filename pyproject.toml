@@ -154,6 +154,9 @@ where = ["src"]
 include = ["ayne*"]
 namespaces = false
 
+[tool.setuptools.package-data]
+"ayne.database.migrations" = ["*.sql"]
+
 # Ruff configuration
 [tool.ruff]
 line-length = 100

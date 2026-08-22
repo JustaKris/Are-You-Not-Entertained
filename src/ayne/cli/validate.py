@@ -6,11 +6,40 @@ from rich.table import Table
 
 from ayne.core.logging import get_logger
 from ayne.database.duckdb_client import DuckDBClient
+from ayne.database.validation import ValidationReport, validate_database
 
 app = typer.Typer(help="Data validation and quality checks")
 console = Console()
 
 logger = get_logger(__name__)
+
+FRESHNESS_WARNING_CODES = {
+    "STALE_TMDB",
+    "STALE_OMDB",
+    "FUTURE_UPDATE_TIMESTAMP",
+}
+
+
+def _percentage(part: int, total: int) -> float:
+    """Return a safe percentage for empty datasets."""
+    return 100.0 * part / total if total else 0.0
+
+
+def _print_database_report(report: ValidationReport) -> None:
+    """Print database validation findings."""
+    table = Table(title=f"Database Contract (schema v{report.schema_version})", show_header=True)
+    table.add_column("Severity")
+    table.add_column("Code")
+    table.add_column("Finding")
+    table.add_column("Rows", justify="right")
+
+    if not report.issues:
+        table.add_row("[green]PASS[/green]", "-", "No findings", "0")
+    else:
+        for issue in report.issues:
+            severity = "[red]ERROR[/red]" if issue.severity == "error" else "[yellow]WARN[/yellow]"
+            table.add_row(severity, issue.code, issue.message, f"{issue.count:,}")
+    console.print(table)
 
 
 @app.command("tmdb")
@@ -40,7 +69,7 @@ def validate_tmdb(
         ).iloc[0]["count"]
 
         console.print(f"Total movies: {total:,}")
-        console.print(f"With TMDB data: {with_tmdb:,} ({with_tmdb / total * 100:.1f}%)\n")
+        console.print(f"With TMDB data: {with_tmdb:,} ({_percentage(with_tmdb, total):.1f}%)\n")
 
         # Validation checks
         checks = []
@@ -77,7 +106,7 @@ def validate_tmdb(
               AND DATEDIFF('day', last_tmdb_update, CURRENT_DATE) > 90
         """
         ).iloc[0]["count"]
-        checks.append(("Stale data (>90 days)", stale_data, stale_data < total * 0.1))
+        checks.append(("Stale data (>90 days)", stale_data, total == 0 or stale_data < total * 0.1))
 
         # Display results
         results_table = Table(title="Validation Results", show_header=True)
@@ -145,8 +174,8 @@ def validate_imdb(
         ).iloc[0]["count"]
 
         console.print(f"Total movies: {total:,}")
-        console.print(f"With IMDb ID: {with_imdb_id:,} ({with_imdb_id / total * 100:.1f}%)")
-        console.print(f"With OMDB data: {with_omdb:,} ({with_omdb / total * 100:.1f}%)\n")
+        console.print(f"With IMDb ID: {with_imdb_id:,} ({_percentage(with_imdb_id, total):.1f}%)")
+        console.print(f"With OMDB data: {with_omdb:,} ({_percentage(with_omdb, total):.1f}%)\n")
 
         # Validation checks
         checks = []
@@ -155,7 +184,7 @@ def validate_imdb(
         missing_imdb = db.query("SELECT COUNT(*) as count FROM movies WHERE imdb_id IS NULL").iloc[
             0
         ]["count"]
-        checks.append(("Missing IMDb IDs", missing_imdb, missing_imdb < total * 0.1))
+        checks.append(("Missing IMDb IDs", missing_imdb, total == 0 or missing_imdb < total * 0.1))
 
         # Check 2: Invalid IMDb ratings
         invalid_rating = db.query(
@@ -186,7 +215,11 @@ def validate_imdb(
         """
         ).iloc[0]["count"]
         checks.append(
-            ("Unprocessed (have ID, no data)", unprocessed, unprocessed < with_imdb_id * 0.1)
+            (
+                "Unprocessed (have ID, no data)",
+                unprocessed,
+                with_imdb_id == 0 or unprocessed < with_imdb_id * 0.1,
+            )
         )
 
         # Check 5: Stale OMDB data (>180 days)
@@ -197,7 +230,9 @@ def validate_imdb(
               AND DATEDIFF('day', last_omdb_update, CURRENT_DATE) > 180
         """
         ).iloc[0]["count"]
-        checks.append(("Stale data (>180 days)", stale_data, stale_data < with_omdb * 0.2))
+        checks.append(
+            ("Stale data (>180 days)", stale_data, with_omdb == 0 or stale_data < with_omdb * 0.2)
+        )
 
         # Display results
         results_table = Table(title="Validation Results", show_header=True)
@@ -256,6 +291,9 @@ def validate_all(
     """
     console.print("[bold cyan]Comprehensive Data Validation[/bold cyan]\n")
 
+    console.print("[bold]Database Contract Validation:[/bold]")
+    validate_database_quality(strict_freshness=False)
+
     # Run TMDB validation
     console.print("[bold]TMDB Validation:[/bold]")
     validate_tmdb(verbose=verbose)
@@ -267,3 +305,39 @@ def validate_all(
     validate_imdb(verbose=verbose)
 
     console.print("\n[green]✓ All validation checks complete[/green]")
+
+
+@app.command("database")
+def validate_database_quality(
+    strict_freshness: bool = typer.Option(
+        False,
+        "--strict-freshness",
+        help="Treat stale-data warnings as blocking failures",
+    ),
+) -> None:
+    """Validate schema, contracts, relationships, domain ranges, and freshness."""
+    db = DuckDBClient()
+    try:
+        report = validate_database(db._conn)
+        _print_database_report(report)
+        freshness_warnings = [
+            issue for issue in report.warnings if issue.code in FRESHNESS_WARNING_CODES
+        ]
+        if report.errors:
+            console.print(f"[red]✗ Database validation failed: {len(report.errors)} error(s)[/red]")
+            raise typer.Exit(code=1)
+        if strict_freshness and freshness_warnings:
+            console.print(
+                "[red]✗ Strict freshness validation failed: "
+                f"{len(freshness_warnings)} stale-data finding(s)[/red]"
+            )
+            raise typer.Exit(code=1)
+        console.print("[green]✓ Database validation passed[/green]")
+    except typer.Exit:
+        raise
+    except Exception as exc:
+        console.print(f"[red]Database validation failed:[/red] {exc}")
+        logger.error("Database validation failed", exc_info=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        db.close()
