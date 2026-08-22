@@ -19,23 +19,23 @@ sources with engineering practices that make a growing dataset easier to trust a
 
 - :material-source-branch: **Explicit pipeline boundaries**
 
-  Discovery, detail enrichment, refresh decisions, and analysis are separate stages with
-  inspectable inputs and outputs.
+    Discovery, detail enrichment, refresh decisions, and analysis are separate stages with
+    inspectable inputs and outputs.
 
 - :material-timer-outline: **Responsible provider integration**
 
-  Async HTTP clients share pacing, bounded retries, and persistent usage tracking so quota
-  behavior remains part of the design.
+    Async HTTP clients share pacing, bounded retries, and persistent usage tracking so quota
+    behavior remains part of the design.
 
 - :material-database-outline: **Analysis-ready storage**
 
-  DuckDB keeps source tables, identity, and refresh state queryable without requiring a
-  database server.
+    DuckDB keeps source tables, identity, and refresh state queryable without requiring a
+    database server.
 
 - :material-test-tube: **Reproducible development**
 
-  Typed Python, focused tests, notebooks, validation commands, and locked dependencies make
-  the project straightforward to inspect and rerun.
+    Typed Python, focused tests, notebooks, validation commands, and locked dependencies make
+    the project straightforward to inspect and rerun.
 
 </div>
 
