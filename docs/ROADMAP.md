@@ -8,19 +8,19 @@ The roadmap is dependency-aware, not strictly sequential. The chatbot and deploy
 
 ## Starting Point
 
-The project currently collects data asynchronously from TMDB, OMDB, and The Numbers, stores it in `data/db/movies.duckdb`, and provides CLI commands for collection, database management, and validation. The database schema is defined in `src/ayne/database/schema.sql`, with query helpers available for analysis.
+The project currently collects data asynchronously from TMDB, OMDB, and The Numbers, stores it in `data/db/movies.duckdb`, and provides CLI commands for collection, database management, and validation. The database schema is defined by numbered migrations in `src/ayne/database/migrations/`, with query helpers available for analysis.
 
 ## Recommended Order
 
-### 1. Data foundation
+### 1. Data foundation (complete)
 
 Establish the contracts that allow every later component to evolve safely.
 
-- Add numbered DuckDB migrations and a schema version table
-- Define the movie, ratings, and box-office data contract, including identifiers, types, and null behavior
-- Strengthen schema, relational-integrity, freshness, and domain-quality checks
-- Keep a small sanitized demo database or fixture in Git
-- Record dataset manifests with schema version, source commit, generation time, row counts, and input hashes
+- [x] Add numbered DuckDB migrations and a schema version table
+- [x] Define the movie, ratings, and box-office data contract, including identifiers, types, and null behavior
+- [x] Strengthen schema, relational-integrity, freshness, and domain-quality checks
+- [x] Keep a small sanitized demo database or fixture in Git
+- [x] Record dataset manifests with schema version, source commit, generation time, row counts, and input hashes
 
 **Outcome:** A reproducible, inspectable data source for local development and tests.
 

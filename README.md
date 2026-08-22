@@ -21,7 +21,9 @@ surfaces remain planned extensions.
 - **Automated Data Collection**: Async provider clients with staged discovery, detail
   enrichment, refresh strategies, bounded retries, and provider-aware rate limiting
 - **Database-Centric Architecture**: DuckDB source tables for movie identity, TMDB, OMDB,
-  The Numbers, refresh state, and persistent daily API usage
+  The Numbers, refresh state, persistent daily API usage, and numbered schema migrations
+- **Data Contracts And Quality**: Enforced identifiers and numeric ranges, relational
+  integrity checks, freshness warnings, and reproducible dataset manifests
 - **Modern Python Practices**: Type hints, Pydantic settings, structured logging, a
   `src/ayne` package layout, and a Typer/Rich command-line interface
 - **Analysis Ready**: Query helpers that join source tables into pandas DataFrames for
@@ -33,8 +35,6 @@ surfaces remain planned extensions.
 
 - **Grounded Movie Analysis Agent**: Read-only, bounded query tools that return evidence
   from the movie dataset through a configurable workflow
-- **Data Contracts And Quality**: Versioned schemas, stronger freshness and domain checks,
-  and dataset manifests for reproducible releases
 - **API And Local Kubernetes Delivery**: A small FastAPI service with health checks,
   container packaging, and a documented local deployment path
 - **Predictive Modeling**: Feature engineering, model evaluation, and experiment tracking
@@ -94,8 +94,18 @@ The default database is `data/db/movies.duckdb`. Initialize it before collecting
 ```powershell
 uv run ayne db init
 uv run ayne db test
+uv run ayne validate database
 uv run ayne db stats
 ```
+
+Before rebuilding or performing destructive database maintenance, create a timestamped
+local backup:
+
+```powershell
+uv run ayne db backup
+```
+
+Backups are stored under `data/db/archive/` and are intentionally not tracked in Git.
 
 ### 🌱 Start With An Empty Database
 
@@ -117,7 +127,20 @@ uv run ayne numbers enrich --max-movies 250
 
 # Check database and source-level data quality
 uv run ayne db stats
+uv run ayne validate database
 uv run ayne validate all
+```
+
+Create the small committed demo database without API keys or network access:
+
+```powershell
+uv run ayne db seed-demo --output data/db/demo.duckdb
+```
+
+After a collection run, record its reproducibility metadata:
+
+```powershell
+uv run ayne db manifest
 ```
 
 Use `--dry-run` before a larger collection, and keep limits aligned with the providers'
@@ -216,6 +239,8 @@ Are-You-Not-Entertained/
 │   └── web/               # Web extension point
 ├── tests/unit/            # Focused tests for collection and refresh behavior
 ├── data/                  # Database, raw, processed, and generated artifacts
+│   ├── fixtures/           # Sanitized demo fixture
+│   └── manifests/          # Dataset reproducibility records
 ├── notebooks/             # Exploratory analysis and modeling notebooks
 ├── scripts/               # Maintenance and audit utilities
 ├── configs/               # Development, staging, and production settings

@@ -27,6 +27,7 @@ Create the local schema before collecting data:
 ```powershell
 uv run ayne db init
 uv run ayne db test
+uv run ayne validate database
 ```
 
 The database contains the `movies` identity table, source tables for TMDB, OMDB, and
@@ -94,6 +95,11 @@ uv run ayne collect daily
 uv run ayne collect daily --tmdb-refresh 200 --omdb-limit 500
 ```
 
+The command displays a live Rich progress bar while TMDB and OMDB requests are running.
+Planning and candidate-selection stages appear as status text; request stages show
+completed and total counts. A run already in progress must be restarted to use this
+display because command behavior is loaded when the process starts.
+
 Enable discovery when a run should also find new movies:
 
 ```powershell
@@ -142,6 +148,8 @@ uv run ayne tmdb update --max-movies 100 --max-pages 2
 uv run ayne tmdb enrich --max-movies 100
 uv run ayne omdb enrich --max-movies 50
 uv run ayne db stats
+uv run ayne validate database
+uv run ayne db manifest
 ```
 
 Use `--dry-run` before increasing limits, inspect `ayne db stats` between stages, and

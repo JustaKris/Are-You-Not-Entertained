@@ -52,6 +52,8 @@ uv run ayne tmdb update --min-year 2020 --max-year 2024 --max-movies 100
 uv run ayne tmdb enrich --limit 100
 uv run ayne omdb enrich --max-movies 100
 uv run ayne db stats
+uv run ayne validate database
+uv run ayne db manifest
 uv run ayne validate all
 ```
 

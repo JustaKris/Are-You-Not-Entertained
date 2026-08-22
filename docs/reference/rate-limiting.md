@@ -6,15 +6,16 @@ semaphore to bound in-flight requests.
 
 ## Provider Defaults
 
-| Client | Requests per second | Maximum concurrent requests |
-| --- | ---: | ---: |
-| TMDB | `4.0` | `10` |
-| OMDB | `2.0` | `5` |
-| The Numbers | `settings.numbers_requests_per_second` (default `1`) | `1` |
+| Client | Requests per second | Delay between requests | Maximum concurrent requests |
+| --- | ---: | ---: | ---: |
+| TMDB | `4.0` | `0.25s` | `10` |
+| OMDB | `2.0` | `0.5s` | `5` |
+| The Numbers | `settings.numbers_requests_per_second` (default `1.0`) | `1 / rate` (`1.0s` by default) | `1` |
 
 The The Numbers defaults are intentionally conservative because the client scrapes
 public HTML pages and has no official API. Its CLI also limits the number of movies per
-run through `numbers_max_movies`.
+run through `numbers_max_movies`. Adjust `numbers_requests_per_second` in the selected
+file under `configs/`; for example, `0.15` gives approximately `6.7s` between requests.
 
 ## Request Limiter
 

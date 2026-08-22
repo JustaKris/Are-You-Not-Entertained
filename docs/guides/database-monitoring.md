@@ -347,13 +347,22 @@ AND last_omdb_update IS NOT NULL
 AND last_full_refresh IS NULL;
 ```
 
-**Solution**: Run the migration to backfill:
+**Solution**: Run the canonical database validator:
 
 ```powershell
-uv run python scripts/migration_add_unchanged_counter.py
+uv run ayne validate database
 ```
 
-Or manually:
+Structural, relationship, and domain findings are blocking errors. Stale TMDB and OMDB
+records are warnings by default because old historical data can still be valid. Treat
+freshness warnings as failures for a release check:
+
+```powershell
+uv run ayne validate database --strict-freshness
+```
+
+For a specific finding, use the code in the validation table to choose a focused query.
+For example, to inspect missing full-refresh flags:
 
 ```sql
 UPDATE movies
@@ -362,6 +371,9 @@ WHERE last_tmdb_update IS NOT NULL
 AND last_omdb_update IS NOT NULL
 AND last_full_refresh IS NULL;
 ```
+
+Do not patch the schema manually. If the finding is caused by a schema change, add a
+numbered migration under `src/ayne/database/migrations/` and run `uv run ayne db migrate`.
 
 ### Issue: Low Enrichment Coverage
 

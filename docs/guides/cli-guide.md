@@ -61,6 +61,7 @@ ayne omdb enrich --max-movies 500
 ayne collect daily
 
 # Validate data quality
+ayne validate database
 ayne validate all
 ```
 
@@ -68,17 +69,24 @@ ayne validate all
 
 ### Initialize Database
 
-Create database schema and tables:
+Initialize the database and apply all pending migrations:
 
 ```powershell
 # Standard initialization
 ayne db init
 
-# Force re-initialization (drops existing tables)
+# Rebuild from zero (drops all configured database tables)
 ayne db init --force
 
-# Preview what would be created
+# Preview the migration sequence without changing the database
 ayne db init --dry-run
+```
+
+The migration ledger is stored in `schema_migrations`. Use the explicit migration
+command to inspect applied versions and checksums:
+
+```powershell
+ayne db migrate
 ```
 
 ### Test Database
@@ -100,6 +108,53 @@ Display database statistics:
 ```powershell
 ayne db stats
 ```
+
+### Validate The Database Contract
+
+Run structural, relationship, domain, and freshness checks:
+
+```powershell
+# Errors fail the command; stale data is reported as a warning
+ayne validate database
+
+# Treat stale TMDB and OMDB records as failures too
+ayne validate database --strict-freshness
+```
+
+### Create A Demo Database
+
+Build a small sanitized database from the committed fixture without provider credentials:
+
+```powershell
+ayne db seed-demo --output data/db/demo.duckdb
+```
+
+Use `--force` to replace an existing demo database.
+
+### Back Up The Local Database
+
+Create a timestamped local backup before rebuilding the database or running another
+destructive maintenance operation:
+
+```powershell
+ayne db backup
+```
+
+The default destination is `data/db/archive/` with a UTC timestamp in the filename. Use
+`--output` to provide an explicit backup file path. Live databases and backups are local
+environment data and are ignored by Git; use `data/fixtures/demo.sql` for the committed
+sanitized database source.
+
+### Record A Dataset Manifest
+
+Record the schema version, Git commit, table row counts, and hashes of files under
+`data/raw/`:
+
+```powershell
+ayne db manifest
+```
+
+The JSON manifest is written to `data/manifests/` and registered in the database.
 
 ## TMDB Commands
 
@@ -422,6 +477,13 @@ ayne collect daily --dry-run
 - `--discover` - Also discover new movies
 - `--discover-limit N` - Limit for discovery
 - `--include-frozen` - Include frozen movies in refresh (force refresh)
+
+During a live refresh, Rich reports the current stage and request progress. You will see
+planning and candidate-selection stages followed by `Refreshing TMDB` and `Refreshing OMDB`
+bars such as `42/100`. The combined workflow only displays the final summary after all
+selected stages finish, so a command started before this progress support was installed
+must be stopped and started again to show the bars.
+
 - `--dry-run` - Preview without changes
 
 **Use Case:** Schedule this command to run daily with Windows Task Scheduler. Use
@@ -503,7 +565,7 @@ ayne validate imdb --verbose
 
 ### Validate All
 
-Run comprehensive validation:
+Run database contract validation followed by the TMDB and OMDB checks:
 
 ```powershell
 # Validate everything
@@ -619,7 +681,7 @@ Always use `--dry-run` when:
 # Safe exploration
 ayne tmdb update --full --dry-run
 ayne collect daily --discover --dry-run
-ayne db init --force --dry-run
+ayne db init --dry-run
 ```
 
 ## Error Handling
