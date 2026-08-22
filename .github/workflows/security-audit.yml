@@ -40,15 +40,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -73,7 +73,8 @@ jobs:
           uv run pip-audit --skip-editable --format=json --output=pip-audit.json
 
       - name: Upload security reports
-        uses: actions/upload-artifact@v4
+        id: upload_security_reports
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: security-reports
@@ -86,13 +87,30 @@ jobs:
       - name: Publish job summary
         if: always()
         run: |
+          status_icon() {
+            case "$1" in
+              success) echo "✅" ;;
+              failure) echo "❌" ;;
+              cancelled) echo "⏹️" ;;
+              skipped) echo "⏭️" ;;
+              *) echo "⚠️" ;;
+            esac
+          }
+          job_status="${{ job.status }}"
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          report_artifact_url="${{ steps.upload_security_reports.outputs.artifact-url }}"
           {
-            echo "## Security audit"
+            echo "## $(status_icon "$job_status") Security audit"
             echo ""
             echo "| Check | Result |"
             echo "| --- | --- |"
-            echo "| Job | **${{ job.status }}** |"
-            echo "| Bandit | ${{ steps.bandit.outcome }} |"
-            echo "| pip-audit | ${{ steps.pip_audit.outcome }} (advisory) |"
-            echo "| Reports | security-reports artifact |"
+            echo "| Job | $(status_icon "$job_status") **$job_status** |"
+            echo "| Bandit | $(status_icon '${{ steps.bandit.outcome }}') **${{ steps.bandit.outcome }}** |"
+            echo "| pip-audit | $(status_icon '${{ steps.pip_audit.outcome }}') **${{ steps.pip_audit.outcome }}** (advisory) |"
+            if [ -n "$report_artifact_url" ]; then
+              echo "| Reports | [Download security reports]($report_artifact_url) |"
+            else
+              echo "| Reports | [View workflow artifacts]($run_url#artifacts) |"
+            fi
+            echo "| Run details | [View workflow run]($run_url) |"
           } >> "$GITHUB_STEP_SUMMARY"

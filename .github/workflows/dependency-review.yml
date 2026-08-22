@@ -18,9 +18,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Review dependency changes
-        uses: actions/dependency-review-action@v4
+        id: dependency_review
+        uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          status_icon() {
+            case "$1" in
+              success) echo "✅" ;;
+              failure) echo "❌" ;;
+              cancelled) echo "⏹️" ;;
+              skipped) echo "⏭️" ;;
+              *) echo "⚠️" ;;
+            esac
+          }
+          job_status="${{ job.status }}"
+          review_status="${{ steps.dependency_review.outcome }}"
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          dependency_graph_url="${{ github.server_url }}/${{ github.repository }}/network/dependencies"
+          {
+            echo "## $(status_icon "$job_status") Dependency review"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Job | $(status_icon "$job_status") **$job_status** |"
+            echo "| Dependency review | $(status_icon "$review_status") **$review_status** |"
+            echo "| Dependency graph | [Browse repository dependencies]($dependency_graph_url) |"
+            echo "| Run details | [View workflow run]($run_url) |"
+          } >> "$GITHUB_STEP_SUMMARY"

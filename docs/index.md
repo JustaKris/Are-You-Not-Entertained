@@ -1,117 +1,105 @@
-# Are You Not Entertained?
+# Are You Not Entertained? { .ayne-hero-title }
 
-> A modern data science project for movie box office analysis and prediction, built with production-grade Python practices.
+<div class="ayne-hero">
+<p class="ayne-kicker">MOVIE DATA ENGINEERING / ANALYSIS FOUNDATION</p>
+<p class="ayne-lede">A reproducible movie data pipeline built around asynchronous provider integration, deliberate quota controls, staged enrichment, and analytical storage.</p>
+<p class="ayne-detail">AYNE makes the work behind a dataset visible: collection boundaries are explicit, failures can be recovered, and the same data can be queried again tomorrow.</p>
+<div class="ayne-actions">
+<a class="md-button md-button--primary" href="guides/data-collection-workflow/">Start with the workflow</a>
+<a class="md-button" href="explanation/architecture/">Read the architecture</a>
+</div>
+</div>
 
-## Overview
+## What This Project Shows
 
-**Are You Not Entertained?** (AYNE) analyzes movie performance using data from multiple sources (TMDB, OMDB, The Numbers). The project features automated data collection, a DuckDB database for efficient analytics, and prepares the groundwork for predictive modeling pipelines.
+AYNE is a working data foundation before it is a product shell. It combines public movie
+sources with engineering practices that make a growing dataset easier to trust and extend.
 
-## Key Features
+<div class="grid cards" markdown>
 
-### ✅ Current Features
+- :material-source-branch: **Explicit pipeline boundaries**
 
-- **Automated Data Collection**: Async API clients with intelligent refresh strategies
-- **Database-Centric Architecture**: DuckDB for fast analytical queries
-- **Modern Python Practices**: Type hints, Pydantic settings, structured logging
-- **Data Analysis Ready**: Query utilities for Jupyter notebooks
-- **Optimized Performance**: 5-8x faster collection with rate limiting and caching
+  Discovery, detail enrichment, refresh decisions, and analysis are separate stages with
+  inspectable inputs and outputs.
 
-### 🚧 Coming Soon
+- :material-timer-outline: **Responsible provider integration**
 
-- **Predictive Modeling**: Revenue forecasting and success prediction models
-- **Analysis Notebooks**: Genre trends, director performance, temporal patterns
-- **REST API**: Single movie performance metrics and analysis endpoints
+  Async HTTP clients share pacing, bounded retries, and persistent usage tracking so quota
+  behavior remains part of the design.
 
-## Tech Stack
+- :material-database-outline: **Analysis-ready storage**
 
-- **Python 3.12+** with modern async/await patterns
-- **DuckDB** for analytical database
-- **httpx** for async HTTP requests
-- **Pydantic** for configuration management
-- **pandas** for data manipulation
-- **Jupyter** for exploratory analysis
+  DuckDB keeps source tables, identity, and refresh state queryable without requiring a
+  database server.
 
-## Quick Links
+- :material-test-tube: **Reproducible development**
 
-### Getting Started
+  Typed Python, focused tests, notebooks, validation commands, and locked dependencies make
+  the project straightforward to inspect and rerun.
 
-- **[CLI Guide](guides/cli-guide.md)** - Complete command-line interface reference
-- **[Quick Start Guide](guides/data-collection-quick-reference.md)** - Common data collection commands and workflows
-- **[Pre-Commit Guide](guides/pre-commit-guide.md)** - Set up code quality tools
+</div>
 
-### Core Documentation
+## Daily Use
 
-- **[Architecture Overview](reference/architecture.md)** - System design and components
-- **[Data Collection Workflow](reference/data-collection-workflow.md)** - How data collection works
-- **[Data Collection Filtering](reference/data-collection-filtering.md)** - Configure filters and collection limits
-- **[Refresh Strategy](reference/refresh-strategy.md)** - Intelligent data refresh logic
-- **[Database Monitoring](guides/database-monitoring.md)** - Monitor health and audit data quality
-- **[Development Guides](development/code-style.md)** - Code style and best practices
+The normal workflow is deliberately bounded. Initialize the database, collect a small
+sample, inspect the result, then increase limits only when the data looks right.
 
-## Getting Started
-
-### Prerequisites
-
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/) package manager
-- API keys for TMDB and OMDB
-
-### Installation
-
-```bash
-# Clone repository
-git clone https://github.com/JustaKris/Are-You-Not-Entertained.git
-cd Are-You-Not-Entertained
-
-# Install dependencies
-uv venv
-uv pip install -e "."
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your API keys
+```powershell
+uv sync --group dev
+Copy-Item .env.example .env
+uv run ayne db init
+uv run ayne tmdb update --min-year 2020 --max-year 2024 --max-movies 100
+uv run ayne tmdb enrich --limit 100
+uv run ayne omdb enrich --max-movies 100
+uv run ayne db stats
+uv run ayne validate all
 ```
 
-### Basic Usage
+Use `ayne collect daily` for routine refreshes and `--dry-run` to preview supported
+operations. The [CLI Guide](guides/cli-guide.md) covers command options, while the
+[Data Collection Workflow](guides/data-collection-workflow.md) explains the stages and
+their dependencies.
 
-```bash
-# Initialize database
-ayne db init
+!!! note "Windows-first examples"
+    Commands in this site use Windows PowerShell syntax because that is the supported local
+    workflow for this project. The Python package and `uv` commands remain cross-platform.
 
-# Discover movies from TMDB
-ayne tmdb update --max-movies 1000
+## Development
 
-# Enrich with OMDB data
-ayne omdb update --max-movies 500
+The contributor path is intentionally close to the daily path: make a focused change, run
+its narrow check, then run the complete quality set before sharing it.
 
-# Run daily refresh workflow
-ayne collect daily
+- [Code Quality](development/code-quality.md) - Ruff, mypy, Markdown checks, and CI
+- [Testing](development/testing.md) - pytest, coverage, and the current test scope
+- [Security](development/security.md) - Bandit, pip-audit, and secret handling
+- [Logging](development/logging.md) - Console and JSON logging conventions
+- [Pre-Commit Guide](guides/pre-commit-guide.md) - Local hook setup and troubleshooting
+- [Git Workflow](guides/git-guide.md) - Branching, commits, pull requests, and recovery
+- [VS Code Quickstart](guides/vs-code/vscode-quickstart.md) - Windows editor setup
 
-# Validate data quality
-ayne validate all
+Run the complete local quality set from the repository root:
+
+```powershell
+uv run ruff format --check src/ scripts/ tests/
+uv run ruff check src/ scripts/ tests/
+uv run mypy
+uv run pytest
+uv run pymarkdown scan docs/ README.md
+uv run mkdocs build --strict
 ```
 
-See the [CLI Guide](guides/cli-guide.md) for complete documentation.
+## Explore The System
 
-## Project Structure
+- [Architecture](explanation/architecture.md) - Package boundaries and runtime flow
+- [Database](reference/database.md) - DuckDB schema and table responsibilities
+- [Data Collection Filtering](reference/data-collection-filtering.md) - Filters, limits, and overrides
+- [Rate Limiting](reference/rate-limiting.md) - Pacing, retries, and provider constraints
+- [Utilities Guide](guides/utilities-guide.md) - Query and I/O helpers for analysis
+- [Technical Decisions](explanation/technical-decisions.md) - The reasoning behind major choices
 
-```
-Are-You-Not-Entertained/
-├── src/
-│   ├── core/              # Core utilities (config, logging)
-│   ├── data_collection/   # API clients and data collection
-│   ├── database/          # DuckDB client and schema
-│   └── data/              # Query utilities
-├── scripts/               # Executable scripts
-├── notebooks/             # Jupyter analysis notebooks
-├── docs/                  # Documentation
-└── tests/                 # Test suite
-```
+## Project Status
 
-## Contributing
-
-This is a personal learning project, but suggestions and feedback are welcome! Please check the development guides for code style and contribution guidelines.
-
-## License
-
-MIT License - see [LICENSE](https://github.com/JustaKris/Are-You-Not-Entertained/blob/main/LICENSE) file for details.
+The data collection and database workflow is the active, supported surface. The `ml`,
+`api`, and `web` packages provide room for future work described in the
+[roadmap](ROADMAP.md); their presence should not be read as a claim that those services are
+complete.

@@ -1,0 +1,202 @@
+:root {
+  --ayne-crimson: #8d1f2d;
+  --ayne-crimson-deep: #62121d;
+  --ayne-crimson-soft: #b13b46;
+  --ayne-bronze: #98602f;
+  --ayne-paper: #f7f2ee;
+  --ayne-paper-deep: #ede3dc;
+  --ayne-ink: #241b1d;
+  --ayne-ink-muted: #66595a;
+  --md-primary-fg-color: var(--ayne-crimson);
+  --md-primary-fg-color--light: var(--ayne-crimson-soft);
+  --md-primary-fg-color--dark: var(--ayne-crimson-deep);
+  --md-accent-fg-color: var(--ayne-bronze);
+  --md-typeset-a-color: var(--ayne-crimson);
+  --md-code-bg-color: #eee7e2;
+}
+
+[data-md-color-scheme="default"] {
+  --md-default-bg-color: var(--ayne-paper);
+  --md-default-bg-color--light: #fcf9f7;
+  --md-default-fg-color: var(--ayne-ink);
+  --md-default-fg-color--light: var(--ayne-ink-muted);
+  --md-footer-bg-color: var(--ayne-ink);
+  --md-footer-fg-color: #f7f2ee;
+}
+
+[data-md-color-scheme="slate"] {
+  --ayne-night: #171315;
+  --ayne-night-raised: #211a1c;
+  --ayne-night-border: #49363a;
+  --md-default-bg-color: var(--ayne-night);
+  --md-default-bg-color--light: var(--ayne-night-raised);
+  --md-default-fg-color: #f3e9e4;
+  --md-default-fg-color--light: #cdbfba;
+  --md-code-bg-color: #211a1c;
+  --md-typeset-a-color: #e5a17d;
+  --md-accent-fg-color: #e5a17d;
+  --md-footer-bg-color: #100d0e;
+  --md-footer-fg-color: #f3e9e4;
+}
+
+body {
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.md-header {
+  background: linear-gradient(105deg, var(--ayne-crimson-deep), var(--ayne-crimson));
+}
+
+.md-tabs {
+  background: var(--ayne-crimson-deep);
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  letter-spacing: 0;
+}
+
+.md-typeset h1 {
+  color: var(--ayne-crimson);
+  font-size: 2.75rem;
+  font-weight: 700;
+}
+
+[data-md-color-scheme="slate"] .md-typeset h1 {
+  color: #f0b092;
+}
+
+.md-typeset h2 {
+  border-bottom: 1px solid color-mix(in srgb, var(--md-default-fg-color) 16%, transparent);
+  padding-bottom: 0.35rem;
+}
+
+.md-typeset a {
+  text-underline-offset: 0.16em;
+}
+
+.md-typeset h1.ayne-hero-title {
+  background: linear-gradient(120deg, var(--ayne-paper-deep) 0%, var(--ayne-paper) 58%, #f4e6df 100%);
+  border: 1px solid #d7c3b9;
+  border-top: 6px solid var(--ayne-crimson);
+  border-bottom: 0;
+  box-shadow: 0 14px 34px rgba(53, 25, 29, 0.1);
+  margin: 0;
+  padding: 3.4rem 3.5rem 0.8rem;
+}
+
+[data-md-color-scheme="slate"] .md-typeset h1.ayne-hero-title {
+  background: linear-gradient(120deg, #211a1c 0%, #191517 58%, #2c1b1d 100%);
+  border-color: var(--ayne-night-border);
+  border-bottom: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+.ayne-hero {
+  background: linear-gradient(120deg, var(--ayne-paper-deep) 0%, var(--ayne-paper) 58%, #f4e6df 100%);
+  border: 1px solid #d7c3b9;
+  border-top: 0;
+  box-shadow: 0 14px 34px rgba(53, 25, 29, 0.1);
+  margin: 0 0 3rem;
+  padding: 0 3.5rem 3.1rem;
+}
+
+[data-md-color-scheme="slate"] .ayne-hero {
+  background: linear-gradient(120deg, #211a1c 0%, #191517 58%, #2c1b1d 100%);
+  border-color: var(--ayne-night-border);
+  border-top: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+.ayne-kicker {
+  color: var(--ayne-bronze);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0 0 1.1rem;
+}
+
+.ayne-lede {
+  font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 46rem;
+}
+
+.ayne-detail {
+  color: var(--ayne-ink-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 1.25rem 0 0;
+  max-width: 42rem;
+}
+
+[data-md-color-scheme="slate"] .ayne-detail {
+  color: #cdbfba;
+}
+
+.ayne-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 2rem;
+}
+
+.ayne-actions .md-button {
+  border-color: var(--ayne-crimson);
+  color: var(--ayne-crimson);
+}
+
+.ayne-actions .md-button--primary {
+  background: var(--ayne-crimson);
+  color: #fff;
+}
+
+[data-md-color-scheme="slate"] .ayne-actions .md-button {
+  border-color: #e5a17d;
+  color: #f0b092;
+}
+
+[data-md-color-scheme="slate"] .ayne-actions .md-button--primary {
+  background: #a52a38;
+  color: #fff;
+}
+
+.md-typeset .grid.cards > ul > li {
+  background: color-mix(in srgb, var(--md-default-bg-color--light) 72%, transparent);
+  border-color: color-mix(in srgb, var(--ayne-crimson) 22%, var(--md-default-bg-color));
+  border-radius: 6px;
+  box-shadow: 0 5px 14px rgba(53, 25, 29, 0.05);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li {
+  background: var(--ayne-night-raised);
+  border-color: var(--ayne-night-border);
+  box-shadow: none;
+}
+
+.md-typeset .grid.cards > ul > li > hr {
+  border-color: color-mix(in srgb, var(--ayne-crimson) 25%, transparent);
+}
+
+@media screen and (max-width: 600px) {
+  .ayne-hero {
+    margin-left: -0.2rem;
+    margin-right: -0.2rem;
+    padding: 0 1.4rem 2.1rem;
+  }
+
+  .md-typeset h1.ayne-hero-title {
+    font-size: 2.65rem;
+    margin-left: -0.2rem;
+    margin-right: -0.2rem;
+    padding: 2.3rem 1.4rem 0.7rem;
+  }
+
+  .ayne-lede {
+    font-size: 1.15rem;
+  }
+}

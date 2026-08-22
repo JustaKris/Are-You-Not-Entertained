@@ -310,7 +310,7 @@ db.execute(
 You can force refresh of frozen movies when needed:
 
 **Via CLI:**
-```bash
+```powershell
 # Include frozen movies in daily refresh
 ayne collect daily --include-frozen
 
@@ -471,7 +471,7 @@ def calculate_refresh_plan(movie: Dict[str, Any]) -> Dict[str, bool]:
 
 ### CLI Commands with Data Source Filtering
 
-```bash
+```powershell
 # TMDB refresh - only queries movies needing TMDB updates
 ayne tmdb refresh --limit 100 --min-year 2024
 
@@ -733,7 +733,7 @@ WHERE last_full_refresh IS NULL;
 
 ## Related Documentation
 
-- [Data Collection Workflow](data-collection-workflow.md) - Overall collection process
+- [Data Collection Workflow](../guides/data-collection-workflow.md) - Overall collection process
 - [TMDB Client](tmdb-client.md) - TMDB API details
 - [OMDB Client](omdb-client.md) - OMDB API details
 - [Data Orchestration](orchestration.md) - Orchestrator implementation

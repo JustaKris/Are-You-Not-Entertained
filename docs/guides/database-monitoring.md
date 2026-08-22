@@ -329,7 +329,7 @@ GROUP BY age_category;
 
 3. **Force refresh frozen movies**:
 
-   ```bash
+   ```powershell
    ayne collect daily --include-frozen
    ```
 
@@ -349,7 +349,7 @@ AND last_full_refresh IS NULL;
 
 **Solution**: Run the migration to backfill:
 
-```bash
+```powershell
 uv run python scripts/migration_add_unchanged_counter.py
 ```
 
@@ -385,13 +385,13 @@ ORDER BY year DESC;
 
 1. **Target recent years**:
 
-   ```bash
+   ```powershell
    ayne omdb enrich --min-year 2023 --max-movies 1000
    ```
 
 2. **Increase daily limits**:
 
-   ```bash
+   ```powershell
    ayne collect daily --omdb-limit 500
    ```
 
@@ -471,20 +471,22 @@ WHERE t.tmdb_id IS NOT NULL AND m.last_tmdb_update IS NULL;
 
 Consider scheduling monitoring:
 
-```bash
-# Weekly audit report (Linux/Mac cron)
-0 8 * * 1 cd /path/to/project && uv run jupyter nbconvert --execute notebooks/database/01_database_audit.ipynb --to html --output /path/to/reports/audit_$(date +\%Y\%m\%d).html
+Use Windows Task Scheduler for recurring notebook runs. Create a task with `pwsh.exe`
+as the program, set the repository root as **Start in**, and use an argument such as:
 
-# Daily health check before collection
-0 1 * * * cd /path/to/project && uv run jupyter nbconvert --execute notebooks/database/00_database_monitoring.ipynb --to html --output /path/to/reports/daily_$(date +\%Y\%m\%d).html
+```powershell
+-NoProfile -Command "uv run jupyter nbconvert --execute notebooks/database/00_database_monitoring.ipynb --to html --output ('reports/daily_{0}.html' -f (Get-Date -Format yyyyMMdd))"
 ```
+
+Create a second weekly task with the same settings and replace the notebook path with
+`notebooks/database/01_database_audit.ipynb` and the output prefix with `audit`.
 
 ## Related Documentation
 
 - [Refresh Strategy](../reference/refresh-strategy.md) - Age-based refresh intervals
 - [Database Schema](../reference/database.md) - Table structures
 - [CLI Guide](cli-guide.md) - Collection commands
-- [Data Collection Workflow](../reference/data-collection-workflow.md) - Overall process
+- [Data Collection Workflow](data-collection-workflow.md) - Overall process
 
 ## Quick Reference
 

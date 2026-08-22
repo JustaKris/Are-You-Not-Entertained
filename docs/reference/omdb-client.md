@@ -7,7 +7,7 @@ The OMDB (Open Movie Database) API client provides async functionality for fetch
 The OMDB client is designed to complement TMDB data with additional ratings and metadata:
 
 - **Async/await** using `httpx.AsyncClient` for concurrent requests
-- **Rate limiting** via shared `AsyncRateLimiter` (default: 2 requests/second)
+- **Request pacing** via a per-client `AsyncRateLimiter` (default: 2 requests/second)
 - **Batch operations** for efficient multi-movie fetching
 - **Automatic retries** with exponential backoff
 - **Data normalization** to consistent storage format
@@ -152,13 +152,16 @@ This translates to:
 - ~172,800 requests/day (theoretical max)
 - In practice, much lower due to concurrent limits
 
-### Token Bucket Implementation
+### Request Limiting Implementation
 
-Uses shared `AsyncRateLimiter`:
+Uses a per-client `AsyncRateLimiter`:
 
-- Tokens replenish at `requests_per_second` rate
-- Semaphore limits concurrent requests
-- Async context manager ensures proper resource handling
+- A minimum delay spaces requests at the configured rate.
+- A semaphore limits concurrent requests.
+- The async context manager ensures the semaphore is released after each request.
+
+Request pacing does not replace daily quota tracking. The orchestrator records OMDB
+requests in `api_usage_daily` and caps enrichment at the remaining configured budget.
 
 ## Error Handling
 
@@ -452,4 +455,4 @@ For complete OMDB API documentation: [OMDB API Docs](http://www.omdbapi.com/)
 - [TMDB Client](tmdb-client.md) - Primary data source
 - [Data Orchestration](orchestration.md) - Workflow coordination
 - [Refresh Strategy](refresh-strategy.md) - When to update OMDB data
-- [Rate Limiting](rate-limiting.md) - Token bucket implementation
+- [Rate Limiting](rate-limiting.md) - Request pacing and retry behavior

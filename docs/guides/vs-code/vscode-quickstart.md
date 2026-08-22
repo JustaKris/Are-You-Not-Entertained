@@ -1,161 +1,104 @@
-# Getting Started with VS Code for AYNE
+# VS Code Quickstart
 
-## First Time Setup (One-Time)
+This guide covers the recommended Windows setup for working on AYNE in VS Code. The
+repository uses PowerShell for terminal examples, Ruff for Python formatting and
+linting, and Pylance for language support.
 
-### 1. Install Recommended Extensions
+## Open The Project
 
-When you open the project in VS Code, you'll see a notification suggesting extensions.
+Open the repository folder in VS Code, then open an integrated PowerShell terminal from
+the Terminal menu. From the repository root, synchronize the development environment:
 
-Or manually install:
+```powershell
+uv sync --group dev
+```
 
-```bash
+## Install Recommended Extensions
+
+VS Code can prompt you to install the extensions listed in `.vscode/extensions.json`.
+The same extensions can be installed from PowerShell:
+
+```powershell
 code --install-extension ms-python.python
 code --install-extension ms-python.vscode-pylance
+code --install-extension ms-python.debugpy
+code --install-extension charliermarsh.ruff
 code --install-extension DavidAnson.vscode-markdownlint
 code --install-extension eamodio.gitlens
+code --install-extension tamasfe.even-better-toml
 ```
 
-### 2. Select Python Interpreter
+## Select The Interpreter
 
-Press `Ctrl+Shift+P` and search: **Python: Select Interpreter**
+1. Open the Command Palette with `Ctrl+Shift+P`.
+2. Run **Python: Select Interpreter**.
+3. Choose `.venv\Scripts\python.exe`.
 
-Choose: `.venv/Scripts/python.exe` (or the one from your virtual environment)
+The repository already sets this path in `.vscode/settings.json`. Reload the window if
+the Python or Ruff extensions do not pick up the environment immediately.
 
-### 3. Reload VS Code
+## Run Project Checks
 
-Press `Ctrl+Shift+P` → **Developer: Reload Window**
+Use the integrated terminal for the same checks used by CI:
 
-**Done!** Configuration is automatic from `.vscode/settings.json`
-
-## How It Works
-
-### Python Files
-
-```python
-# Auto-format on save (configured)
-def hello(x,y,z):  # Poorly spaced
-    return x+y+z
+```powershell
+uv run pytest
+uv run ruff format --check src/ scripts/ tests/
+uv run ruff check src/ scripts/ tests/
+uv run mypy
+uv run pymarkdown scan docs/ README.md
 ```
 
-Save → Automatically formatted ✨
+Use `uv run mkdocs build --strict` when you need to verify the complete documentation
+site. The [Code Quality guide](../../development/code-quality.md) explains the checks
+and their scope.
 
-### Markdown Files
+## Editor Shortcuts
 
-```markdown
-```
-This code block has no language specified
-```
-```
+| Action | Shortcut |
+| --- | --- |
+| Format document | `Alt+Shift+F` |
+| Format selection | `Ctrl+K`, then `Ctrl+F` |
+| Quick fix | `Ctrl+.` |
+| Open terminal | Terminal menu |
+| Command Palette | `Ctrl+Shift+P` |
 
-In VS Code: ✅ No warning (configured to allow)
-In pymarkdownlnt: ✅ Passes (same config)
-
-**No conflicts!**
-
-## Commands You'll Use
-
-| Command | Shortcut | Purpose |
-| --------- | ---------- | --------- |
-| Format Document | Alt+Shift+F | Format active file |
-| Format Selection | Ctrl+K Ctrl+F | Format selected code |
-| Fix All Issues | Ctrl+. | Auto-fix problems |
-| Open Terminal | Ctrl+` | Integrated terminal |
-| Command Palette | Ctrl+Shift+P | All commands |
-
-## Common Tasks
-
-### Run Tests
-
-```bash
-# Terminal (Ctrl+`)
-uv run pytest tests/
-```
-
-### Format Code
-
-```bash
-# Terminal
-uv run black .
-uv run ruff check --fix .
-```
-
-### Check Markdown
-
-```bash
-# Terminal
-uv run pymarkdown scan docs/
-```
-
-### Run Linters
-
-```bash
-# Terminal - Run all checks
-uv run ruff check src/
-uv run mypy src/
-```
+Python files format with Ruff on save. Markdown files use the configured markdownlint
+extension; the command-line `pymarkdown` check remains the authoritative documentation
+validation.
 
 ## Troubleshooting
 
-### Python IntelliSense not working?
+### Python or Pylance cannot find the package
 
-1. Press `Ctrl+Shift+P`
-2. Search: **Pylance: Restart Pylance**
-3. Wait ~5 seconds
+Confirm that `.venv\Scripts\python.exe` is selected and run:
 
-### Markdown warnings still showing?
-
-1. Check extension installed: `Ctrl+Shift+X` → search "markdownlint"
-2. Reload: `Ctrl+Shift+P` → **Developer: Reload Window**
-
-### Code not formatting on save?
-
-1. Check format-on-save enabled: `Ctrl+,` (Settings)
-2. Search: "formatOnSave"
-3. Make sure it's enabled
-
-## Project Structure Quick Reference
-
-```
-src/ayne/              # Main package
-├── core/              # Configuration & logging
-├── data_collection/   # API clients
-├── database/          # DuckDB operations
-├── ml/                # Models & serialization
-└── utils/             # I/O utilities
-
-notebooks/             # Jupyter notebooks
-├── 01_*.ipynb         # Imputation
-├── 02_*.ipynb         # EDA
-├── 03_*.ipynb         # Modeling
-└── 04_*.ipynb         # Predictions
-
-docs/                  # Documentation
-├── reference/         # Architecture docs
-└── guides/             # How-to guides
-
-tests/                 # Unit tests
-scripts/               # Utility scripts
+```powershell
+uv sync --group dev
 ```
 
-## Next Steps
+### Formatting does not run on save
 
-- Read: [Utilities Guide](../utilities-guide.md) - I/O & serialization
-- Read: [CLI Guide](../cli-guide.md) - Package/CLI structure
-- Run: `uv run pytest tests/` - Check tests pass
-- Create: Your first notebook in `notebooks/`
+Check that the Ruff extension is installed and that **Editor: Format On Save** is
+enabled. Run Ruff directly to distinguish an editor issue from a project issue:
 
-## Getting Help
+```powershell
+uv run ruff format --check src/ scripts/ tests/
+uv run ruff check src/ scripts/ tests/
+```
 
-- **Python issues**: Check terminal output, check Pylance language server
-- **Formatting issues**: Run `uv run black --check src/` to see what would change
-- **Linting issues**: Run `uv run ruff check src/` to see detailed errors
-- **Markdown issues**: Run `uv run pymarkdown scan docs/` to match VS Code
+### Markdown warnings do not match CI
 
-## Remember
+The repository settings align the markdownlint extension with the project’s practical
+rules. Run the authoritative check from the repository root:
 
-✅ All configuration synced to project (`.vscode/settings.json`, `pyproject.toml`)
-✅ Team members get same experience
-✅ No personal settings needed
-✅ Everything version-controlled
+```powershell
+uv run pymarkdown scan docs/ README.md
+```
 
-Happy coding! 🚀
+## Related Documentation
+
+- [VS Code Configuration](vscode-configuration.md) - Committed editor settings
+- [Code Quality](../../development/code-quality.md) - Python and documentation checks
+- [Testing](../../development/testing.md) - pytest and coverage
+- [Pre-commit Guide](../pre-commit-guide.md) - Local commit hooks
