@@ -138,6 +138,7 @@ class TMDBClient:
         min_vote_count: int,
         allowed_statuses: list[str] | None,
         max_pages: int | None,
+        progress_callback: Callable[[str, int | None, int | None], None] | None = None,
     ) -> list[dict[str, Any]]:
         """Discover movies for a specific year range, with automatic splitting if needed.
 
@@ -151,6 +152,7 @@ class TMDBClient:
             min_vote_count: Minimum vote count filter
             allowed_statuses: Allowed release statuses
             max_pages: Maximum pages to fetch (user-specified limit)
+            progress_callback: Optional callback(stage, completed, total)
 
         Returns:
             List of normalized movie dictionaries
@@ -168,6 +170,8 @@ class TMDBClient:
             # Single year - fetch what we can
             year_str = f"{min_release_year}"
             logger.info(f"Fetching movies for year: {year_str}")
+            if progress_callback:
+                progress_callback(f"Planning TMDB pages ({year_str})", None, None)
 
             endpoint = "discover/movie"
             params = {
@@ -194,6 +198,9 @@ class TMDBClient:
             pages_to_fetch = min(total_pages, max_pages or tmdb_max_pages, tmdb_max_pages)
         else:
             # Multi-year range - check if we need to split
+            range_label = f"{min_release_year}-{max_release_year}"
+            if progress_callback:
+                progress_callback(f"Planning TMDB pages ({range_label})", None, None)
             endpoint = "discover/movie"
             params = {
                 "popularity.gte": min_popularity,
@@ -227,6 +234,7 @@ class TMDBClient:
                     min_vote_count=min_vote_count,
                     allowed_statuses=allowed_statuses,
                     max_pages=max_pages,
+                    progress_callback=progress_callback,
                 )
 
                 second_half = await self._discover_movies_for_year_range(
@@ -236,6 +244,7 @@ class TMDBClient:
                     min_vote_count=min_vote_count,
                     allowed_statuses=allowed_statuses,
                     max_pages=max_pages,
+                    progress_callback=progress_callback,
                 )
 
                 # Combine results
@@ -263,18 +272,30 @@ class TMDBClient:
 
         # Fetch all pages for this range
         all_movies = []
+        range_label = f"{min_release_year}-{max_release_year}"
+        progress_stage = f"Fetching TMDB pages ({range_label})"
+        if progress_callback:
+            progress_callback(progress_stage, 0, pages_to_fetch)
 
-        tasks = [
-            self.discover_movies_page(
-                page=page,
-                min_popularity=min_popularity,
-                min_vote_count=min_vote_count,
-                min_release_year=min_release_year,
-                max_release_year=max_release_year,
-                allowed_statuses=allowed_statuses,
-            )
-            for page in range(1, pages_to_fetch + 1)
-        ]
+        completed_pages = 0
+
+        async def fetch_page(page: int) -> list[dict[str, Any]]:
+            nonlocal completed_pages
+            try:
+                return await self.discover_movies_page(
+                    page=page,
+                    min_popularity=min_popularity,
+                    min_vote_count=min_vote_count,
+                    min_release_year=min_release_year,
+                    max_release_year=max_release_year,
+                    allowed_statuses=allowed_statuses,
+                )
+            finally:
+                completed_pages += 1
+                if progress_callback:
+                    progress_callback(progress_stage, completed_pages, pages_to_fetch)
+
+        tasks = [fetch_page(page) for page in range(1, pages_to_fetch + 1)]
 
         try:
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -300,6 +321,7 @@ class TMDBClient:
         max_release_year: int | None = None,
         allowed_statuses: list[str] | None = None,
         max_pages: int | None = None,
+        progress_callback: Callable[[str, int | None, int | None], None] | None = None,
     ) -> list[dict[str, Any]]:
         """Discover movies with advanced filtering using TMDB discover endpoint.
 
@@ -314,6 +336,7 @@ class TMDBClient:
             max_release_year: Maximum release year (None = current year)
             allowed_statuses: Allowed release statuses (filtering happens at detail fetch)
             max_pages: Maximum pages to fetch per year range (overrides max_movies if set)
+            progress_callback: Optional callback(stage, completed, total)
 
         Returns:
             List of normalized movie dictionaries
@@ -338,6 +361,7 @@ class TMDBClient:
             min_vote_count=min_vote_count,
             allowed_statuses=allowed_statuses,
             max_pages=max_pages,
+            progress_callback=progress_callback,
         )
 
         # Trim to max_movies if specified

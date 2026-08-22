@@ -10,7 +10,8 @@
 # =============================================================================
 app_name: Are You Not Entertained - Staging
 environment: staging
-debug: true
+# Hosted staging should behave like a deployed service, not expose debug details.
+debug: false
 random_seed: 42
 
 # =============================================================================
@@ -57,6 +58,15 @@ omdb_min_release_year: null  # Earliest year (null = no limit)
 omdb_max_release_year: null  # Latest year (null = no limit)
 
 # =============================================================================
+# The Numbers (box office) Configuration
+# =============================================================================
+# Maximum movies scraped in one operation. Keep this modest for HTML scraping.
+numbers_max_movies: 50
+# Lower this value to increase the delay between page requests. For example,
+# 0.15 requests/sec is approximately 6.7 seconds between requests.
+numbers_requests_per_second: 1.0
+
+# =============================================================================
 # API Rate Limiting
 # =============================================================================
 api_rate_limit: 40  # Requests per second across all APIs
@@ -68,6 +78,6 @@ api_timeout: 30     # Request timeout in seconds
 host: 0.0.0.0
 port: 8000
 reload: false
-cors_origins:
-  - https://staging.yourapp.com
-  - https://*.azurewebsites.net
+# Set exact browser origins through Azure App Settings when a separate frontend
+# is deployed. Wildcard Azure hostnames are intentionally not accepted here.
+cors_origins: []

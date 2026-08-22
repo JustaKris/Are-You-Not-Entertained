@@ -11,6 +11,7 @@ from datetime import date
 
 import pandas as pd
 
+from ayne.core.exceptions import DatabaseError
 from ayne.core.logging import get_logger
 from ayne.database.duckdb_client import DuckDBClient
 
@@ -20,17 +21,9 @@ _USAGE_TABLE = "api_usage_daily"
 
 
 def ensure_usage_table(db: DuckDBClient) -> None:
-    """Create the api_usage_daily table if it doesn't already exist."""
-    db.execute(
-        f"""
-        CREATE TABLE IF NOT EXISTS {_USAGE_TABLE} (
-            provider VARCHAR NOT NULL,
-            usage_date DATE NOT NULL,
-            requests_used INTEGER NOT NULL DEFAULT 0,
-            PRIMARY KEY (provider, usage_date)
-        )
-        """
-    )
+    """Verify the migrated API usage ledger is available."""
+    if not db.table_exists(_USAGE_TABLE):
+        raise DatabaseError("Database schema is not initialized; run `uv run ayne db init` first")
 
 
 def record_api_usage(db: DuckDBClient, provider: str, count: int, on: date | None = None) -> None:

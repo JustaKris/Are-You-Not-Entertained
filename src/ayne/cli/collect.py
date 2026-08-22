@@ -3,17 +3,21 @@
 import asyncio
 
 import typer
-from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from ayne.core.config import settings
-from ayne.core.logging import configure_logging, get_logger
+from ayne.cli.progress import (
+    DeterminateBarColumn,
+    DeterminateMofNCompleteColumn,
+    create_collection_progress_callback,
+)
+from ayne.core.config.config_loader import settings
+from ayne.core.logging import configure_logging, get_logger, logging_console
 from ayne.data_collection.orchestrator import DataCollectionOrchestrator
 from ayne.database.duckdb_client import DuckDBClient
 
 app = typer.Typer(help="Combined data collection workflows")
-console = Console()
+console = logging_console
 
 configure_logging(level=settings.log_level, use_json=settings.use_json_logging)  # type: ignore
 logger = get_logger(__name__)
@@ -93,13 +97,28 @@ def daily_refresh(
         orchestrator = DataCollectionOrchestrator(db)
 
         try:
-            stats = await orchestrator.run_full_collection(
-                discover_movies=discover,
-                max_discover_movies=discover_limit,
-                refresh_limit=tmdb_refresh,
-                omdb_max_movies=omdb_limit,
-                include_frozen=include_frozen,
-            )
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                DeterminateBarColumn(),
+                DeterminateMofNCompleteColumn(),
+                console=console,
+            ) as progress:
+                task = progress.add_task("Preparing daily refresh...", total=None)
+                _on_progress = create_collection_progress_callback(
+                    progress,
+                    task,
+                    retain_stages=lambda stage: stage.startswith("Fetching TMDB pages"),
+                )
+
+                stats = await orchestrator.run_full_collection(
+                    discover_movies=discover,
+                    max_discover_movies=discover_limit,
+                    refresh_limit=tmdb_refresh,
+                    omdb_max_movies=omdb_limit,
+                    include_frozen=include_frozen,
+                    progress_callback=_on_progress,
+                )
 
             # Display summary
             console.print("\n[bold green]✓ Workflow Complete[/bold green]\n")
@@ -212,9 +231,16 @@ def full_collection(
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
+                DeterminateBarColumn(),
+                DeterminateMofNCompleteColumn(),
                 console=console,
             ) as progress:
                 task = progress.add_task("Running full collection workflow...", total=None)
+                _on_progress = create_collection_progress_callback(
+                    progress,
+                    task,
+                    retain_stages=lambda stage: stage.startswith("Fetching TMDB pages"),
+                )
 
                 stats = await orchestrator.run_full_collection(
                     discover_movies=True,
@@ -224,9 +250,8 @@ def full_collection(
                     min_release_year=min_year,
                     omdb_max_movies=max_omdb,
                     include_frozen=include_frozen,
+                    progress_callback=_on_progress,
                 )
-
-                progress.update(task, completed=True)
 
             # Display comprehensive summary
             console.print("\n[bold green]✓ Full Collection Complete[/bold green]\n")

@@ -3,16 +3,21 @@
 import asyncio
 
 import typer
-from rich.console import Console
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn, TextColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from ayne.cli.progress import (
+    DeterminateBarColumn,
+    DeterminateMofNCompleteColumn,
+    create_collection_progress_callback,
+    update_collection_progress,
+)
 from ayne.core.config import settings
-from ayne.core.logging import configure_logging, get_logger
+from ayne.core.logging import configure_logging, get_logger, logging_console
 from ayne.data_collection.orchestrator import DataCollectionOrchestrator
 from ayne.database.duckdb_client import DuckDBClient
 
 app = typer.Typer(help="TMDB data collection and updates")
-console = Console()
+console = logging_console
 
 configure_logging(level=settings.log_level, use_json=settings.use_json_logging)  # type: ignore
 logger = get_logger(__name__)
@@ -119,9 +124,16 @@ def update_tmdb(
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
+                DeterminateBarColumn(),
+                DeterminateMofNCompleteColumn(),
                 console=console,
             ) as progress:
                 task = progress.add_task("Discovering movies from TMDB...", total=None)
+                _on_progress = create_collection_progress_callback(
+                    progress,
+                    task,
+                    retain_stages=lambda stage: stage.startswith("Fetching TMDB pages"),
+                )
 
                 discovered = await orchestrator.discover_and_store_movies(
                     max_movies=max_movies,
@@ -130,9 +142,8 @@ def update_tmdb(
                     min_release_year=min_year,
                     max_release_year=max_year or getattr(settings, "tmdb_max_release_year", None),
                     max_pages=max_pages,
+                    progress_callback=_on_progress,
                 )
-
-                progress.update(task, completed=True)
 
             console.print(f"\n[green]✓[/green] Discovered and stored {discovered:,} movies")
 
@@ -280,8 +291,8 @@ def enrich_tmdb(
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                MofNCompleteColumn(),
+                DeterminateBarColumn(),
+                DeterminateMofNCompleteColumn(),
                 console=console,
             ) as progress:
                 task = progress.add_task("Enriching movies...", total=None)
@@ -295,8 +306,6 @@ def enrich_tmdb(
                     max_release_year=max_year,
                     progress_callback=_on_progress,
                 )
-
-                progress.update(task, completed=True)
 
             console.print(f"\n[green]✓[/green] Enriched {enriched:,} movies with TMDB details")
 
@@ -422,6 +431,8 @@ def refresh_tmdb(
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
+                DeterminateBarColumn(),
+                DeterminateMofNCompleteColumn(),
                 console=console,
             ) as progress:
                 if limit is not None:
@@ -438,17 +449,18 @@ def refresh_tmdb(
                 )
 
                 if movies_to_refresh.empty:
-                    progress.update(task, completed=True)
                     console.print("\n[yellow]No movies need refresh[/yellow]")
                     return
+
+                def _on_progress(stage: str, completed: int | None, total: int | None) -> None:
+                    update_collection_progress(progress, task, stage, completed, total)
 
                 tmdb_updated, _omdb_updated, frozen = await orchestrator.refresh_movie_data(
                     movies_to_refresh,
                     fetch_tmdb=True,
                     fetch_omdb=False,  # TMDB only
+                    progress_callback=_on_progress,
                 )
-
-                progress.update(task, completed=True)
 
             console.print(f"\n[green]✓[/green] Refreshed {tmdb_updated:,} movies")
             if frozen > 0:

@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 
 from ayne.cli import collect, db, numbers, omdb, tmdb, validate
-from ayne.core.config import settings
+from ayne.core.config.config_loader import settings
 
 app = typer.Typer(
     name="ayne",
@@ -78,7 +78,11 @@ def config():
 
     console.print("\n[yellow]The Numbers (box office):[/yellow]")
     console.print(f"  Max Movies Per Run: {settings.numbers_max_movies}")
-    console.print(f"  Rate Limit: {settings.numbers_requests_per_second} req/sec")
+    numbers_interval = 1 / settings.numbers_requests_per_second
+    console.print(
+        f"  Rate Limit: {settings.numbers_requests_per_second:g} req/sec "
+        f"(~{numbers_interval:.1f}s between requests)"
+    )
 
 
 if __name__ == "__main__":

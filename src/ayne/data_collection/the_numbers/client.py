@@ -6,8 +6,8 @@ table with BeautifulSoup. Design goals, in priority order:
 
 1. Be a good citizen. The site's robots.txt allows generic crawling (it only
    restricts Amazonbot and rate-limits PetalBot), but this client still
-   defaults to a deliberately slow rate (`numbers_requests_per_second`, ~1
-   request per ~6.7s), a single concurrent request, a small per-run cap
+    defaults to a deliberately conservative rate (`numbers_requests_per_second`, 1
+    request/sec by default), a single concurrent request, a small per-run cap
    (`numbers_max_movies`), and a real browser-like User-Agent. It never
    touches the site's internal, token-gated search-suggestion endpoint
    (`/api/search-suggest.php`) - only public movie pages.

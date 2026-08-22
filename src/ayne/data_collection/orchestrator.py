@@ -32,6 +32,8 @@ from ayne.database.duckdb_client import DuckDBClient
 
 logger = get_logger(__name__)
 
+CollectionProgressCallback = Callable[[str, int | None, int | None], None]
+
 
 def _to_utc_datetime(value: Any) -> datetime | None:
     """Convert a pandas/py timestamp-like value to a tz-aware UTC datetime, or None."""
@@ -84,6 +86,7 @@ class DataCollectionOrchestrator:
         max_release_year: int | None = None,
         allowed_statuses: list[str] | None = None,
         max_pages: int | None = None,
+        progress_callback: CollectionProgressCallback | None = None,
     ) -> int:
         """Discover new movies from TMDB and store in database.
 
@@ -95,6 +98,7 @@ class DataCollectionOrchestrator:
             max_release_year: Maximum release year (None = no upper limit)
             allowed_statuses: Allowed release statuses (defaults to settings)
             max_pages: Maximum pages to fetch (overrides max_movies)
+            progress_callback: Optional callback(stage, completed, total)
 
         Returns:
             Number of movies discovered
@@ -121,6 +125,7 @@ class DataCollectionOrchestrator:
             max_release_year=max_release_year,
             allowed_statuses=allowed_statuses,
             max_pages=max_pages,
+            progress_callback=progress_callback,
         )
 
         if not movies:
@@ -199,6 +204,7 @@ class DataCollectionOrchestrator:
         batch_size: int = 50,
         omdb_max_movies: int | None = None,
         allowed_statuses: list[str] | None = None,
+        progress_callback: CollectionProgressCallback | None = None,
     ) -> tuple[int, int, int]:
         """Refresh data for multiple movies based on their refresh needs.
 
@@ -209,6 +215,7 @@ class DataCollectionOrchestrator:
             batch_size: Batch size for database updates
             omdb_max_movies: Maximum movies to fetch from OMDB (respects API limits)
             allowed_statuses: Allowed release statuses for TMDB filtering
+            progress_callback: Optional callback(stage, completed, total)
 
         Returns:
             Tuple of (tmdb_updated, omdb_updated, movies_frozen)
@@ -226,6 +233,9 @@ class DataCollectionOrchestrator:
 
         total = len(movies_df)
         logger.debug(f"Starting refresh for {total} movies...")
+
+        if progress_callback:
+            progress_callback("Planning refresh", 0, total)
 
         tmdb_updated = 0
         omdb_updated = 0
@@ -279,6 +289,9 @@ class DataCollectionOrchestrator:
             tmdb_ids = needs_tmdb["tmdb_id"].dropna().astype(int).tolist()
 
             if tmdb_ids:
+                if progress_callback:
+                    progress_callback("Refreshing TMDB", None, None)
+
                 # Snapshot existing volatile fields BEFORE overwriting, so we can
                 # tell afterwards whether anything actually changed.
                 before_df = self.db.query(
@@ -294,7 +307,15 @@ class DataCollectionOrchestrator:
                 }
 
                 tmdb_data = await self.tmdb_client.get_batch_movie_details(
-                    tmdb_ids, allowed_statuses=allowed_statuses
+                    tmdb_ids,
+                    allowed_statuses=allowed_statuses,
+                    progress_callback=(
+                        lambda completed, batch_total: progress_callback(
+                            "Refreshing TMDB", completed, batch_total
+                        )
+                    )
+                    if progress_callback
+                    else None,
                 )
                 record_api_usage(self.db, "tmdb", len(tmdb_ids))
                 tmdb_fetched_ids.update(tmdb_ids)
@@ -347,6 +368,9 @@ class DataCollectionOrchestrator:
                     )
                     logger.debug("Updated last_full_refresh for movies with both updates")
 
+                if progress_callback:
+                    progress_callback("TMDB refresh complete", len(tmdb_ids), len(tmdb_ids))
+
         # Fetch OMDB data
         if not needs_omdb.empty and omdb_max_movies > 0:
             # Limit OMDB requests based on configuration and remaining daily quota
@@ -374,6 +398,9 @@ class DataCollectionOrchestrator:
                 imdb_ids = imdb_df["imdb_id"].tolist()
 
                 if imdb_ids:
+                    if progress_callback:
+                        progress_callback("Refreshing OMDB", None, None)
+
                     before_df = self.db.query(
                         f"""
                         SELECT imdb_id, imdb_rating, imdb_votes, metascore, box_office
@@ -386,7 +413,16 @@ class DataCollectionOrchestrator:
                         row["imdb_id"]: row.to_dict() for _, row in before_df.iterrows()
                     }
 
-                    omdb_data = await self.omdb_client.get_batch_movies(imdb_ids)
+                    omdb_data = await self.omdb_client.get_batch_movies(
+                        imdb_ids,
+                        progress_callback=(
+                            lambda completed, batch_total: progress_callback(
+                                "Refreshing OMDB", completed, batch_total
+                            )
+                        )
+                        if progress_callback
+                        else None,
+                    )
                     record_api_usage(self.db, "omdb", len(imdb_ids))
                     omdb_fetched_ids.update(imdb_ids)
 
@@ -428,6 +464,9 @@ class DataCollectionOrchestrator:
                             [now, *imdb_id_list],
                         )
                         logger.debug("Updated last_full_refresh for movies with both updates")
+
+                    if progress_callback:
+                        progress_callback("OMDB refresh complete", len(imdb_ids), len(imdb_ids))
 
         # Update per-movie "consecutive unchanged" counters and freeze stable
         # movies - but only for movies actually fetched this cycle, and based on
@@ -524,6 +563,7 @@ class DataCollectionOrchestrator:
         allowed_statuses: list[str] | None = None,
         omdb_max_movies: int | None = None,
         include_frozen: bool = False,
+        progress_callback: CollectionProgressCallback | None = None,
     ) -> dict[str, int]:
         """Run complete collection workflow: discover + refresh.
 
@@ -538,6 +578,7 @@ class DataCollectionOrchestrator:
             allowed_statuses: Allowed release statuses (defaults to settings)
             omdb_max_movies: Max OMDB movies to fetch (defaults to settings)
             include_frozen: Include frozen movies in refresh (force refresh)
+            progress_callback: Optional callback(stage, completed, total)
 
         Returns:
             Dict with collection statistics
@@ -546,6 +587,8 @@ class DataCollectionOrchestrator:
 
         # Step 1: Discover new movies (if requested)
         if discover_movies:
+            if progress_callback:
+                progress_callback("Discovering new movies", None, None)
             stats["discovered"] = await self.discover_and_store_movies(
                 max_movies=max_discover_movies,
                 min_popularity=min_popularity,
@@ -553,9 +596,12 @@ class DataCollectionOrchestrator:
                 min_release_year=min_release_year,
                 allowed_statuses=allowed_statuses,
                 max_pages=max_discover_pages,
+                progress_callback=progress_callback,
             )
 
         # Step 2: Refresh existing movies
+        if progress_callback:
+            progress_callback("Finding movies due for refresh", None, None)
         movies_to_refresh = self.get_movies_for_refresh(
             limit=refresh_limit, include_frozen=include_frozen
         )
@@ -567,6 +613,7 @@ class DataCollectionOrchestrator:
                 fetch_omdb=True,
                 omdb_max_movies=omdb_max_movies,
                 allowed_statuses=allowed_statuses,
+                progress_callback=progress_callback,
             )
             stats["tmdb_updated"] = tmdb_updated
             stats["omdb_updated"] = omdb_updated
