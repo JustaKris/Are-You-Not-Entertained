@@ -122,8 +122,8 @@ uv run ayne tmdb enrich --limit 1000
 # Add ratings, awards, and other OMDB data
 uv run ayne omdb enrich --max-movies 1000
 
-# Optionally add The Numbers financial data
-uv run ayne numbers enrich --max-movies 250
+# Optionally add The Numbers financial data (small, sequential scrape)
+uv run ayne numbers enrich --max-movies 50
 
 # Check database and source-level data quality
 uv run ayne db stats
@@ -143,9 +143,30 @@ After a collection run, record its reproducibility metadata:
 uv run ayne db manifest
 ```
 
-Use `--dry-run` before a larger collection, and keep limits aligned with the providers'
-request quotas. TMDB year ranges are split automatically when a query would exceed its
-page limit. The [CLI Guide](docs/guides/cli-guide.md) documents every command and option.
+Use `--dry-run` before a larger collection. Limits are provider-specific: TMDB has no
+documented daily quota, but discovery still uses request pacing, retries, and the
+500-page-per-query safety ceiling; OMDB has a real daily quota and a persistent usage
+ledger; The Numbers is public HTML and is intentionally small and sequential. TMDB's
+`--max-movies` caps retained discovery records and derives a page budget when
+`--max-pages` is not supplied. Year ranges are split automatically when a query would
+otherwise exceed TMDB's page ceiling. The [CLI Guide](docs/guides/cli-guide.md)
+documents every command and option.
+
+The Numbers is optional and separate from the TMDB/OMDB workflow. It fills movies that
+do not yet have a `numbers_movies` row, using the configured `numbers_requests_per_second`
+rate (1 request/second by default):
+
+```powershell
+# Preview the next small batch without network requests
+uv run ayne numbers enrich --max-movies 10 --dry-run
+
+# Add financial data for recent releases
+uv run ayne numbers enrich --min-year 2020 --max-year 2026 --max-movies 250
+```
+
+A missing The Numbers page is a normal partial result. Existing rows are not refreshed
+automatically by this command yet; use TMDB and OMDB refresh commands for the required
+provider refresh cycle.
 
 ### 🔄 Maintain Existing Data
 

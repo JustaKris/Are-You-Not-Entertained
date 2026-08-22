@@ -34,7 +34,7 @@ applied by the TMDB discover request:
 | `tmdb_min_release_year` | integer | `1950` | Earliest release year |
 | `tmdb_max_release_year` | integer or null | `null` | Latest release year; null means no configured upper bound |
 | `tmdb_allowed_release_statuses` | list | Released, Post Production, In Production | Statuses allowed during detail processing |
-| `tmdb_max_movies` | integer or null | `null` | Per-operation discovery cap; null means unlimited |
+| `tmdb_max_movies` | integer or null | `null` | Per-operation discovery record cap; null means unlimited and allows the client to use automatic page splitting |
 
 Status filtering is applied when full TMDB details are fetched. Discovery can also be
 bounded by the number of pages requested.
@@ -50,7 +50,9 @@ uv run ayne tmdb update --full
 ```
 
 `--full` removes the movie cap for that invocation. It does not remove popularity,
-vote-count, or year filters.
+vote-count, or year filters, TMDB's 500-page-per-query safety ceiling, request pacing,
+or retries. When `--max-pages` is omitted, `--max-movies` derives a page-fetch budget;
+an explicit `--max-pages` is a global page budget across all split ranges.
 
 ## Enrichment Filters
 
@@ -86,6 +88,18 @@ The OMDB settings are:
 The orchestrator caps OMDB work at the remaining daily quota. A second run on the same
 day therefore continues to respect the recorded usage in `api_usage_daily`.
 
+The The Numbers settings are:
+
+| Setting | Type | Purpose |
+| --- | --- | --- |
+| `numbers_max_movies` | integer | Maximum missing movie records scraped in one operation; development default is `50` |
+| `numbers_requests_per_second` | float | Request pacing for public HTML scraping; development default is `1.0` |
+
+The Numbers is optional and separate from global TMDB/OMDB refresh completeness. The
+enrichment command processes movies without a `numbers_movies` row, uses one concurrent
+request, tries a small set of URL candidates per title, and records actual attempts.
+Existing The Numbers rows are not refreshed automatically yet.
+
 ## Combined Workflows
 
 Use the combined commands when you want one workflow to coordinate discovery, refresh,
@@ -96,7 +110,7 @@ and quota-aware enrichment:
 uv run ayne collect daily --tmdb-refresh 100 --omdb-limit 500
 
 # Refresh and discover new movies in the same run.
-uv run ayne collect daily --discover --discover-limit 500
+uv run ayne collect daily --discover --discover-limit 500 --discover-pages 25
 
 # Populate a new database or run a broad collection.
 uv run ayne collect full --max-tmdb 5000 --max-omdb 1000 --min-year 2020
@@ -121,7 +135,8 @@ records with incomplete enrichment.
 
 For daily operations, prefer `omdb_max_movies` or `--omdb-limit` below the provider's
 daily quota to leave room for retries and manual runs. The persistent usage ledger is a
-backstop, not a replacement for conservative scheduling.
+backstop, not a replacement for conservative scheduling. Keep The Numbers at its small
+default cap unless you have a specific, reviewable batch to collect.
 
 ## Troubleshooting
 

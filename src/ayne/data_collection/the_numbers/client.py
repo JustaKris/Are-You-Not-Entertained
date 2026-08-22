@@ -102,8 +102,13 @@ class TheNumbersClient:
             requests_per_second: Rate limit (defaults to settings.numbers_requests_per_second)
             timeout: Per-request timeout in seconds (defaults to settings.api_timeout)
         """
-        self.requests_per_second = requests_per_second or settings.numbers_requests_per_second  # type: ignore
-        self.timeout = timeout or settings.api_timeout  # type: ignore
+        self.requests_per_second = (
+            requests_per_second
+            if requests_per_second is not None
+            else settings.numbers_requests_per_second
+        )  # type: ignore
+        self.timeout = timeout if timeout is not None else settings.api_timeout  # type: ignore
+        self.last_request_count = 0
 
         # A single concurrent request at a time - this is HTML scraping of a
         # third-party site with no official API, not something to parallelize.
@@ -129,6 +134,7 @@ class TheNumbersClient:
 
         async def make_request() -> httpx.Response:
             async with self._rate_limiter:
+                self.last_request_count += 1
                 response = await client.get(url)
                 # Only treat server errors as retryable; a 404 just means this
                 # particular candidate slug/year guess was wrong.
@@ -187,6 +193,7 @@ class TheNumbersClient:
         """
         total = len(movies)
         results: list[dict[str, Any]] = []
+        self.last_request_count = 0
         for completed, movie in enumerate(movies, start=1):
             try:
                 result = await self.get_financial_data(movie["title"], movie.get("release_year"))

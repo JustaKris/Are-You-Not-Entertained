@@ -54,7 +54,7 @@ The TMDB client is designed for batch data collection with the following feature
 ### Discovery Phase
 
 1. **Year-based discovery**: Iterate through specified year range
-2. **Pagination handling**: Automatically fetch all pages for each year
+2. **Pagination handling**: Automatically fetch pages, splitting broad year ranges at the TMDB ceiling
 3. **Concurrent page fetching**: Fetch multiple pages simultaneously (with rate limiting)
 4. **Data normalization**: Convert API responses to consistent format
 
@@ -95,7 +95,7 @@ movies = await client.discover_movies(
     start_year=2020,
     end_year=2024,
     min_vote_count=500,  # Higher threshold
-    max_pages=10         # Limit pages per year range
+    max_pages=10         # Global page budget across all split ranges
 )
 
 # Wide year range - automatic splitting handles TMDB's 500-page limit
@@ -108,12 +108,19 @@ movies = await client.discover_movies(
 
 ### Automatic Year-Range Splitting
 
-The TMDB discover endpoint has a 500-page limit (max 10,000 movies per request). The client now **automatically handles this** by recursively splitting year ranges when needed:
+The TMDB discover endpoint has a 500-page limit per query (about 20 movies per page).
+The client now **automatically handles this** by recursively splitting year ranges when
+needed:
 
 - **No manual intervention required** - Just specify your desired year range
 - **Transparent operation** - Logging shows when/how ranges are split
-- **Complete data coverage** - All movies retrieved, not just first 10,000
+- **Complete range coverage by default** - Wide ranges are not limited to the first 10,000 movies when no deliberate work cap is supplied
 - **Smart deduplication** - Removes any boundary overlaps
+
+`max_movies` is a retained-record cap and derives a fetched-page budget when
+`max_pages` is omitted. `max_pages` is a global fetched-page budget across all recursive
+sub-ranges and overrides that derived budget. A failed or duplicate page may therefore
+produce fewer records than the requested movie cap.
 
 Example: Requesting 1950-2024 with low filters might return 50,000+ movies. The client automatically splits this into smaller ranges (e.g., 1950-1987, 1988-2024), recursively splitting further if needed.
 

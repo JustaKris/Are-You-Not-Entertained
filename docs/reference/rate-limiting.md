@@ -15,7 +15,10 @@ semaphore to bound in-flight requests.
 The The Numbers defaults are intentionally conservative because the client scrapes
 public HTML pages and has no official API. Its CLI also limits the number of movies per
 run through `numbers_max_movies`. Adjust `numbers_requests_per_second` in the selected
-file under `configs/`; for example, `0.15` gives approximately `6.7s` between requests.
+file under `configs/`; the development default of `1.0` gives approximately `1.0s`
+between requests, while `0.15` gives approximately `6.7s` between requests.
+The client permits one request at a time and records each attempted candidate request,
+including attempts that return a missing page.
 
 ## Request Limiter
 
@@ -42,7 +45,9 @@ responses are retried with the same backoff. HTTP 401 responses are treated as q
 credential failures and are raised immediately.
 
 The default retry counts are three attempts for TMDB and OMDB and two attempts for The
-Numbers. A retry does not bypass the rate limiter; each attempt must acquire it.
+Numbers. Non-transient client errors such as 400, 401, and 404 are raised immediately;
+408 and 429 responses, server errors, and network errors are retried. A retry does not
+bypass the rate limiter; each attempt must acquire it.
 
 ```python
 from ayne.data_collection.rate_limiter import retry_with_backoff
@@ -59,7 +64,9 @@ result = await retry_with_backoff(
 
 Rate limiting controls request frequency. It does not by itself track a provider's
 daily quota. AYNE records requests in `api_usage_daily`; OMDB enrichment checks the
-remaining configured daily budget before starting a batch. See the
+remaining configured daily budget before starting a batch and records partial successful
+usage when a batch stops. The Numbers usage is observational rather than a provider quota.
+See the
 [filtering reference](data-collection-filtering.md) for command-level quota controls.
 
 ## Operational Guidance

@@ -147,7 +147,7 @@ class Settings(BaseSettings):
     numbers_requests_per_second: float = Field(
         default=1.0,
         gt=0,
-        description="Maximum requests per second to the-numbers.com; 0.15 is approximately 6.7 seconds between requests.",
+        description="Maximum requests per second to the-numbers.com; default 1.0 is about 1 second between requests, while 0.15 is an optional slower setting.",
     )
 
     # OMDB Collection Limits

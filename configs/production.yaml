@@ -32,7 +32,7 @@ use_json_logging: true
 tmdb_api_base_url: https://api.themoviedb.org/3
 
 # Collection Settings
-tmdb_max_movies: null  # null = unlimited for production operations
+tmdb_max_movies: null  # Discovery record cap; null = unlimited and enables automatic page splitting
 
 # Filtering Settings
 tmdb_min_popularity: 10.0       # Minimum popularity score (0-100+)
@@ -50,7 +50,7 @@ tmdb_allowed_release_statuses:
 omdb_api_base_url: http://www.omdbapi.com
 
 # Collection Settings
-omdb_max_movies: 1000  # Max movies per operation. OMDB free tier: 1000 req/day
+omdb_max_movies: 1000  # Per-operation cap; OMDB free tier also has a 1000 req/day quota
 
 # Filtering Settings
 omdb_min_release_year: null  # Earliest year (null = no limit)

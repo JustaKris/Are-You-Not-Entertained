@@ -1,8 +1,15 @@
-"""Unit tests for The Numbers slug helpers and HTML extraction (no network access)."""
+"""Unit tests for The Numbers client, slug helpers, and HTML extraction."""
 
+import asyncio
+
+import httpx
 from bs4 import BeautifulSoup
 
-from ayne.data_collection.the_numbers.client import extract_financial_data, parse_money
+from ayne.data_collection.the_numbers.client import (
+    TheNumbersClient,
+    extract_financial_data,
+    parse_money,
+)
 from ayne.data_collection.the_numbers.slug import candidate_urls, slugify
 
 
@@ -98,6 +105,30 @@ class TestExtractFinancialData:
         """
         soup = BeautifulSoup(html, "html.parser")
         assert extract_financial_data(soup) == {}
+
+
+class TestTheNumbersClient:
+    def test_request_count_tracks_candidate_attempts_and_resets_per_batch(self):
+        async def run_test() -> tuple[int, int, int]:
+            def handler(request: httpx.Request) -> httpx.Response:
+                return httpx.Response(status_code=404, request=request)
+
+            client = TheNumbersClient(requests_per_second=1_000)
+            client._client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+            movie = {"movie_id": 1, "title": "Missing Film", "release_year": 2024}
+            try:
+                await client.get_batch_financial_data([movie])
+                first_count = client.last_request_count
+                await client.get_batch_financial_data([movie])
+                second_count = client.last_request_count
+                return first_count, second_count, len(candidate_urls(movie["title"], 2024))
+            finally:
+                await client.close()
+
+        first_count, second_count, expected_count = asyncio.run(run_test())
+
+        assert first_count == expected_count
+        assert second_count == expected_count
 
     def test_rows_with_fewer_than_two_cells_are_skipped(self):
         html = "<table><tr><td>Domestic Box Office</td></tr></table>"

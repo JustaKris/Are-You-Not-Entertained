@@ -26,7 +26,7 @@ def enrich_numbers(
     max_movies: int | None = typer.Option(
         None,
         "--max-movies",
-        help="Maximum number of movies to enrich (uses config default, kept small and polite by design)",
+        help="Maximum missing movie records to scrape (uses config default; kept small and polite)",
     ),
     min_year: int | None = typer.Option(
         None,
@@ -44,12 +44,15 @@ def enrich_numbers(
         help="Show what would be done without making changes",
     ),
 ):
-    """Enrich movies with box office/budget data scraped from The Numbers.
+    """Add missing box office/budget data scraped from The Numbers.
 
     The Numbers has no public API, so this fetches the same public movie
     pages a browser would, at a deliberately slow, polite rate configured by
     settings.numbers_requests_per_second
     to avoid being rate limited or banned.
+
+    This command fills movies without a numbers_movies row. Existing rows are
+    not refreshed automatically yet.
 
     Examples:
         ayne numbers enrich --max-movies 50

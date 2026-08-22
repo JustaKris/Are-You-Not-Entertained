@@ -130,8 +130,11 @@ class OMDBClient:
         try:
             data = await self._request(params)
             return normalize_movie_response(data)
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Failed to fetch OMDB data for {imdb_id}: HTTP {e.response.status_code}")
+            return None
         except Exception as e:
-            logger.error(f"Failed to fetch OMDB data for {imdb_id}: {e}")
+            logger.error(f"Failed to fetch OMDB data for {imdb_id}: {type(e).__name__}")
             return None
 
     async def get_batch_movies(
@@ -199,12 +202,12 @@ class OMDBClient:
                     return None
 
                 # Other HTTP errors
-                logger.error(f"HTTP error fetching {imdb_id}: {e}")
+                logger.error(f"HTTP error fetching {imdb_id}: HTTP {e.response.status_code}")
                 return None
             except Exception as e:
                 # Don't log errors for our artificial quota check exceptions
                 if "[Quota Check]" not in str(e):
-                    logger.error(f"Error fetching {imdb_id}: {e}")
+                    logger.error(f"Error fetching {imdb_id}: {type(e).__name__}")
                 completed += 1
                 return None
 

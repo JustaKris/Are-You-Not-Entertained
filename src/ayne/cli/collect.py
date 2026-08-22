@@ -45,6 +45,11 @@ def daily_refresh(
         "--discover-limit",
         help="Limit for new movie discovery",
     ),
+    discover_pages: int | None = typer.Option(
+        None,
+        "--discover-pages",
+        help="Global TMDB page cap for discovery (overrides the movie-derived page budget)",
+    ),
     include_frozen: bool = typer.Option(
         False,
         "--include-frozen",
@@ -71,7 +76,7 @@ def daily_refresh(
     if dry_run:
         console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]\n")
 
-    omdb_limit = omdb_limit or settings.omdb_max_movies
+    omdb_limit = omdb_limit if omdb_limit is not None else settings.omdb_max_movies
 
     # Show configuration
     config_table = Table(title="Workflow Configuration", show_header=True)
@@ -81,7 +86,14 @@ def daily_refresh(
     config_table.add_row("TMDB Refresh", f"{tmdb_refresh:,} movies")
     config_table.add_row("OMDB Enrichment", f"{omdb_limit:,} movies")
     if discover:
-        config_table.add_row("Discovery", f"Enabled ({discover_limit or 'unlimited'} movies)")
+        config_table.add_row(
+            "Discovery",
+            f"Enabled ({discover_limit if discover_limit is not None else 'unlimited'} movies)",
+        )
+        config_table.add_row(
+            "Discovery Pages",
+            f"{discover_pages:,}" if discover_pages is not None else "Derived from movie cap",
+        )
     else:
         config_table.add_row("Discovery", "Disabled")
 
@@ -114,6 +126,7 @@ def daily_refresh(
                 stats = await orchestrator.run_full_collection(
                     discover_movies=discover,
                     max_discover_movies=discover_limit,
+                    max_discover_pages=discover_pages,
                     refresh_limit=tmdb_refresh,
                     omdb_max_movies=omdb_limit,
                     include_frozen=include_frozen,
@@ -150,12 +163,17 @@ def full_collection(
     max_tmdb: int | None = typer.Option(
         None,
         "--max-tmdb",
-        help="Maximum TMDB movies to discover (None = unlimited)",
+        help="Maximum TMDB movies to retain and use for the derived page budget",
     ),
     max_omdb: int | None = typer.Option(
         None,
         "--max-omdb",
         help="Maximum OMDB enrichments (uses config default)",
+    ),
+    discover_pages: int | None = typer.Option(
+        None,
+        "--discover-pages",
+        help="Global TMDB page cap for discovery (overrides the movie-derived page budget)",
     ),
     min_popularity: float | None = typer.Option(
         None,
@@ -197,23 +215,31 @@ def full_collection(
     if dry_run:
         console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]\n")
 
-    max_omdb = max_omdb or settings.omdb_max_movies
+    max_omdb = max_omdb if max_omdb is not None else settings.omdb_max_movies
 
     # Show configuration
     config_table = Table(title="Workflow Configuration", show_header=True)
     config_table.add_column("Setting", style="cyan")
     config_table.add_column("Value", style="green")
 
-    config_table.add_row("Max TMDB Discovery", f"{max_tmdb:,}" if max_tmdb else "Unlimited")
+    config_table.add_row(
+        "Max TMDB Discovery", f"{max_tmdb:,}" if max_tmdb is not None else "Unlimited"
+    )
+    config_table.add_row(
+        "Discovery Pages",
+        f"{discover_pages:,}" if discover_pages is not None else "Derived from movie cap",
+    )
     config_table.add_row("Max OMDB Enrichment", f"{max_omdb:,}")
     config_table.add_row("Refresh Limit", f"{refresh_limit:,}")
     config_table.add_row(
         "Min Popularity",
-        f"{min_popularity}" if min_popularity else f"{settings.tmdb_min_popularity} (default)",
+        f"{min_popularity}"
+        if min_popularity is not None
+        else f"{settings.tmdb_min_popularity} (default)",
     )
     config_table.add_row(
         "Min Year",
-        f"{min_year}" if min_year else f"{settings.tmdb_min_release_year} (default)",
+        f"{min_year}" if min_year is not None else f"{settings.tmdb_min_release_year} (default)",
     )
 
     console.print(config_table)
@@ -245,6 +271,7 @@ def full_collection(
                 stats = await orchestrator.run_full_collection(
                     discover_movies=True,
                     max_discover_movies=max_tmdb,
+                    max_discover_pages=discover_pages,
                     refresh_limit=refresh_limit,
                     min_popularity=min_popularity,
                     min_release_year=min_year,

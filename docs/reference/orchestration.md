@@ -63,8 +63,13 @@ discovered = await orchestrator.discover_and_store_movies(
 )
 ```
 
-Discovery stores basic identity fields and the latest TMDB update timestamp. Detail
-enrichment is intentionally separate so a run can control the expensive follow-up work.
+Discovery stores basic identity fields. It does not advance the source refresh timestamp;
+`last_tmdb_update` represents successful TMDB detail or refresh work. Detail enrichment
+is intentionally separate so a run can control the expensive follow-up work.
+
+`max_movies` is a retained-record cap and derives a page budget when `max_pages` is not
+provided. `max_pages` is a global fetched-page budget across recursively split ranges;
+the 500-page TMDB ceiling remains a per-query safety limit.
 
 ### TMDB Detail Enrichment
 
@@ -88,8 +93,10 @@ omdb_count = await orchestrator.enrich_omdb_data(
 )
 ```
 
-The requested limit is reduced to the remaining recorded OMDB quota before requests are
-made. Movies without IMDb IDs are skipped.
+The requested limit is reduced to the configured per-operation cap and then to the
+remaining recorded OMDB quota before requests are made. Movies without IMDb IDs are
+skipped. Partial successful usage is recorded if a quota or cancellation exception ends
+the batch.
 
 ### The Numbers Enrichment
 
@@ -102,8 +109,10 @@ numbers_count = await orchestrator.enrich_numbers_data(
 ```
 
 The Numbers client uses a single concurrent request and a deliberately conservative rate
-because it consumes public web pages. Use `uv run ayne numbers enrich` for the normal
-CLI entry point.
+because it consumes public web pages. The orchestrator selects only movies without a
+`numbers_movies` row, tries a bounded set of candidate URLs, and records actual request
+attempts. Existing rows are not refreshed automatically yet. Use
+`uv run ayne numbers enrich` for the normal CLI entry point.
 
 ## Refresh Planning
 
@@ -129,8 +138,10 @@ tmdb_count, omdb_count, frozen_count = await orchestrator.refresh_movie_data(
 The refresh strategy uses movie age and the last source update timestamps. It compares
 volatile fields before and after each successful fetch, increments unchanged-refresh
 counts per movie, and freezes stable archived movies after the configured threshold.
-See the [refresh strategy reference](refresh-strategy.md) for the intervals and freeze
-criteria.
+Only successful provider fetches count as evidence for a stability cycle. Global freezing
+requires both TMDB and OMDB timestamps; The Numbers is optional and does not block the
+gate. See the [refresh strategy reference](refresh-strategy.md) for the intervals and
+freeze criteria.
 
 ## Failure And Cleanup Behavior
 
@@ -149,7 +160,7 @@ uv run ayne tmdb update --max-movies 1000
 uv run ayne tmdb enrich --max-movies 500
 uv run ayne omdb enrich --max-movies 500
 uv run ayne numbers enrich --max-movies 25
-uv run ayne collect daily --discover --discover-limit 500
+uv run ayne collect daily --discover --discover-limit 500 --discover-pages 25
 ```
 
 Use the [CLI Guide](../guides/cli-guide.md) for all command options and the

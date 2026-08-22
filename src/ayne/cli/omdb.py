@@ -74,7 +74,11 @@ def enrich_omdb(
     max_year = max_year or getattr(settings, "omdb_max_release_year", None)
 
     console.print("[bold]Configuration:[/bold]")
-    console.print(f"  Max Movies: {max_movies:,} (cap - fewer will run if fewer need it)")
+    console.print(
+        f"  Max Movies: {max_movies:,} (cap - fewer will run if fewer need it)"
+        if max_movies is not None
+        else "  Max Movies: Unlimited (still bounded by today's quota)"
+    )
     console.print(f"  Min Year: {min_year or 'No limit'}")
     console.print(f"  Max Year: {max_year or 'No limit'}")
 
@@ -291,14 +295,10 @@ def refresh_omdb(
     max_year = max_year or getattr(settings, "omdb_max_release_year", None)
 
     console.print("[bold]Configuration:[/bold]")
-    console.print(f"  Refresh Limit: {f'{limit:,} movies' if limit else 'Unlimited'}")
+    console.print(f"  Refresh Limit: {f'{limit:,} movies' if limit is not None else 'Unlimited'}")
     console.print(f"  Min Year: {min_year or 'No limit'}")
     console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print()
-
-    logger.info(
-        f"OMDB refresh: limit={limit}, min_year={min_year}, max_year={max_year}, dry_run={dry_run}"
-    )
 
     logger.info(
         f"OMDB refresh: limit={limit}, min_year={min_year}, max_year={max_year}, dry_run={dry_run}"

@@ -181,7 +181,7 @@ tmdb_movie_data.csv
 commands.sh
 
 # Local DuckDB databases and timestamped backups are environment data.
-data/db/*.duckdb
+# data/db/*.duckdb
 data/db/*/*.duckdb
 data/db/*.duckdb.wal
 data/db/**/*.duckdb.wal

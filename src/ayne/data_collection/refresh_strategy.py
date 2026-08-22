@@ -298,8 +298,9 @@ def should_freeze_movie(
     if days_since_release < RefreshThresholds.FREEZE_MIN_AGE_DAYS:
         return False
 
-    # Must have been updated at least once
-    if last_tmdb_update is None and last_omdb_update is None:
+    # Both required API sources must have completed at least once. The Numbers
+    # is optional and is intentionally not part of the freeze gate.
+    if last_tmdb_update is None or last_omdb_update is None:
         return False
 
     # Must be stable
@@ -324,10 +325,11 @@ def get_movies_due_for_refresh_query(
         SQL query string
     """
     frozen_filter = "" if include_frozen else "AND m.data_frozen = FALSE"
-    limit_clause = f"LIMIT {limit}" if limit else ""
+    limit_clause = f"LIMIT {limit}" if limit is not None else ""
 
     # Build conditions based on data source
     if data_source == "tmdb":
+        source_filter = "AND m.tmdb_id IS NOT NULL"
         # Only TMDB refresh conditions
         refresh_conditions = """
             -- Never refreshed TMDB
@@ -372,6 +374,7 @@ def get_movies_due_for_refresh_query(
             )
         """
     elif data_source == "omdb":
+        source_filter = "AND m.imdb_id IS NOT NULL AND m.imdb_id != ''"
         # Only OMDB refresh conditions
         refresh_conditions = """
             -- Never refreshed OMDB
@@ -416,10 +419,16 @@ def get_movies_due_for_refresh_query(
             )
         """
     else:
-        # Both TMDB and OMDB (original logic)
+        source_filter = "AND m.tmdb_id IS NOT NULL"
+        # Both TMDB and OMDB. OMDB work is actionable only when an IMDb ID exists.
         refresh_conditions = """
-            -- Never refreshed
-            m.last_full_refresh IS NULL
+            -- Never refreshed by a source that can currently process it
+            m.last_tmdb_update IS NULL
+            OR (
+                m.imdb_id IS NOT NULL
+                AND m.imdb_id != ''
+                AND m.last_omdb_update IS NULL
+            )
 
             -- Recent movies (0-60 days): refresh every 5 days
             OR (
@@ -427,7 +436,11 @@ def get_movies_due_for_refresh_query(
                 AND (
                     m.last_tmdb_update IS NULL
                     OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 5
-                    OR m.last_omdb_update IS NULL
+                    OR (
+                        m.imdb_id IS NOT NULL
+                        AND m.imdb_id != ''
+                        AND m.last_omdb_update IS NULL
+                    )
                     OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 5
                 )
             )
@@ -439,7 +452,11 @@ def get_movies_due_for_refresh_query(
                 AND (
                     m.last_tmdb_update IS NULL
                     OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 15
-                    OR m.last_omdb_update IS NULL
+                    OR (
+                        m.imdb_id IS NOT NULL
+                        AND m.imdb_id != ''
+                        AND m.last_omdb_update IS NULL
+                    )
                     OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 30
                 )
             )
@@ -451,7 +468,11 @@ def get_movies_due_for_refresh_query(
                 AND (
                     m.last_tmdb_update IS NULL
                     OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 30
-                    OR m.last_omdb_update IS NULL
+                    OR (
+                        m.imdb_id IS NOT NULL
+                        AND m.imdb_id != ''
+                        AND m.last_omdb_update IS NULL
+                    )
                     OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 90
                 )
             )
@@ -462,7 +483,11 @@ def get_movies_due_for_refresh_query(
                 AND (
                     m.last_tmdb_update IS NULL
                     OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 90
-                    OR m.last_omdb_update IS NULL
+                    OR (
+                        m.imdb_id IS NOT NULL
+                        AND m.imdb_id != ''
+                        AND m.last_omdb_update IS NULL
+                    )
                     OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 180
                 )
             )
@@ -487,12 +512,22 @@ def get_movies_due_for_refresh_query(
     LEFT JOIN tmdb_movies t ON m.tmdb_id = t.tmdb_id
     WHERE 1=1
         {frozen_filter}
+        {source_filter}
         AND (
             {refresh_conditions}
         )
     ORDER BY
-        -- Prioritize never-refreshed movies
-        CASE WHEN m.last_full_refresh IS NULL THEN 0 ELSE 1 END,
+                -- Prioritize movies missing a source that can currently be processed
+                CASE
+                        WHEN m.last_tmdb_update IS NULL
+                            OR (
+                                    m.imdb_id IS NOT NULL
+                                    AND m.imdb_id != ''
+                                    AND m.last_omdb_update IS NULL
+                            )
+                        THEN 0
+                        ELSE 1
+                END,
         -- Within the same tier, prioritize movies that are still popular/being
         -- watched over obscure ones - popularity/vote_count are already fetched
         -- from TMDB, so this costs nothing extra to use.

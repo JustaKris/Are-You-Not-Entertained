@@ -28,12 +28,12 @@ def update_tmdb(
     full: bool = typer.Option(
         False,
         "--full",
-        help="Pull unlimited movies (ignores max-movies limit)",
+        help="Remove the movie cap; page safety, pacing, retries, and filters still apply",
     ),
     max_movies: int | None = typer.Option(
         None,
         "--max-movies",
-        help="Maximum number of movies to discover (uses config default)",
+        help="Maximum movies to retain; also bounds pages when --max-pages is omitted",
     ),
     min_popularity: float | None = typer.Option(
         None,
@@ -58,7 +58,7 @@ def update_tmdb(
     max_pages: int | None = typer.Option(
         None,
         "--max-pages",
-        help="Maximum pages to fetch",
+        help="Maximum TMDB pages to fetch globally (overrides the derived movie budget)",
     ),
     dry_run: bool = typer.Option(
         False,
@@ -95,19 +95,25 @@ def update_tmdb(
     else:
         console.print("  Max Movies: Unlimited")
     console.print(
-        f"  Min Popularity: {min_popularity or getattr(settings, 'tmdb_min_popularity', None)}"
+        f"  Min Popularity: {min_popularity if min_popularity is not None else getattr(settings, 'tmdb_min_popularity', None)}"
     )
-    console.print(f"  Min Votes: {min_votes or getattr(settings, 'tmdb_min_vote_count', None)}")
-    console.print(f"  Min Year: {min_year or getattr(settings, 'tmdb_min_release_year', None)}")
+    console.print(
+        f"  Min Votes: {min_votes if min_votes is not None else getattr(settings, 'tmdb_min_vote_count', None)}"
+    )
+    console.print(
+        f"  Min Year: {min_year if min_year is not None else getattr(settings, 'tmdb_min_release_year', None)}"
+    )
     console.print(
         f"  Max Year: {max_year or getattr(settings, 'tmdb_max_release_year', None) or 'Current year'}"
     )
-    console.print(f"  Max Pages: {max_pages or 'Unlimited (auto-splits if >500)'}")
+    console.print(
+        f"  Max Pages: {max_pages if max_pages is not None else 'Derived from movie cap (auto-splits if >500)'}"
+    )
     console.print()
 
     logger.info(
-        f"TMDB update: max_movies={max_movies}, min_year={min_year or getattr(settings, 'tmdb_min_release_year', None)}, "
-        f"max_year={max_year or 'None'}, min_popularity={min_popularity or getattr(settings, 'tmdb_min_popularity', None)}, "
+        f"TMDB update: max_movies={max_movies}, min_year={min_year if min_year is not None else getattr(settings, 'tmdb_min_release_year', None)}, "
+        f"max_year={max_year if max_year is not None else 'None'}, min_popularity={min_popularity if min_popularity is not None else getattr(settings, 'tmdb_min_popularity', None)}, "
         f"dry_run={dry_run}"
     )
 
@@ -185,13 +191,13 @@ def enrich_tmdb(
     max_movies: int | None = typer.Option(
         None,
         "--max-movies",
-        help="Maximum number of movies to enrich (uses --limit if not specified)",
+        help="Maximum detail requests (uses --limit or configured cap if omitted)",
     ),
     limit: int | None = typer.Option(
         None,
         "--limit",
         "-n",
-        help="Maximum number of movies to enrich (default: 100, same as --max-movies)",
+        help="Maximum detail requests (uses --max-movies or configured cap if omitted)",
     ),
     min_year: int | None = typer.Option(
         None,
@@ -212,7 +218,8 @@ def enrich_tmdb(
     """Fetch detailed TMDB data for movies that only have basic info.
 
     This command enriches movies discovered via 'ayne tmdb update' with
-    complete information including budget, revenue, genres, cast, etc.
+    complete information including budget, revenue, genres, cast, etc. It
+    calls TMDB only; run 'ayne omdb enrich' separately for OMDB data.
 
     Examples:
         ayne tmdb enrich --max-movies 500
@@ -220,7 +227,13 @@ def enrich_tmdb(
         ayne tmdb enrich --dry-run
     """
     # Resolve max_movies (prefer max_movies, fallback to limit, then config setting)
-    enrich_limit = max_movies or limit or getattr(settings, "tmdb_max_movies", None)
+    enrich_limit = (
+        max_movies
+        if max_movies is not None
+        else limit
+        if limit is not None
+        else getattr(settings, "tmdb_max_movies", None)
+    )
 
     # Use settings defaults for year filters if not provided
     min_year = min_year or getattr(settings, "tmdb_min_release_year", None)
@@ -367,6 +380,7 @@ def refresh_tmdb(
 
     This command only updates movies that already have TMDB details and are
     due for a refresh based on age-based refresh intervals (5-180 days).
+    It calls TMDB only; run 'ayne omdb refresh' separately for OMDB data.
 
     Use this for daily/weekly updates to keep recent movie data current.
 
@@ -386,7 +400,7 @@ def refresh_tmdb(
     max_year = max_year or getattr(settings, "tmdb_max_release_year", None)
 
     console.print("[bold]Configuration:[/bold]")
-    console.print(f"  Refresh Limit: {f'{limit:,} movies' if limit else 'Unlimited'}")
+    console.print(f"  Refresh Limit: {f'{limit:,} movies' if limit is not None else 'Unlimited'}")
     console.print(f"  Min Year: {min_year or 'No limit'}")
     console.print(f"  Max Year: {max_year or 'No limit'}")
     console.print()

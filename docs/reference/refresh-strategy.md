@@ -81,9 +81,11 @@ class MovieAge(Enum):
 | Mature | **90 days** | Most awards decided, ratings stable |
 | Archived | **180 days** | Minimal changes, semi-annual checks |
 
-### Box Office (The Numbers) - Future
+### Box Office (The Numbers) - Optional Enrichment
 
-Currently not implemented, but planned:
+The Numbers is implemented as a separate, polite HTML enrichment command. Its refresh
+intervals are available to the planning helpers, but global TMDB/OMDB refresh does not
+currently scrape it automatically:
 
 | Age Category | Refresh Every |
 | ------------- | --------------- |
@@ -201,8 +203,11 @@ For very stable old movies, we can "freeze" them to stop automatic refreshes ent
 A movie can be frozen if **ALL** conditions are met:
 
 1. **Age**: Must be ≥ 365 days since release
-2. **Has been updated**: At least once for TMDB or OMDB
+2. **Complete required sources**: Both TMDB and OMDB have successful update timestamps
 3. **Stability**: No data changes for 3 consecutive refresh cycles
+
+The Numbers is optional and does not block global freezing. A missing The Numbers page is
+not treated as a failed TMDB or OMDB refresh.
 
 ### Why Freeze?
 
@@ -220,8 +225,10 @@ ALTER TABLE movies ADD COLUMN consecutive_unchanged_refreshes INTEGER DEFAULT 0;
 
 This counter:
 
-- **Increments** when a refresh finds no changes
+- **Increments** when successful TMDB/OMDB refreshes find no changes and both required
+    source timestamps are present
 - **Resets to 0** when data changes are detected
+- **Does not accumulate** from a failed fetch or an incomplete required source set
 - **Triggers freezing** when it reaches 3
 
 ### Implementation
@@ -241,8 +248,8 @@ def should_freeze_movie(
     if days_since_release < 365:
         return False
 
-    # Must have been updated at least once
-    if last_tmdb_update is None and last_omdb_update is None:
+    # Both required sources must have completed successfully
+    if last_tmdb_update is None or last_omdb_update is None:
         return False
 
     # Must be stable (tracked in database)
@@ -254,15 +261,18 @@ def should_freeze_movie(
 
 ### Change Detection
 
-After each refresh, the orchestrator compares old vs new data:
+After each successful refresh, the orchestrator compares old vs new volatile fields:
 
 ```python
-def _check_if_data_changed(self, movie_id: int, before: pd.Series, after: pd.Series) -> bool:
-    """Check if movie data changed during refresh."""
-    # Simplified: check if we got new data
-    # More sophisticated: compare specific fields
-    return after['last_tmdb_update'] != before.get('last_tmdb_update') or \
-           after['last_omdb_update'] != before.get('last_omdb_update')
+def has_meaningful_change(
+    before: dict[str, Any] | None,
+    after: dict[str, Any],
+    fields: Sequence[str],
+) -> bool:
+    """Compare provider fields while tolerating small floating-point noise."""
+    if before is None:
+        return True
+    return any(before.get(field) != after.get(field) for field in fields)
 ```
 
 Then updates the counter:
@@ -377,77 +387,33 @@ query = get_movies_due_for_refresh_query(
 - Without filtering, the query would return movies needing *any* refresh, but then filter them out during processing
 - This optimization prevents unnecessary database queries and improves performance
 
+The source filters also require an identifier that the provider can process: TMDB
+refreshes require a TMDB ID and OMDB refreshes require a non-empty IMDb ID. Combined
+refreshes do not treat a missing OMDB timestamp as actionable when no IMDb ID exists, so
+records that cannot make progress do not dominate every batch.
+
 ### SQL Query Generation
 
 The system generates a SQL query to find movies needing refresh:
 
 ```sql
--- Example: Query for TMDB-only refresh (data_source='tmdb')
-SELECT
-    m.movie_id,
-    m.tmdb_id,
-    m.imdb_id,
-    m.title,
-    m.release_date,
-    m.last_tmdb_update,
-    m.last_omdb_update,
-    m.data_frozen,
-    DATEDIFF('day', m.release_date, CURRENT_DATE) as days_since_release
+-- Illustrative shape for data_source='tmdb'; the helper adds joins and fields.
+SELECT m.movie_id, m.tmdb_id, m.title, m.release_date
 FROM movies m
-WHERE
-    m.data_frozen = FALSE  -- Exclude frozen
-    AND (
-        -- Never refreshed TMDB
-        m.last_tmdb_update IS NULL
-
-        -- Recent (0-60 days): TMDB every 5 days
-        OR (
-            DATEDIFF('day', m.release_date, CURRENT_DATE) <= 60
-            AND (
-                m.last_tmdb_update IS NULL
-                OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 5
-            )
-        )
-
-        -- Established (60-180 days): TMDB every 15 days, OMDB every 30 days
-        OR (
-            DATEDIFF('day', m.release_date, CURRENT_DATE) > 60
-            AND DATEDIFF('day', m.release_date, CURRENT_DATE) <= 180
-            AND (
-                m.last_tmdb_update IS NULL
-                OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 15
-                OR m.last_omdb_update IS NULL
-                OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 30
-            )
-        )
-
-        -- Mature (180-365 days): TMDB every 30 days, OMDB every 90 days
-        OR (
-            DATEDIFF('day', m.release_date, CURRENT_DATE) > 180
-            AND DATEDIFF('day', m.release_date, CURRENT_DATE) <= 365
-            AND (
-                m.last_tmdb_update IS NULL
-                OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 30
-                OR m.last_omdb_update IS NULL
-                OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 90
-            )
-        )
-
-        -- Archived (>365 days): TMDB every 90 days, OMDB every 180 days
-        OR (
-            DATEDIFF('day', m.release_date, CURRENT_DATE) > 365
-            AND (
-                m.last_tmdb_update IS NULL
-                OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >= 90
-                OR m.last_omdb_update IS NULL
-                OR DATEDIFF('day', m.last_omdb_update, CURRENT_TIMESTAMP) >= 180
-            )
-        )
-    )
-ORDER BY
-    CASE WHEN m.last_full_refresh IS NULL THEN 0 ELSE 1 END,  -- Prioritize never-refreshed
-    m.release_date DESC  -- Then newest first
-LIMIT 100;  -- Configurable limit
+WHERE m.data_frozen = FALSE
+  AND m.tmdb_id IS NOT NULL
+  AND (
+      m.last_tmdb_update IS NULL
+      OR DATEDIFF('day', m.last_tmdb_update, CURRENT_TIMESTAMP) >=
+         CASE
+             WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 60 THEN 5
+             WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 180 THEN 15
+             WHEN DATEDIFF('day', m.release_date, CURRENT_DATE) <= 365 THEN 30
+             ELSE 90
+         END
+  )
+ORDER BY m.last_tmdb_update IS NULL DESC, m.release_date DESC
+LIMIT 100;
 ```
 
 ## Refresh Plan Calculation
@@ -461,11 +427,12 @@ def calculate_refresh_plan(movie: Dict[str, Any]) -> Dict[str, bool]:
     release_date = movie['release_date']
     last_tmdb = movie.get('last_tmdb_update')
     last_omdb = movie.get('last_omdb_update')
+    last_numbers = movie.get('last_numbers_update')
 
     return {
         'needs_tmdb': needs_tmdb_refresh(release_date, last_tmdb),
         'needs_omdb': needs_omdb_refresh(release_date, last_omdb),
-        'needs_numbers': False  # Future implementation
+        'needs_numbers': needs_numbers_refresh(release_date, last_numbers)
     }
 ```
 
@@ -531,7 +498,7 @@ if not needs_omdb.empty:
 Traditional approach: Update all 10,000 movies daily
 - TMDB calls: 10,000/day
 - OMDB calls: 10,000/day
-- Total: 20,000/day ❌ Exceeds limits
+- Total: 20,000/day; this is unnecessary work and can exceed OMDB's free quota
 
 Age-based approach: Update subset based on age
 - Recent (100 movies): Update every 5 days = 20/day
@@ -556,7 +523,7 @@ Age-based approach: Update subset based on age
 ### 4. **Performance**
 
 - Smaller batches = faster queries
-- Frozen movies excluded from queries
+- Frozen movies excluded from routine queries
 - Focus computational resources on active movies
 
 ## Tuning the Strategy
@@ -720,13 +687,14 @@ UPDATE movies SET data_frozen = FALSE
 WHERE EXTRACT(YEAR FROM release_date) >= 2020;
 ```
 
-### Problem: Never-Updated Movies
+### Problem: Never-Completed Movies
 
 **Check**:
 
 ```sql
 SELECT COUNT(*) FROM movies
-WHERE last_full_refresh IS NULL;
+WHERE last_tmdb_update IS NULL
+    OR (imdb_id IS NOT NULL AND imdb_id != '' AND last_omdb_update IS NULL);
 ```
 
 **Solution**: Run targeted refresh or increase limit

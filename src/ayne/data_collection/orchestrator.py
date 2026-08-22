@@ -109,11 +109,23 @@ class DataCollectionOrchestrator:
         from ayne.core.config import settings as _settings
 
         settings = cast(Settings, _settings)
-        min_popularity = cast(float, min_popularity or settings.tmdb_min_popularity)
-        min_vote_count = cast(int, min_vote_count or settings.tmdb_min_vote_count)
-        min_release_year = cast(int, min_release_year or settings.tmdb_min_release_year)
-        allowed_statuses = allowed_statuses or settings.tmdb_allowed_release_statuses
-        max_movies = max_movies or settings.tmdb_max_movies
+        min_popularity = cast(
+            float,
+            min_popularity if min_popularity is not None else settings.tmdb_min_popularity,
+        )
+        min_vote_count = cast(
+            int, min_vote_count if min_vote_count is not None else settings.tmdb_min_vote_count
+        )
+        min_release_year = cast(
+            int,
+            min_release_year if min_release_year is not None else settings.tmdb_min_release_year,
+        )
+        allowed_statuses = (
+            allowed_statuses
+            if allowed_statuses is not None
+            else settings.tmdb_allowed_release_statuses
+        )
+        max_movies = max_movies if max_movies is not None else settings.tmdb_max_movies
 
         logger.debug("Discovering movies from TMDB with filters...")
 
@@ -135,10 +147,6 @@ class DataCollectionOrchestrator:
         # Store in database
         df_movies = pd.DataFrame(movies)
         movies_for_db = df_movies[["tmdb_id", "title", "release_date"]].copy()
-
-        # Set last_tmdb_update to track discovery
-        now = datetime.now(UTC).isoformat()
-        movies_for_db["last_tmdb_update"] = now
 
         self.db.upsert_dataframe("movies", movies_for_db, key_columns=["tmdb_id"])
         logger.info(f"✅ Stored {len(movies)} movies")
@@ -188,7 +196,7 @@ class DataCollectionOrchestrator:
                 query += year_filter
 
         # Add limit at the end
-        if limit:
+        if limit is not None:
             query += f" LIMIT {limit}"
 
         movies_df = self.db.query(query)
@@ -243,18 +251,26 @@ class DataCollectionOrchestrator:
 
         # Use settings default if not provided
         allowed_statuses = allowed_statuses or settings.tmdb_allowed_release_statuses
-        omdb_max_movies = omdb_max_movies or settings.omdb_max_movies
 
-        # Never try to fetch more than what's actually left of today's OMDB
-        # daily quota - avoids burning a request just to discover it's already gone.
-        omdb_remaining_quota = get_remaining_quota(
-            self.db, "omdb", settings.omdb_daily_request_limit
-        )
-        omdb_max_movies = min(omdb_max_movies, omdb_remaining_quota)
-        if omdb_remaining_quota <= 0:
-            logger.warning(
-                "OMDB daily quota already exhausted for today - skipping OMDB fetch this run"
+        # OMDB quota handling belongs only to workflows that explicitly request
+        # OMDB. TMDB-only commands should not inspect or report OMDB state.
+        if fetch_omdb:
+            omdb_max_movies = (
+                omdb_max_movies if omdb_max_movies is not None else settings.omdb_max_movies
             )
+
+            # Never try to fetch more than what's actually left of today's OMDB
+            # daily quota - avoids burning a request just to discover it's gone.
+            omdb_remaining_quota = get_remaining_quota(
+                self.db, "omdb", settings.omdb_daily_request_limit
+            )
+            omdb_max_movies = min(omdb_max_movies, omdb_remaining_quota)
+            if omdb_remaining_quota <= 0:
+                logger.warning(
+                    "OMDB daily quota already exhausted for today - skipping OMDB fetch this run"
+                )
+        else:
+            omdb_max_movies = 0
 
         # Calculate refresh plans for all movies
         movies_df["refresh_plan"] = movies_df.apply(
@@ -318,11 +334,13 @@ class DataCollectionOrchestrator:
                     else None,
                 )
                 record_api_usage(self.db, "tmdb", len(tmdb_ids))
-                tmdb_fetched_ids.update(tmdb_ids)
-
                 if tmdb_data:
                     df_tmdb = pd.DataFrame(tmdb_data)
                     self.db.upsert_dataframe("tmdb_movies", df_tmdb, key_columns=["tmdb_id"])
+
+                    tmdb_fetched_ids.update(
+                        int(tmdb_id) for tmdb_id in df_tmdb["tmdb_id"].dropna().tolist()
+                    )
 
                     for _, new_row in df_tmdb.iterrows():
                         new_tmdb_id = int(new_row["tmdb_id"])
@@ -413,18 +431,34 @@ class DataCollectionOrchestrator:
                         row["imdb_id"]: row.to_dict() for _, row in before_df.iterrows()
                     }
 
-                    omdb_data = await self.omdb_client.get_batch_movies(
-                        imdb_ids,
-                        progress_callback=(
-                            lambda completed, batch_total: progress_callback(
-                                "Refreshing OMDB", completed, batch_total
+                    omdb_quota_exhausted = False
+                    try:
+                        omdb_data = await self.omdb_client.get_batch_movies(
+                            imdb_ids,
+                            progress_callback=(
+                                lambda completed, batch_total: progress_callback(
+                                    "Refreshing OMDB", completed, batch_total
+                                )
                             )
+                            if progress_callback
+                            else None,
                         )
-                        if progress_callback
-                        else None,
-                    )
-                    record_api_usage(self.db, "omdb", len(imdb_ids))
-                    omdb_fetched_ids.update(imdb_ids)
+                    except APIRateLimitError as exc:
+                        omdb_quota_exhausted = True
+                        omdb_data = exc.partial_data
+                        record_api_usage(self.db, "omdb", exc.items_processed)
+                        logger.warning(
+                            "OMDB quota reached during refresh after %d successful requests",
+                            exc.items_processed,
+                        )
+                    else:
+                        record_api_usage(self.db, "omdb", len(imdb_ids))
+
+                    if omdb_data:
+                        omdb_fetched_ids.update(
+                            str(imdb_id)
+                            for imdb_id in pd.DataFrame(omdb_data)["imdb_id"].dropna().tolist()
+                        )
 
                     if omdb_data:
                         df_omdb = pd.DataFrame(omdb_data)
@@ -466,7 +500,11 @@ class DataCollectionOrchestrator:
                         logger.debug("Updated last_full_refresh for movies with both updates")
 
                     if progress_callback:
-                        progress_callback("OMDB refresh complete", len(imdb_ids), len(imdb_ids))
+                        progress_callback(
+                            "OMDB refresh complete",
+                            len(omdb_data) if omdb_quota_exhausted else len(imdb_ids),
+                            len(imdb_ids),
+                        )
 
         # Update per-movie "consecutive unchanged" counters and freeze stable
         # movies - but only for movies actually fetched this cycle, and based on
@@ -504,13 +542,19 @@ class DataCollectionOrchestrator:
                 changed_by_omdb = pd.notna(imdb_id) and imdb_id in omdb_changed_ids
                 data_changed = changed_by_tmdb or changed_by_omdb
 
-                new_consecutive = (
-                    0 if data_changed else int(current["consecutive_unchanged_refreshes"]) + 1
-                )
-
                 release_date = _to_utc_datetime(current["release_date"])
                 last_tmdb = _to_utc_datetime(current["last_tmdb_update"])
                 last_omdb = _to_utc_datetime(current["last_omdb_update"])
+
+                # A movie cannot accumulate stability across an incomplete
+                # source set. This also prevents a series of TMDB-only checks
+                # from immediately freezing a movie when OMDB becomes available.
+                sources_complete = last_tmdb is not None and last_omdb is not None
+                new_consecutive = (
+                    0
+                    if data_changed or not sources_complete
+                    else int(current["consecutive_unchanged_refreshes"]) + 1
+                )
 
                 should_freeze = (
                     should_freeze_movie(release_date, last_tmdb, last_omdb, new_consecutive)
@@ -649,6 +693,7 @@ class DataCollectionOrchestrator:
         settings = cast(Settings, _settings)
 
         allowed_statuses = allowed_statuses or settings.tmdb_allowed_release_statuses
+        limit = limit if limit is not None else settings.tmdb_max_movies
 
         # Query movies that have tmdb_id but not detailed data yet
         query = """
@@ -667,7 +712,7 @@ class DataCollectionOrchestrator:
 
         query += " ORDER BY m.last_tmdb_update DESC"
 
-        if limit:
+        if limit is not None:
             query += f" LIMIT {limit}"
 
         movies_to_enrich = self.db.query(query)
@@ -755,6 +800,7 @@ class DataCollectionOrchestrator:
         from ayne.core.config import settings as _settings
 
         settings = cast(Settings, _settings)
+        limit = limit if limit is not None else settings.omdb_max_movies
 
         # Never try to fetch more than what's actually left of today's OMDB
         # daily quota - avoids burning a request just to discover it's already gone.
@@ -786,8 +832,7 @@ class DataCollectionOrchestrator:
             query += f" AND m.release_date <= '{max_release_year}-12-31'"
 
         query += " ORDER BY m.release_date DESC"
-
-        if limit:
+        if limit is not None:
             query += f" LIMIT {limit}"
 
         movies_to_enrich = self.db.query(query)
@@ -845,6 +890,7 @@ class DataCollectionOrchestrator:
 
         except UserCancelledError as e:
             # User cancelled operation - save partial data
+            record_api_usage(self.db, "omdb", e.items_processed)
             if e.items_processed > 0 and e.partial_data:
                 logger.info(
                     f"💾 Saving {len(e.partial_data)} movies fetched before cancellation..."
@@ -884,6 +930,7 @@ class DataCollectionOrchestrator:
             raise
         except APIRateLimitError as e:
             # OMDB daily quota exceeded - save what we got and re-raise
+            record_api_usage(self.db, "omdb", e.items_processed)
             if e.items_processed > 0 and e.partial_data:
                 logger.info(f"💾 Saving {len(e.partial_data)} movies fetched before quota limit...")
 
@@ -942,7 +989,7 @@ class DataCollectionOrchestrator:
 
         settings = cast(Settings, _settings)
 
-        limit = limit or settings.numbers_max_movies
+        limit = limit if limit is not None else settings.numbers_max_movies
 
         # Query movies that don't have a numbers_movies row yet. A real release
         # date is required since it's used both for filtering and as the
@@ -962,7 +1009,7 @@ class DataCollectionOrchestrator:
 
         query += " ORDER BY m.release_date DESC"
 
-        if limit:
+        if limit is not None:
             query += f" LIMIT {int(limit)}"
 
         movies_to_enrich = self.db.query(query)
@@ -985,7 +1032,12 @@ class DataCollectionOrchestrator:
         numbers_data = await self.numbers_client.get_batch_financial_data(
             movie_inputs, progress_callback=progress_callback
         )
-        record_api_usage(self.db, "numbers", len(movie_inputs) * 4)
+        requests_attempted = getattr(self.numbers_client, "last_request_count", None)
+        if not isinstance(requests_attempted, int):
+            # Preserve accounting for compatible custom clients that predate
+            # the request counter, while the built-in client reports exactly.
+            requests_attempted = len(movie_inputs) * 4
+        record_api_usage(self.db, "numbers", requests_attempted)
         if not numbers_data:
             logger.warning("No The Numbers data found for any of these movies")
             return 0

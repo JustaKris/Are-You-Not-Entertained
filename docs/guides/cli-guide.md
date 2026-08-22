@@ -39,6 +39,7 @@ Command groups:
 - `db` - Database management
 - `tmdb` - TMDB data collection
 - `omdb` - OMDB data enrichment
+- `numbers` - The Numbers financial enrichment
 - `collect` - Combined workflows
 - `validate` - Data validation
 
@@ -56,6 +57,9 @@ ayne tmdb update --max-movies 1000
 
 # Enrich with OMDB data
 ayne omdb enrich --max-movies 500
+
+# Optionally fill missing financial data
+ayne numbers enrich --max-movies 25
 
 # Run daily refresh
 ayne collect daily
@@ -164,10 +168,12 @@ The TMDB commands are organized into three distinct operations:
 2. **`enrich`** - Fetch detailed data for discovered movies (complete info, slower)
 3. **`refresh`** - Update existing movies that need data refresh (age-based)
 
-**⚠️ Important: TMDB API Limits**
+**TMDB discovery limits and budgets**
 
-- **500-page maximum**: TMDB's discover endpoint has a hard limit of 500 pages (~10,000 movies max per query)
-- **Workaround**: Use `--min-year` and `--max-year` to query different time ranges
+- **500-page maximum per query**: TMDB's discover endpoint returns about 20 movies per page and will not accept a page beyond 500 for one query.
+- **Automatic splitting**: AYNE recursively splits broad year ranges when a query would exceed that per-query ceiling.
+- **Work budget**: `--max-movies` caps stored discovery records and derives the number of pages to fetch when `--max-pages` is omitted. `--max-pages` is a global fetched-page budget across all recursively split ranges.
+- **No daily quota assumption**: TMDB does not publish the same daily quota model as OMDB, but rate limiting, retries, response time, and local resources still make bounded runs useful.
 - **Two-stage process**:
   1. **Discovery** (`tmdb update`): Fast bulk collection (20 movies/request, basic info)
   2. **Enrichment** (`tmdb enrich`): Individual detail fetches (1 movie/request, complete data)
@@ -177,10 +183,10 @@ The TMDB commands are organized into three distinct operations:
 Discover and store new movies from TMDB (basic info only):
 
 ```powershell
-# Full discovery (limited to ~10,000 movies by TMDB API)
+# Full discovery for the configured filters; still respects page safety and pacing
 ayne tmdb update --full
 
-# Strategy: Use year ranges to work around 500-page limit
+# Optional: use explicit ranges when you want separate, reviewable batches
 ayne tmdb update --min-year 2020 --max-year 2024 --max-movies 5000
 ayne tmdb update --min-year 2015 --max-year 2019 --max-movies 5000
 ayne tmdb update --min-year 2010 --max-year 2014 --max-movies 5000
@@ -194,16 +200,19 @@ ayne tmdb update --max-movies 1000 --dry-run
 
 **Options:**
 
-- `--full` - Unlimited discovery (automatic year-range splitting handles 500-page limit)
-- `--max-movies N` - Limit to N movies
+- `--full` - Remove the movie cap for this invocation; it does not disable page safety, pacing, retries, or filters
+- `--max-movies N` - Cap retained discovery records and derive a page-fetch budget when `--max-pages` is omitted
 - `--min-popularity N` - Minimum popularity score (default: 10.0)
 - `--min-votes N` - Minimum vote count (default: 50)
 - `--min-year YYYY` - Minimum release year (default: 1950)
 - `--max-year YYYY` - Maximum release year (default: current year)
-- `--max-pages N` - Maximum API pages per year range
+- `--max-pages N` - Global maximum number of TMDB pages fetched across all split ranges; overrides the derived budget
 - `--dry-run` - Preview without making changes
 
-**Note:** The system now automatically handles TMDB's 500-page limit by recursively splitting year ranges. You can safely specify wide ranges without manual adjustment.
+**Note:** The system automatically handles TMDB's 500-page-per-query limit by recursively
+splitting year ranges. A failed or duplicate page can leave a bounded run with fewer
+records than its requested movie cap, and `--max-pages` intentionally stops work when
+the global page budget is reached.
 
 ### Enrich Movies with Details
 
@@ -225,7 +234,7 @@ ayne tmdb enrich --limit 500 --dry-run
 
 **Options:**
 
-- `--limit N` - Maximum number of movies to enrich (default: 100)
+- `--limit N` / `--max-movies N` - Maximum number of detail requests; omitted means the configured cap, or all matching records when `tmdb_max_movies` is `null`
 - `--min-year YYYY` - Only enrich movies from this year onwards
 - `--max-year YYYY` - Only enrich movies up to this year
 - `--dry-run` - Preview without making changes
@@ -263,7 +272,8 @@ ayne tmdb refresh --limit 100 --dry-run
 
 **Options:**
 
-- `--limit N` - Maximum number of movies to refresh (default: 100)
+- `--limit N` - Maximum number of movies to refresh; omitted means the configured cap,
+  or unlimited when `tmdb_max_movies` is `null`
 - `--min-year YYYY` - Only refresh movies from this year onwards
 - `--max-year YYYY` - Only refresh movies up to this year
 - `--dry-run` - Preview without making changes
@@ -318,7 +328,10 @@ ayne omdb enrich --max-movies 500 --dry-run
 - Movies must have IMDb IDs (obtained from TMDB enrichment)
 - Run `ayne tmdb enrich` first if movies don't have IMDb IDs
 
-**Note:** OMDB has daily API limits. Use `--max-movies` to control quota usage.
+**Note:** OMDB has daily API limits. Use `--max-movies` to control quota usage. The
+command also checks the persistent `api_usage_daily` ledger before starting. If the
+remaining daily quota is lower than the requested cap, only the remaining quota is used.
+Completed records are retained when a quota limit or cancellation interrupts a batch.
 
 ### Refresh OMDB Data
 
@@ -340,10 +353,48 @@ ayne omdb refresh --limit 100 --dry-run
 
 **Options:**
 
-- `--limit N` - Maximum number of movies to refresh (default: 100)
+- `--limit N` - Maximum number of movies to refresh; omitted means the configured cap,
+  and the operation remains constrained by the daily OMDB quota
 - `--min-year YYYY` - Only refresh movies from this year onwards
 - `--max-year YYYY` - Only refresh movies up to this year
 - `--dry-run` - Preview without making changes
+
+## The Numbers Commands
+
+The Numbers is an optional enrichment source for production budgets, domestic and
+international box office, worldwide box office, and opening-weekend values. It scrapes
+public HTML pages rather than using an official API, so it is deliberately separate from
+the TMDB/OMDB workflow.
+
+### Enrich Missing Financial Records
+
+`ayne numbers enrich` selects movies that do not yet have a `numbers_movies` row and
+tries a small set of title/year URL candidates sequentially:
+
+```powershell
+# Inspect candidates without making requests
+ayne numbers enrich --max-movies 10 --dry-run
+
+# Add recent financial records at a small batch size
+ayne numbers enrich --min-year 2020 --max-year 2024 --max-movies 25
+
+# Use the configured default of 50 movies and 1 request/second
+ayne numbers enrich
+```
+
+**Options:**
+
+- `--max-movies N` - Maximum missing movie records to process; the default is
+  `numbers_max_movies` (`50` in the checked-in development configuration)
+- `--min-year YYYY` - Only process movies from this year onwards
+- `--max-year YYYY` - Only process movies up to this year
+- `--dry-run` - Preview candidates without making requests
+
+The client allows one request at a time and defaults to `1.0` request/second. A movie
+may require several bounded candidate requests before it is found or marked unavailable.
+Missing pages are normal partial results, and actual attempted requests are recorded in
+the daily usage ledger. Existing `numbers_movies` rows are not refreshed automatically
+by this command yet.
 
 ## Recommended Workflows
 
@@ -352,7 +403,7 @@ ayne omdb refresh --limit 100 --dry-run
 Build your movie database from scratch:
 
 ```powershell
-# Step 1: Discover movies in chunks (works around 500-page limit)
+# Step 1: Discover movies in bounded batches; broad ranges auto-split per query
 ayne tmdb update --min-year 2020 --max-year 2024 --max-movies 5000
 ayne tmdb update --min-year 2015 --max-year 2019 --max-movies 5000
 ayne tmdb update --min-year 2010 --max-year 2014 --max-movies 5000
@@ -411,9 +462,11 @@ ayne omdb refresh --limit 500
 ayne collect full --refresh-limit 1000 --max-omdb 500
 ```
 
-### Working Around TMDB 500-Page Limit
+### Collecting Large TMDB Ranges
 
-Strategy to collect large datasets:
+TMDB automatically splits broad year ranges so the per-query 500-page ceiling is not
+silently exceeded. Use `--full` for an uncapped retained-record operation, or use
+`--max-movies` and `--max-pages` to keep a run deliberately bounded:
 
 ```powershell
 # Collect by decade
@@ -425,7 +478,7 @@ ayne tmdb update --min-year 2000 --max-year 2009 --full
 ayne tmdb update --min-year 2020 --max-year 2024 --max-movies 5000
 ayne tmdb update --min-year 2015 --max-year 2019 --max-movies 5000
 
-# Then enrich all discoveries
+# Then enrich a deliberate 10,000-record batch
 ayne tmdb enrich --limit 10000
 ```
 
@@ -476,6 +529,7 @@ ayne collect daily --dry-run
 - `--omdb-limit N` - Maximum OMDB enrichments (uses config default)
 - `--discover` - Also discover new movies
 - `--discover-limit N` - Limit for discovery
+- `--discover-pages N` - Global TMDB page cap for discovery; overrides the derived page budget
 - `--include-frozen` - Include frozen movies in refresh (force refresh)
 
 During a live refresh, Rich reports the current stage and request progress. You will see
@@ -513,8 +567,9 @@ ayne collect full --dry-run
 
 **Options:**
 
-- `--max-tmdb N` - Maximum TMDB discoveries (None = unlimited)
+- `--max-tmdb N` - Maximum TMDB discoveries and derived page budget (omitted = unlimited)
 - `--max-omdb N` - Maximum OMDB enrichments
+- `--discover-pages N` - Global TMDB page cap for discovery; overrides the derived page budget
 - `--min-popularity N` - Minimum popularity filter
 - `--min-year YYYY` - Minimum release year
 - `--refresh-limit N` - Maximum movies to refresh (default: 100)
