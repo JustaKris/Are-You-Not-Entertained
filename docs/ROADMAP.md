@@ -37,26 +37,38 @@ Build a useful, inspectable vertical slice over the current DuckDB data. Keep th
 access and agent contracts replaceable so the structured source or model provider can
 evolve later.
 
-- Create a read-only `MovieQueryService` with parameterized, bounded DuckDB queries
-- Wrap title lookup, movie details, comparisons, and aggregations as typed LangChain tools
-- Build a stateful LangGraph workflow with explicit nodes, transitions, failure handling,
-  and a configurable chat-model provider
-- Add tool-calling guardrails so the graph can select approved tools but cannot execute
-  unrestricted SQL, arbitrary code, or unbounded retrieval
-- Keep structured facts and retrieved context distinct, cite the evidence returned by each,
-  and distinguish missing data from zero values or no matches
-- Add evaluation cases for tool selection, factuality, citation quality, ambiguity, empty
-  results, prompt injection, and unsupported questions
-- Define model-quality contracts for groundedness, answer completeness, citation accuracy,
-  abstention, and structured-output validity
-- Add a small golden evaluation set with deterministic tool and retrieval fixtures, then
-  run it as a regression gate for prompt, graph, model, and retriever changes
-- Measure latency, token usage, cost, tool-call success, retrieval quality, and refusal
-  behavior where applicable; document thresholds and known failure modes
-- Add optional LangSmith-compatible tracing and evaluation hooks without making the agent
-  depend on a hosted observability service
-- Expose the agent through a versioned FastAPI application with Pydantic request/response
-  models, generated OpenAPI documentation, and health/readiness endpoints
+- **2.1 Query contract:** Create a read-only `MovieQueryService` with parameterized,
+  bounded DuckDB queries and explicit not-found behavior.
+- **2.2 Response contract:** Define typed request, response, evidence, error, and abstention
+  models that distinguish missing data from zero values or no matches.
+- **2.3 Tool layer:** Wrap title lookup, movie details, comparisons, and aggregations as
+  typed LangChain tools backed only by the query service.
+- **2.4 Provider abstraction:** Add configurable model settings and a provider factory using
+  LangChain's provider-neutral interfaces; keep model selection outside the graph logic.
+- **2.5 Gemini implementation:** Configure Google's Gemini integration as the initial working
+  provider, using the existing key through environment-based settings and keeping live model
+  calls out of deterministic unit tests.
+- **2.6 Provider scaffolds:** Add clearly separated OpenAI and Anthropic adapter scaffolds
+  behind the same factory and configuration contract; they need not be enabled or fully
+  exercised until their credentials and integration tests are available.
+- **2.7 Graph workflow:** Build a stateful LangGraph workflow with explicit nodes,
+  transitions, failure handling, and a configurable chat model.
+- **2.8 Tool guardrails:** Ensure the graph can select approved tools but cannot execute
+  unrestricted SQL, arbitrary code, or unbounded operations.
+- **2.9 Grounded responses:** Keep database facts and tool evidence explicit in the graph
+  state, require evidence-aware final responses, and define safe abstention behavior.
+- **2.10 Quality contract:** Define checks for groundedness, answer completeness, citation
+  accuracy, abstention, structured-output validity, and unsupported questions.
+- **2.11 Evaluation set:** Add deterministic tool and fake-model fixtures plus a small golden
+  set covering tool selection, factuality, ambiguity, empty results, prompt injection, and
+  unsupported questions; run it as a regression gate for prompt, graph, and model changes.
+- **2.12 Operational metrics:** Measure latency, token usage, cost, tool-call success, and
+  refusal behavior; document thresholds and known failure modes.
+- **2.13 Tracing hooks:** Add optional LangSmith-compatible tracing and evaluation hooks
+  without making the agent depend on a hosted observability service.
+- **2.14 FastAPI surface:** Expose the agent through a versioned FastAPI application with
+  Pydantic request/response models, generated OpenAPI documentation, and health/readiness
+  endpoints.
 
 **Outcome:** A tested LangChain/LangGraph agent API with bounded tool calling and grounded
 structured queries, without unrestricted SQL or unsupported claims.
